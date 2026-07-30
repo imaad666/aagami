@@ -14,13 +14,13 @@ body,
 }
 
 :root {
-  --fog-r: 4;
-  --fog-g: 12;
-  --fog-b: 18;
+  --fog-r: 8;
+  --fog-g: 58;
+  --fog-b: 62;
 }
 
 body {
-  background: #010508;
+  background: #041c22;
   color: #c8d0cc;
   font-family: 'IBM Plex Sans', 'Helvetica Neue', sans-serif;
   overflow-x: hidden;
@@ -29,10 +29,10 @@ body {
 .experience-shell {
   position: relative;
   min-height: 560vh;
-  background: #010508;
+  background: #041c22;
 }
 
-/* Deep clinical wash — slow, desaturated, no candy glow */
+/* Blue–green wash — lean a bit greener */
 .gradient-wash {
   position: fixed;
   inset: 0;
@@ -40,21 +40,22 @@ body {
   pointer-events: none;
   background:
     radial-gradient(
-      ellipse 85% 55% at 82% 12%,
-      rgba(var(--fog-r), calc(var(--fog-g) + 28), calc(var(--fog-b) + 38), 0.38) 0%,
-      transparent 56%
+      ellipse 95% 60% at 80% 12%,
+      rgba(40, 170, 155, 0.36) 0%,
+      transparent 58%
     ),
-    radial-gradient(ellipse 65% 50% at 8% 88%, rgba(18, 32, 52, 0.42) 0%, transparent 54%),
-    radial-gradient(ellipse 55% 45% at 50% 55%, rgba(12, 28, 30, 0.5) 0%, transparent 62%),
+    radial-gradient(ellipse 72% 55% at 8% 88%, rgba(30, 100, 150, 0.36) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 48% 50%, rgba(25, 120, 100, 0.4) 0%, transparent 62%),
     linear-gradient(
       162deg,
-      #010407 0%,
+      #021418 0%,
       rgb(var(--fog-r), var(--fog-g), var(--fog-b)) 34%,
-      #06141c 62%,
-      #030a10 100%
+      #0a4850 55%,
+      #064038 78%,
+      #041c22 100%
     );
   background-size: 150% 150%, 140% 140%, 125% 125%, 100% 100%;
-  animation: wash-drift 40s ease-in-out infinite alternate;
+  animation: wash-drift 36s ease-in-out infinite alternate;
 }
 
 /* Soft vignette for seriousness */
@@ -68,17 +69,17 @@ body {
     linear-gradient(180deg, rgba(0, 0, 0, 0.28) 0%, transparent 18%, transparent 78%, rgba(0, 0, 0, 0.4) 100%);
 }
 
-/* Fine film grain */
+/* Fine film grain — denser */
 .grain-overlay {
   position: fixed;
   inset: -8%;
   z-index: 5;
   pointer-events: none;
-  opacity: 0.28;
+  opacity: 0.42;
   mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.6 0 0 0 0 0.62 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 220px 220px;
-  animation: grain-shift 0.35s steps(1) infinite;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.6 0 0 0 0 0.62 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  animation: grain-shift 0.28s steps(1) infinite;
 }
 
 /* Coarser secondary grain for texture depth */
@@ -87,11 +88,11 @@ body {
   inset: -12%;
   z-index: 5;
   pointer-events: none;
-  opacity: 0.12;
+  opacity: 0.22;
   mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.45' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)' opacity='0.7'/%3E%3C/svg%3E");
-  background-size: 320px 320px;
-  animation: grain-shift2 9s linear infinite;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23c)' opacity='0.75'/%3E%3C/svg%3E");
+  background-size: 280px 280px;
+  animation: grain-shift2 8s linear infinite;
 }
 
 .canvas-grain {
@@ -99,10 +100,10 @@ body {
   inset: -6%;
   z-index: 2;
   pointer-events: none;
-  opacity: 0.14;
+  opacity: 0.22;
   mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.75'/%3E%3C/svg%3E");
-  background-size: 160px 160px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='0.8'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
 }
 
 .canvas-stage {
