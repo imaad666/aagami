@@ -11,31 +11,35 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 // ── scratch vectors (reused, never leaked between frames) ──────────────────
 const cameraTarget = new THREE.Vector3()
 const lookAtTarget = new THREE.Vector3()
-const poreScale = new THREE.Vector3(1, 1, 1)
 const _up = new THREE.Vector3(0, 1, 0)
 const _dir = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
-const _fogA = new THREE.Color('#061820')
-const _fogB = new THREE.Color('#0a2438')
-const _fogC = new THREE.Color('#0c2a28')
+const _fogA = new THREE.Color('#030a10')
+const _fogB = new THREE.Color('#071420')
+const _fogC = new THREE.Color('#0a1818')
 const _fogNow = new THREE.Color()
+const _cursorDir = new THREE.Vector3()
+const _glowLite = new THREE.Color('#c8fff4')
+const _glowEm = new THREE.Color('#6ecfc4')
+const _tmpColor = new THREE.Color()
+const _tmpEm = new THREE.Color()
 
-// ── palette ────────────────────────────────────────────────────────────────
+// ── palette — desaturated clinical / graphite ─────────────────────────────
 const C = {
-  steel: '#6a7f88',
-  slate: '#4a5c66',
-  bone: '#c5cfc8',
-  teal: '#3d7a74',
-  deepTeal: '#2a5552',
-  ice: '#8aa4ae',
-  mutedBlue: '#4a6a82',
-  graphite: '#3a4248',
-  moss: '#5a6b4a',
-  copper: '#8a6a55',
-  ghost: '#9bb0b4',
+  steel: '#5a6a72',
+  slate: '#3e4c54',
+  bone: '#a8b2ac',
+  teal: '#2f5c58',
+  deepTeal: '#1e3e3c',
+  ice: '#6e8490',
+  mutedBlue: '#3a5470',
+  graphite: '#2e3438',
+  moss: '#4a5640',
+  copper: '#6e5648',
+  ghost: '#7a8c90',
 }
-const BOND_DARK = '#3e4a50'
-const BOND_MID = '#5a6870'
+const BOND_DARK = '#2e383c'
+const BOND_MID = '#4a565c'
 
 // ── helpers ────────────────────────────────────────────────────────────────
 const clamp = (v, min = 0, max = 1) => Math.min(Math.max(v, min), max)
@@ -55,22 +59,21 @@ function bondQuat(dir) {
   return _quat.setFromUnitVectors(_up, _dir).clone()
 }
 
-// ── scroll timeline ────────────────────────────────────────────────────────
-// 0%   5%──22%    22%──36%   36%──70%   72%──84%   82%──94%
-// idle  focus       poreIn   threading   poreOut    brand
+// ── scroll timeline — clearer beats, less rushed ───────────────────────────
+// idle → descend from top → pore reveals → thread → clear → brand
 const BEATS = {
-  focusStart: 0.05,
-  focusEnd: 0.22,
-  poreInStart: 0.22,
-  poreInEnd: 0.36,
-  transitStart: 0.36,
-  transitEnd: 0.70,
-  clearStart: 0.58,
-  clearEnd: 0.78,
-  poreOutStart: 0.72,
-  poreOutEnd: 0.84,
-  brandStart: 0.82,
-  brandEnd: 0.94,
+  focusStart: 0.04,
+  focusEnd: 0.26,
+  poreInStart: 0.18,
+  poreInEnd: 0.32,
+  transitStart: 0.34,
+  transitEnd: 0.68,
+  clearStart: 0.55,
+  clearEnd: 0.74,
+  poreOutStart: 0.7,
+  poreOutEnd: 0.82,
+  brandStart: 0.8,
+  brandEnd: 0.93,
 }
 
 const progressApi = { current: 0, target: 0 }
@@ -115,11 +118,11 @@ const STRUCTURES = [
 ]
 
 const MAT_PRESETS = [
-  { metalness: 0.55, roughness: 0.35, opacity: 1, emissiveIntensity: 0.08 },
-  { metalness: 0.15, roughness: 0.55, opacity: 1, emissiveIntensity: 0.05 },
-  { metalness: 0.3, roughness: 0.2, opacity: 0.55, emissiveIntensity: 0.12 },
-  { metalness: 0.7, roughness: 0.18, opacity: 0.92, emissiveIntensity: 0.15 },
-  { metalness: 0.05, roughness: 0.7, opacity: 0.4, emissiveIntensity: 0.2 },
+  { metalness: 0.5, roughness: 0.38, opacity: 1, emissiveIntensity: 0.1 },
+  { metalness: 0.1, roughness: 0.58, opacity: 1, emissiveIntensity: 0.06 },
+  { metalness: 0.25, roughness: 0.28, opacity: 0.55, emissiveIntensity: 0.12 },
+  { metalness: 0.68, roughness: 0.22, opacity: 0.94, emissiveIntensity: 0.14 },
+  { metalness: 0.04, roughness: 0.72, opacity: 0.42, emissiveIntensity: 0.16 },
 ]
 
 // ── App ────────────────────────────────────────────────────────────────────
@@ -138,7 +141,7 @@ export default function App() {
     let raf = 0
     let lastKey = -1
     const tick = () => {
-      progressApi.current = lerp(progressApi.current, progressApi.target, 0.085)
+      progressApi.current = lerp(progressApi.current, progressApi.target, 0.065)
       const brand = smooth(BEATS.brandStart, BEATS.brandEnd, progressApi.current)
       const key = Math.round(brand * 100)
       if (key !== lastKey) {
@@ -158,24 +161,28 @@ export default function App() {
   return (
     <main className="experience-shell">
       <div className="gradient-wash" aria-hidden />
+      <div className="shade-vignette" aria-hidden />
+      <div className="grain-coarse" aria-hidden />
       <div className="grain-overlay" aria-hidden />
 
       <div className="canvas-stage">
         <div className="canvas-grain" aria-hidden />
         <Canvas
           dpr={[1, 1.5]}
-          camera={{ position: [0, 0, 12], fov: 36, near: 0.1, far: 90 }}
-          gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
+          camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
+          gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
           onCreated={({ gl }) => {
-            gl.setClearColor(0x000000, 0)
+            gl.setClearColor(new THREE.Color('#030a10'), 1)
             gl.toneMapping = THREE.ACESFilmicToneMapping
-            gl.toneMappingExposure = 0.92
+            gl.toneMappingExposure = 0.88
           }}>
+          <color attach="background" args={['#030a10']} />
           <Atmosphere />
-          <ambientLight intensity={0.4} color="#8a9aa0" />
-          <directionalLight position={[6, 10, 4]} intensity={1.4} color="#e8eee8" />
-          <directionalLight position={[-5, 2, -4]} intensity={0.5} color="#4a6a78" />
-          <pointLight position={[0, 0, 6]} intensity={0.6} color="#6a9088" distance={30} />
+          <ambientLight intensity={0.38} color="#7a8888" />
+          <directionalLight position={[5, 9, 4]} intensity={1.25} color="#d8e0dc" />
+          <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#3a5060" />
+          <pointLight position={[0, 2, 5]} intensity={0.45} color="#4a6a66" distance={28} />
+          <CursorGlow />
 
           <CameraRig />
           <Starfield />
@@ -218,14 +225,10 @@ function Atmosphere() {
     document.documentElement.style.setProperty('--fog-b', String(Math.round(_fogNow.b * 255)))
   })
 
-  return <fog ref={fogRef} attach="fog" args={['#061820', 16, 38]} />
+  return <fog ref={fogRef} attach="fog" args={['#030a10', 20, 46]} />
 }
 
-// ── CameraRig ──────────────────────────────────────────────────────────────
-// Phase 0 (idle):    slightly elevated, looking at helix centre
-// Phase 1 (focus):   pull in, tilt to see helix entering pore from side
-// Phase 2 (transit): hold side-on view tracking the threading
-// Phase 3 (brand):   zoom back out, helix recedes, brand appears
+// ── CameraRig — elevated side view; tracks hero descending from top ────────
 function CameraRig() {
   const { camera } = useThree()
 
@@ -235,22 +238,52 @@ function CameraRig() {
     const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
     const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
 
-    // Camera moves from front-centre → slight right + closer for threading view
-    const camX = lerp(0, 1.8, focus) * (1 - brand)
-    const camY = lerp(0.5, 0.2, focus) * (1 - brand * 0.6)
-    const camZ = lerp(12, 9.5, focus) * lerp(1, 1.08, brand)
+    const camX = lerp(0.15, 2.6, focus) * (1 - brand * 0.85)
+    const camY = lerp(3.4, 1.45, focus) * lerp(1, 0.55, transit) * (1 - brand * 0.45) + brand * 0.35
+    const camZ = lerp(12, 9.0, focus) * lerp(1, 1.04, brand)
 
     cameraTarget.set(camX, camY, camZ)
-    // Look at the pore (y=0) during transit, drift up for brand
-    lookAtTarget.set(0, lerp(0.5, 0, focus) * (1 - transit * 0.6) + brand * 0.8, 0)
+    // Follow the descent: look high early, then pore plane, then brand
+    const lookY =
+      lerp(2.4, 1.2, focus) * (1 - transit) +
+      lerp(1.2, -0.2, transit) * (1 - brand) +
+      brand * 0.4
+    lookAtTarget.set(0, lookY, 0)
 
-    camera.position.lerp(cameraTarget, 1 - Math.exp(-delta * 3.2))
+    camera.position.lerp(cameraTarget, 1 - Math.exp(-delta * 2.8))
     camera.lookAt(lookAtTarget)
-    camera.fov = lerp(36, 32, focus)
+    camera.fov = lerp(34, 30, focus)
     camera.updateProjectionMatrix()
   })
 
   return null
+}
+
+// Soft glow that follows the cursor through the scene
+function CursorGlow() {
+  const light = useRef()
+  const target = useRef(new THREE.Vector3(0, 1.5, 2))
+  const { camera } = useThree()
+  const pointer = useRef({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const onMove = (e) => {
+      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1
+      pointer.current.y = -(e.clientY / window.innerHeight) * 2 + 1
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
+
+  useFrame((_, delta) => {
+    if (!light.current) return
+    _cursorDir.set(pointer.current.x, pointer.current.y, 0.45).unproject(camera)
+    _cursorDir.sub(camera.position).normalize()
+    target.current.copy(camera.position).addScaledVector(_cursorDir, 8)
+    light.current.position.lerp(target.current, 1 - Math.exp(-delta * 8))
+  })
+
+  return <pointLight ref={light} color="#7ec8c0" intensity={1.35} distance={9} decay={2} />
 }
 
 // ── AtomMaterial ───────────────────────────────────────────────────────────
@@ -324,15 +357,15 @@ function FieldMolecules() {
     posY.current  = new Float32Array(COUNT)
     const items = []
     for (let i = 0; i < COUNT; i += 1) {
-      const scale = 0.28 + seededRandom(i + 51) * 0.38  // smaller range, no giants
+      const scale = 0.35 + seededRandom(i + 51) * 0.45
       const structure = Math.floor(seededRandom(i + 99) * STRUCTURES.length)
       const coreR = STRUCTURES[structure].coreR
       const boundR = (coreR + 0.45) * scale
       items.push({
         base: [
-          (seededRandom(i + 2) - 0.5) * 13,   // tighter X spread — no edge clipping
-          -1.5 + seededRandom(i + 19) * 5,    // bias downward, away from hero
-          -1 + (seededRandom(i + 37) - 0.5) * 8, // push back in Z
+          (seededRandom(i + 2) - 0.5) * 13,
+          0.3 + seededRandom(i + 19) * 4.0,
+          -1 + (seededRandom(i + 37) - 0.5) * 8,
         ],
         scale,
         drift: 0.18 + seededRandom(i + 67) * 0.44,
@@ -397,23 +430,19 @@ function FieldMolecules() {
 function HoverMolecule({ item, fadeRef, posXZ, posY }) {
   const group = useRef()
   const hovered = useRef(false)
-  // glowAmt lerps 0→1 on hover, stays where it lands on mouse-out
   const glowAmt = useRef(0)
-  // sway: permanent displacement that accumulates — never springs back
   const swayX = useRef(0)
   const swayZ = useRef(0)
-  // velocity for organic drift after hover
   const velX = useRef(0)
   const velZ = useRef(0)
-  // per-molecule kick direction
   const swayAngle = useMemo(
     () => seededRandom(item.base[0] * 31.7 + item.base[2] * 17.3) * Math.PI * 2,
-    [item.base]
+    [item.base],
   )
   const glowSeeded = useRef(false)
   const wasHovered = useRef(false)
+  const baseScale = useRef(1)
 
-  // Priority 1 — writes posXZ first, then FieldMolecules (priority 2) separates
   useFrame((state, delta) => {
     if (!group.current) return
     const t = state.clock.elapsedTime
@@ -427,25 +456,21 @@ function HoverMolecule({ item, fadeRef, posXZ, posY }) {
     group.current.visible = true
 
     const isHov = hovered.current
+    // Fade glow in under cursor, out when leaving
+    glowAmt.current = lerp(glowAmt.current, isHov ? 1 : 0, 1 - Math.exp(-delta * (isHov ? 10 : 5)))
 
-    // ── glow ─────────────────────────────────────────────────────────
-    if (isHov) glowAmt.current = Math.min(1, glowAmt.current + delta * 4)
-
-    // ── sway impulse on fresh hover ───────────────────────────────────
     if (isHov && !wasHovered.current) {
-      velX.current += Math.cos(swayAngle) * 1.4
-      velZ.current += Math.sin(swayAngle) * 1.4
+      velX.current += Math.cos(swayAngle) * 0.9
+      velZ.current += Math.sin(swayAngle) * 0.9
     }
     wasHovered.current = isHov
 
-    // Integrate velocity — near-zero drag so it feels floaty
     const drag = Math.pow(0.012, delta)
     velX.current *= drag
     velZ.current *= drag
     swayX.current += velX.current * delta
     swayZ.current += velZ.current * delta
 
-    // Soft boundary
     const sdist = Math.hypot(swayX.current, swayZ.current)
     if (sdist > 2.5) {
       const pull = (sdist - 2.5) * 0.4 * delta
@@ -453,21 +478,16 @@ function HoverMolecule({ item, fadeRef, posXZ, posY }) {
       swayZ.current -= (swayZ.current / sdist) * pull
     }
 
-    // ── Step 1: write this molecule's orbital XZ into shared buffer ───
     const orbX = item.base[0] + Math.cos(t * item.drift * 0.65 + item.phase) * 0.3 + swayX.current
     const orbZ = item.base[2] + Math.sin(t * item.drift * 0.5 + item.phase) * 0.25 + swayZ.current
     if (posXZ.current) {
-      posXZ.current[idx * 2]     = orbX
+      posXZ.current[idx * 2] = orbX
       posXZ.current[idx * 2 + 1] = orbZ
     }
 
-    // ── Step 2 (after separation pass): read back adjusted XZ ─────────
-    // On this same frame FieldMolecules hasn't run yet (priority 2),
-    // so we use last frame's separated value — one frame lag, imperceptible.
-    const finalX = posXZ.current ? posXZ.current[idx * 2]     : orbX
+    const finalX = posXZ.current ? posXZ.current[idx * 2] : orbX
     const finalZ = posXZ.current ? posXZ.current[idx * 2 + 1] : orbZ
 
-    // ── position + rotation + scale ──────────────────────────────────
     group.current.position.set(
       finalX,
       item.base[1] + Math.sin(t * item.drift + item.phase) * 0.22,
@@ -475,188 +495,237 @@ function HoverMolecule({ item, fadeRef, posXZ, posY }) {
     )
     group.current.rotation.x = t * 0.04 * item.drift
     group.current.rotation.y = t * 0.08 * item.drift + item.phase
-    group.current.scale.setScalar(item.scale * (0.5 + fade * 0.5))
 
-    // ── glow ─────────────────────────────────────────────────────────
+    baseScale.current = item.scale * (0.5 + fade * 0.5) * (1 + glowAmt.current * 0.18)
+    group.current.scale.setScalar(baseScale.current)
+
+    const g = glowAmt.current
     group.current.traverse((obj) => {
       if (!obj.isMesh || obj.material?.emissiveIntensity == null) return
-      if (!glowSeeded.current) obj.userData.baseE = obj.material.emissiveIntensity
-      obj.material.emissiveIntensity = (obj.userData.baseE ?? 0) + glowAmt.current * 0.12
+      if (!glowSeeded.current) {
+        obj.userData.baseE = obj.material.emissiveIntensity
+        obj.userData.baseColor = obj.material.color.clone()
+        obj.userData.baseEmissive = obj.material.emissive.clone()
+      }
+      obj.material.emissiveIntensity = (obj.userData.baseE ?? 0) + g * 1.35
+      if (obj.userData.baseColor) {
+        _tmpColor.copy(obj.userData.baseColor).lerp(_glowLite, g * 0.35)
+        _tmpEm.copy(obj.userData.baseEmissive).lerp(_glowEm, g * 0.75)
+        obj.material.color.copy(_tmpColor)
+        obj.material.emissive.copy(_tmpEm)
+      }
     })
     if (!glowSeeded.current) glowSeeded.current = true
-  }, -1)  // priority -1 = runs before everything else including FieldMolecules (0)
+  }, -1)
 
   return (
     <group
       ref={group}
-      onPointerOver={(e) => { e.stopPropagation(); hovered.current = true }}
-      onPointerOut={() => { hovered.current = false }}>
+      onPointerOver={(e) => {
+        e.stopPropagation()
+        hovered.current = true
+        document.body.style.cursor = 'pointer'
+      }}
+      onPointerOut={() => {
+        hovered.current = false
+        document.body.style.cursor = 'auto'
+      }}>
       <StructureMesh structureIndex={item.structure} matPreset={item.matPreset} />
     </group>
   )
 }
 
-// ── HeroSphere — the star; threads downward through the nanopore ───────────
+// ── HeroSphere — from above the frame → hover over pore → thread down ──────
 const heroTarget = new THREE.Vector3()
 
 function HeroSphere() {
   const mesh = useRef()
   const mat = useRef()
+  const hovered = useRef(false)
+  const glowAmt = useRef(0)
 
   useFrame((state, delta) => {
     if (!mesh.current || !mat.current) return
     const p = progressApi.current
     const t = state.clock.elapsedTime
-    const focus   = smooth(BEATS.focusStart,   BEATS.focusEnd,   p)
+    const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
+    const poreReady = smooth(BEATS.poreInStart, BEATS.poreInEnd, p)
     const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
-    const brand   = smooth(BEATS.brandStart,   BEATS.brandEnd,   p)
+    const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
+    glowAmt.current = lerp(glowAmt.current, hovered.current ? 1 : 0, 1 - Math.exp(-delta * 8))
 
     if (p < BEATS.transitStart) {
+      const hoverY = lerp(5.2, lerp(2.4, 1.45, poreReady), focus)
       heroTarget.set(
-        lerp(1.2, 0, focus) + Math.sin(t * 0.35) * 0.06 * (1 - focus),
-        lerp(1.2, 1.6, focus) + Math.cos(t * 0.42) * 0.05 * (1 - focus),
-        lerp(0.5, 0.1, focus),
+        Math.sin(t * 0.28) * 0.05 * (1 - focus),
+        hoverY + Math.cos(t * 0.32) * 0.04 * (1 - focus * 0.7),
+        0.06,
       )
     } else if (p < BEATS.poreOutEnd) {
-      heroTarget.set(
-        Math.sin(t * 0.18) * 0.06,               // tiny wobble left-right while threading
-        lerp(1.6, -3.0, transit),
-        0.05,
-      )
+      const ease = transit * transit * (3 - 2 * transit)
+      heroTarget.set(Math.sin(t * 0.12) * 0.025, lerp(1.45, -2.6, ease), 0.04)
     } else {
       heroTarget.set(
-        lerp(0, 1.4, brand) + Math.sin(t * 0.28) * 0.04,
-        lerp(-3.0, 0.1, brand) + Math.cos(t * 0.22) * 0.03,
-        lerp(0.05, 0.2, brand),
+        lerp(0, 1.4, brand) + Math.sin(t * 0.22) * 0.025,
+        lerp(-2.6, 0.06, brand),
+        lerp(0.04, 0.16, brand),
       )
     }
 
-    mesh.current.position.lerp(heroTarget, 1 - Math.exp(-delta * 4.5))
+    mesh.current.position.lerp(heroTarget, 1 - Math.exp(-delta * 4.2))
+    mesh.current.rotation.x += delta * 0.18
+    mesh.current.rotation.y += delta * 0.24
 
-    // Continuous self-rotation — never stops
-    mesh.current.rotation.x += delta * 0.22
-    mesh.current.rotation.y += delta * 0.31
-
-    const size = lerp(0.28, 0.48, focus) * lerp(1, 0.82, transit * 0.4) * lerp(1, 0.22, brand)
+    const size =
+      lerp(0.34, 0.5, focus) *
+      lerp(1, 0.78, transit * 0.4) *
+      lerp(1, 0.2, brand) *
+      (1 + glowAmt.current * 0.12)
     mesh.current.scale.setScalar(size)
-
-    // emissive pulses always, stronger near pore
-    mat.current.emissiveIntensity = 0.14 + focus * 0.32 + Math.sin(t * 2.4) * 0.05
+    mat.current.emissiveIntensity = 0.16 + focus * 0.28 + Math.sin(t * 2) * 0.03 + glowAmt.current * 1.1
   })
 
   return (
-    <mesh ref={mesh}>
+    <mesh
+      ref={mesh}
+      position={[0, 5.2, 0.06]}
+      onPointerOver={(e) => {
+        e.stopPropagation()
+        hovered.current = true
+        document.body.style.cursor = 'pointer'
+      }}
+      onPointerOut={() => {
+        hovered.current = false
+        document.body.style.cursor = 'auto'
+      }}>
       <sphereGeometry args={[1, 48, 48]} />
       <meshStandardMaterial
         ref={mat}
-        color="#3d7a74"
-        emissive="#1e4a46"
-        emissiveIntensity={0.18}
-        metalness={0.55}
-        roughness={0.28}
+        color="#2f5c58"
+        emissive="#143430"
+        emissiveIntensity={0.16}
+        metalness={0.58}
+        roughness={0.32}
       />
     </mesh>
   )
 }
 
-// ── Nanopore ───────────────────────────────────────────────────────────────
-// Clean flat membrane with a pore hole. Rises from below as hero descends.
-// Just: membrane sheet (ring), tight glowing rim, scattered protein bumps.
+// ── Nanopore (Three.js) — thin SiN-style membrane + packed lattice, tight pore
 function Nanopore() {
   const group = useRef()
   const sheetMat = useRef()
-  const rimMat = useRef()
-  const nodeMatRefs = useRef([])
+  const edgeMat = useRef()
+  const lattice = useRef()
 
-  const nodes = useMemo(() => {
-    const list = []
-    for (let i = 0; i < 52; i++) {
-      const a = seededRandom(i * 3 + 1) * Math.PI * 2
-      const r = 1.3 + seededRandom(i * 3 + 2) * 4.0
-      list.push({
-        x: Math.cos(a) * r,
-        z: Math.sin(a) * r,
-        r: 0.035 + seededRandom(i * 3 + 3) * 0.055,
-        color: seededRandom(i) > 0.5 ? C.steel : C.slate,
-      })
+  const PORE = 0.72 // tighter aperture — no glowing rim
+
+  const latticeData = useMemo(() => {
+    const positions = []
+    const step = 0.2
+    const extent = 4.4
+    let i = 0
+    for (let x = -extent; x <= extent; x += step) {
+      for (let z = -extent; z <= extent; z += step) {
+        const ox = (Math.floor((z + extent) / step) % 2) * (step * 0.5)
+        const px = x + ox
+        const pr = Math.hypot(px, z)
+        if (pr < PORE + 0.06 || pr > 4.85) continue
+        positions.push(px, 0.02, z, 0.048 + seededRandom(i) * 0.028, seededRandom(i + 2))
+        i += 1
+      }
     }
-    return list
+    return positions
   }, [])
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (!group.current) return
     const p = progressApi.current
     const t = state.clock.elapsedTime
-
-    const fadeIn  = smooth(BEATS.poreInStart, BEATS.poreInEnd, p)
+    const fadeIn = smooth(BEATS.poreInStart, BEATS.poreInEnd, p)
     const fadeOut = smooth(BEATS.poreOutStart, BEATS.poreOutEnd, p)
     const vis = fadeIn * (1 - fadeOut)
 
     group.current.visible = vis > 0.004
+    group.current.position.y = 0
+    group.current.rotation.y = Math.sin(t * 0.06) * 0.015
 
-    // Rise from below — membrane climbs up from Y=-10 to Y=0
-    group.current.position.y = lerp(-10, 0, fadeIn) * (1 - fadeOut) + fadeOut * -10
-
-    // Slow pulse on XZ scale
-    const pulse = 1 + Math.sin(t * 1.4) * 0.005
-    group.current.scale.set(pulse, 1, pulse)
-
-    if (sheetMat.current) { sheetMat.current.opacity = vis * 0.78; sheetMat.current.needsUpdate = true }
-    if (rimMat.current)   { rimMat.current.opacity   = vis * 0.95; rimMat.current.needsUpdate   = true }
-    nodeMatRefs.current.forEach(m => { if (m) { m.opacity = vis; m.needsUpdate = true } })
+    if (sheetMat.current) sheetMat.current.opacity = vis * 0.82
+    if (edgeMat.current) edgeMat.current.opacity = vis * 0.7
+    if (lattice.current) {
+      lattice.current.children.forEach((child, idx) => {
+        if (!child.material) return
+        const shade = latticeData[idx * 5 + 4] ?? 0.5
+        child.material.opacity = vis * (0.45 + shade * 0.4)
+      })
+    }
   })
+
+  const atoms = useMemo(() => {
+    const list = []
+    for (let i = 0; i < latticeData.length; i += 5) {
+      list.push({
+        x: latticeData[i],
+        y: latticeData[i + 1],
+        z: latticeData[i + 2],
+        r: latticeData[i + 3],
+        shade: latticeData[i + 4],
+      })
+    }
+    return list
+  }, [latticeData])
 
   return (
     <group ref={group}>
-      {/* Flat membrane — ring with pore hole at centre */}
+      {/* Membrane body — tighter central hole, no rim accent */}
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.08, 6.2, 128]} />
+        <ringGeometry args={[PORE, 4.7, 128]} />
         <meshStandardMaterial
           ref={sheetMat}
-          color="#2a4450"
-          emissive="#0c1e28"
-          emissiveIntensity={0.22}
-          metalness={0.42}
-          roughness={0.58}
+          color="#2a5a56"
+          emissive="#0c2422"
+          emissiveIntensity={0.15}
+          metalness={0.4}
+          roughness={0.52}
           transparent
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Glowing inner rim — marks the pore opening */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[1.02, 1.22, 96]} />
+      {/* Outer edge band — sheet silhouette only */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 0]}>
+        <ringGeometry args={[4.55, 4.85, 96]} />
         <meshStandardMaterial
-          ref={rimMat}
-          color="#5a9a90"
-          emissive="#2a6a62"
-          emissiveIntensity={0.85}
-          metalness={0.5}
-          roughness={0.25}
+          ref={edgeMat}
+          color="#1a3836"
+          emissive="#081818"
+          emissiveIntensity={0.1}
+          metalness={0.45}
+          roughness={0.6}
           transparent
           side={THREE.DoubleSide}
+          depthWrite={false}
         />
       </mesh>
 
-      {/* Scattered protein bumps on membrane surface */}
-      {nodes.map((n, i) => (
-        <mesh
-          key={i}
-          position={[n.x, 0.012, n.z]}
-          ref={el => { if (el) nodeMatRefs.current[i] = el.material }}
-        >
-          <sphereGeometry args={[n.r, 7, 7]} />
-          <meshStandardMaterial
-            color={n.color}
-            emissive={n.color}
-            emissiveIntensity={0.06}
-            metalness={0.38}
-            roughness={0.55}
-            transparent
-          />
-        </mesh>
-      ))}
+      {/* Packed atomic lattice */}
+      <group ref={lattice}>
+        {atoms.map((n, i) => (
+          <mesh key={i} position={[n.x, n.y, n.z]}>
+            <sphereGeometry args={[n.r, 5, 5]} />
+            <meshStandardMaterial
+              color={n.shade > 0.55 ? '#3a726c' : '#1e4a46'}
+              emissive="#0a2826"
+              emissiveIntensity={0.06}
+              metalness={0.35}
+              roughness={0.5}
+              transparent
+              opacity={0.7}
+            />
+          </mesh>
+        ))}
+      </group>
     </group>
   )
 }
