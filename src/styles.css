@@ -145,21 +145,17 @@ body {
   z-index: 0;
   pointer-events: none;
   background:
-    radial-gradient(
-      ellipse 90% 55% at 78% 10%,
+    radial-gradient(ellipse 90% 55% at 78% 10%,
       rgba(18, 70, 68, 0.18) 0%,
-      transparent 58%
-    ),
+      transparent 58%),
     radial-gradient(ellipse 70% 50% at 10% 90%, rgba(12, 40, 58, 0.2) 0%, transparent 55%),
     radial-gradient(ellipse 50% 40% at 48% 48%, rgba(10, 48, 44, 0.22) 0%, transparent 62%),
-    linear-gradient(
-      162deg,
+    linear-gradient(162deg,
       #01080a 0%,
       rgb(var(--fog-r), var(--fog-g), var(--fog-b)) 34%,
       #041e24 55%,
       #031816 78%,
-      #020c10 100%
-    );
+      #020c10 100%);
   background-size: 150% 150%, 140% 140%, 125% 125%, 100% 100%;
   animation: wash-drift 36s ease-in-out infinite alternate;
 }
@@ -228,13 +224,12 @@ body {
   touch-action: none;
 }
 
-.manifesto-fill {
+.manifesto-wrap {
   position: absolute;
   z-index: 3;
   left: 50%;
   top: 56%;
   width: min(96vw, 68rem);
-  margin: 0;
   transform: translate(-50%, -50%);
   pointer-events: none;
   text-align: center;
@@ -245,16 +240,24 @@ body {
   letter-spacing: -0.015em;
 }
 
+.manifesto-fill {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font: inherit;
+  text-align: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
 .manifesto-char {
   display: inline;
   color: transparent;
-  background-image: linear-gradient(
-    90deg,
-    rgba(236, 242, 238, 0.98) 0%,
-    rgba(236, 242, 238, 0.98) calc(var(--char-fill, 0) * 100%),
-    rgba(150, 168, 162, 0.22) calc(var(--char-fill, 0) * 100%),
-    rgba(150, 168, 162, 0.22) 100%
-  );
+  background-image: linear-gradient(90deg,
+      rgba(236, 242, 238, 0.98) 0%,
+      rgba(236, 242, 238, 0.98) calc(var(--char-fill, 0) * 100%),
+      rgba(150, 168, 162, 0.22) calc(var(--char-fill, 0) * 100%),
+      rgba(150, 168, 162, 0.22) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -262,6 +265,30 @@ body {
 
 .manifesto-space {
   white-space: pre;
+}
+
+/* Radial glow clipped to letterforms only */
+.manifesto-cursor-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  font: inherit;
+  text-align: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: transparent;
+  background: radial-gradient(
+    circle 11rem at var(--mx, 50%) var(--my, 50%),
+    rgba(210, 255, 245, calc(0.75 * var(--glow, 0.7))) 0%,
+    rgba(74, 184, 168, calc(0.35 * var(--glow, 0.7))) 38%,
+    transparent 68%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 
 .brand-reveal {
@@ -274,6 +301,30 @@ body {
   text-align: center;
 }
 
+.brand-cursor-glow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+  font-size: clamp(2.8rem, 10vw, 8.5rem);
+  font-weight: 600;
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+  color: transparent;
+  background: radial-gradient(
+    circle 10rem at var(--mx, 50%) var(--my, 50%),
+    rgba(210, 255, 245, calc(0.7 * var(--glow, 0.7))) 0%,
+    rgba(74, 184, 168, calc(0.28 * var(--glow, 0.7))) 40%,
+    transparent 70%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
 .brand-name {
   color: #aeb8b4;
   font-size: clamp(2.8rem, 10vw, 8.5rem);
@@ -283,7 +334,7 @@ body {
   text-shadow: 0 0 50px rgba(20, 40, 42, 0.55);
 }
 
-.brand-name > span {
+.brand-name>span {
   color: #6a8680;
 }
 
@@ -301,13 +352,11 @@ body {
   height: 140%;
   border-radius: 50%;
   pointer-events: none;
-  background: radial-gradient(
-    circle,
-    rgba(200, 255, 245, 0.35) 0%,
-    rgba(120, 230, 210, 0.12) 28%,
-    rgba(70, 180, 165, 0.04) 55%,
-    transparent 82%
-  );
+  background: radial-gradient(circle,
+      rgba(200, 255, 245, 0.35) 0%,
+      rgba(120, 230, 210, 0.12) 28%,
+      rgba(70, 180, 165, 0.04) 55%,
+      transparent 82%);
   filter: blur(16px);
   mix-blend-mode: screen;
   transform: translate(-50%, -50%);
@@ -358,6 +407,7 @@ body {
   0% {
     background-position: 0% 8%, 100% 92%, 42% 52%, 0% 0%;
   }
+
   100% {
     background-position: 88% 38%, 8% 18%, 58% 42%, 100% 100%;
   }
@@ -367,15 +417,19 @@ body {
   0% {
     transform: translate(0, 0);
   }
+
   25% {
     transform: translate(-2%, 1%);
   }
+
   50% {
     transform: translate(1%, -2%);
   }
+
   75% {
     transform: translate(-1%, -1%);
   }
+
   100% {
     transform: translate(0, 0);
   }
@@ -385,6 +439,7 @@ body {
   0% {
     transform: translate(0, 0);
   }
+
   100% {
     transform: translate(8%, -6%);
   }

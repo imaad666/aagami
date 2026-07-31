@@ -150,6 +150,8 @@ const MANIFESTO =
   'Detecting molecular signatures with sub-nanometer precision. A paradigm shift in early-stage oncology.'
 
 const progressApi = { current: 0, target: 0 }
+// Shared cursor — 3D lights + DOM text shade
+const pointerApi = { x: 0, y: 0, nx: 0, ny: 0 }
 // Live hero sphere pose — molecules bounce off this instead of clipping through
 const heroApi = { x: 0, y: 7.35, z: -1.35, r: 0.34 }
 
@@ -209,9 +211,16 @@ export default function App() {
       const scrollable = document.documentElement.scrollHeight - window.innerHeight
       progressApi.target = scrollable > 0 ? clamp(window.scrollY / scrollable) : 0
     }
+    const onMove = (e) => {
+      pointerApi.x = e.clientX
+      pointerApi.y = e.clientY
+      pointerApi.nx = (e.clientX / window.innerWidth) * 2 - 1
+      pointerApi.ny = -(e.clientY / window.innerHeight) * 2 + 1
+    }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
+    window.addEventListener('pointermove', onMove, { passive: true })
 
     let raf = 0
     let lastKey = -1
@@ -244,6 +253,7 @@ export default function App() {
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
+      window.removeEventListener('pointermove', onMove)
       cancelAnimationFrame(raf)
     }
   }, [])
@@ -307,6 +317,7 @@ export default function App() {
             </span>
           </div>
           <p className="brand-tagline">Clarity in the fight against cancer</p>
+          <BrandCursorGlow active={ui.brand > 0.02} />
         </div>
       </div>
       <div className="scroll-space" aria-hidden />
@@ -314,38 +325,80 @@ export default function App() {
   )
 }
 
+function usePointerLocal(ref, active = true) {
+  useEffect(() => {
+    if (!active) return undefined
+    let raf = 0
+    let mx = 0
+    let my = 0
+    const tick = () => {
+      const el = ref.current
+      if (el) {
+        const r = el.getBoundingClientRect()
+        mx = lerp(mx, pointerApi.x - r.left, 0.2)
+        my = lerp(my, pointerApi.y - r.top, 0.2)
+        const topBias = Math.max(0, pointerApi.ny)
+        el.style.setProperty('--mx', `${mx}px`)
+        el.style.setProperty('--my', `${my}px`)
+        el.style.setProperty('--glow', String(0.55 + topBias * 0.4))
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [ref, active])
+}
+
 function ManifestoFill({ fill, opacity }) {
+  const wrapRef = useRef()
   const chars = useMemo(() => Array.from(MANIFESTO), [])
+  usePointerLocal(wrapRef, opacity > 0.02)
   if (opacity < 0.02) return null
 
   const n = chars.length
+  const glowNodes = chars.map((ch, i) => {
+    if (ch === ' ' && chars[i - 1] === '.') return <br key={`gbr-${i}`} />
+    return ch
+  })
+
   return (
-    <p className="manifesto-fill" style={{ opacity }} aria-label={MANIFESTO}>
-      {chars.map((ch, i) => {
-        // Sentence break: period → next line
-        if (ch === ' ' && chars[i - 1] === '.') {
-          return <br key={`br-${i}`} />
-        }
-        if (ch === ' ') {
+    <div className="manifesto-wrap" ref={wrapRef} style={{ opacity }} aria-label={MANIFESTO}>
+      <p className="manifesto-fill" aria-hidden>
+        {chars.map((ch, i) => {
+          if (ch === ' ' && chars[i - 1] === '.') {
+            return <br key={`br-${i}`} />
+          }
+          if (ch === ' ') {
+            return (
+              <span key={`s-${i}`} className="manifesto-space">
+                {' '}
+              </span>
+            )
+          }
+          const local = clamp(fill * n - i)
           return (
-            <span key={`s-${i}`} className="manifesto-space" aria-hidden>
-              {' '}
+            <span key={`c-${i}`} className="manifesto-char" style={{ '--char-fill': local }}>
+              {ch}
             </span>
           )
-        }
-        // Continuous head — fractional value = partial letter fill
-        const local = clamp(fill * n - i)
-        return (
-          <span
-            key={`c-${i}`}
-            className="manifesto-char"
-            style={{ '--char-fill': local }}
-            aria-hidden>
-            {ch}
-          </span>
-        )
-      })}
-    </p>
+        })}
+      </p>
+      {/* Cursor shade clipped to glyphs only — never washes the scene */}
+      <p className="manifesto-cursor-glow" aria-hidden>
+        {glowNodes}
+      </p>
+    </div>
+  )
+}
+
+function BrandCursorGlow({ active }) {
+  const ref = useRef()
+  usePointerLocal(ref, active)
+  if (!active) return null
+  return (
+    <div className="brand-cursor-glow" ref={ref} aria-hidden>
+      AAGAMISEQ
+    </div>
   )
 }
 
@@ -511,21 +564,11 @@ function CursorGlow() {
   const soft = useRef()
   const target = useRef(new THREE.Vector3(0, 2.5, 2))
   const { camera } = useThree()
-  const pointer = useRef({ x: 0, y: 0 })
-
-  useEffect(() => {
-    const onMove = (e) => {
-      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1
-      pointer.current.y = -(e.clientY / window.innerHeight) * 2 + 1
-    }
-    window.addEventListener('pointermove', onMove, { passive: true })
-    return () => window.removeEventListener('pointermove', onMove)
-  }, [])
 
   useFrame((_, delta) => {
     if (!light.current || !soft.current) return
-    const px = pointer.current.x
-    const py = pointer.current.y
+    const px = pointerApi.nx
+    const py = pointerApi.ny
 
     _cursorDir.set(px, py, 0.32).unproject(camera)
     _cursorDir.sub(camera.position).normalize()
@@ -615,11 +658,11 @@ function FieldMolecules() {
   // current world-space XZ positions for every molecule — written each frame
   // by HoverMolecule, then the separation pass reads + adjusts them
   const posXZ = useRef(null)  // Float32Array [x0,z0, x1,z1, ...]
-  const posY  = useRef(null)  // Float32Array [y0, y1, ...]
+  const posY = useRef(null)  // Float32Array [y0, y1, ...]
 
   const layout = useMemo(() => {
     posXZ.current = new Float32Array(COUNT * 2)
-    posY.current  = new Float32Array(COUNT)
+    posY.current = new Float32Array(COUNT)
     const items = []
     for (let i = 0; i < COUNT; i += 1) {
       const scale = 0.35 + seededRandom(i + 51) * 0.45
@@ -678,9 +721,9 @@ function FieldMolecules() {
             const push = (minDist - dist) * 0.5
             const nx = (dx / dist) * push
             const nz = (dz / dist) * push
-            px[a * 2]     += nx
+            px[a * 2] += nx
             px[a * 2 + 1] += nz
-            px[b * 2]     -= nx
+            px[b * 2] -= nx
             px[b * 2 + 1] -= nz
           }
         }
