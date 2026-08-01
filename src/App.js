@@ -411,13 +411,9 @@ function EcosystemSection() {
   const sectionRef = useRef(null)
   const [pull, setPull] = useState(0)
   const [opens, setOpens] = useState(() => ECOSYSTEM_ITEMS.map(() => 0))
-  const [mobile, setMobile] = useState(false)
+  const [active, setActive] = useState(false)
 
   useEffect(() => {
-    const onResize = () => setMobile(window.innerWidth < 900)
-    onResize()
-    window.addEventListener('resize', onResize)
-
     let raf = 0
     let running = true
     const update = () => {
@@ -427,25 +423,23 @@ function EcosystemSection() {
         const vh = window.innerHeight
         const start = el.offsetTop
         const span = Math.max(1, el.offsetHeight - vh)
-        const t = clamp((window.scrollY - start) / span)
+        const y = window.scrollY
+        const t = clamp((y - start) / span)
+        const inView = y + vh > start && y < start + el.offsetHeight
+        setActive(inView)
 
-        // Rhythmic timeline: pull sheet, then four equal column beats
-        const PULL = 0.22
-        const pullTarget = clamp(t / PULL)
-        const pullEase = pullTarget * pullTarget * (3 - 2 * pullTarget)
-        setPull((prev) => lerp(prev, pullEase, 0.28))
+        // Grow sheet from bottom over AAGAMISEQ, then equal column beats
+        const PULL = 0.24
+        const pullTarget = smoother(0, PULL, t)
+        setPull((prev) => lerp(prev, pullTarget, 0.32))
 
         const rest = 1 - PULL
         const slot = rest / ECOSYSTEM_ITEMS.length
         const nextOpens = ECOSYSTEM_ITEMS.map((_, i) => {
-          if (mobile) {
-            const a = PULL * 0.4 + i * slot
-            return smoother(a, a + slot * 0.75, t)
-          }
           const a = PULL + i * slot
-          return smoother(a, a + slot * 0.72, t)
+          return smoother(a, a + slot * 0.7, t)
         })
-        setOpens((prev) => prev.map((v, i) => lerp(v, nextOpens[i], 0.28)))
+        setOpens((prev) => prev.map((v, i) => lerp(v, nextOpens[i], 0.32)))
       }
       raf = requestAnimationFrame(update)
     }
@@ -453,23 +447,24 @@ function EcosystemSection() {
     return () => {
       running = false
       cancelAnimationFrame(raf)
-      window.removeEventListener('resize', onResize)
     }
-  }, [mobile])
+  }, [])
 
-  const sheetY = (1 - pull) * 100
+  const sheetH = Math.max(0, Math.min(100, pull * 100))
 
   return (
     <section id="ecosystem" className="ecosystem" ref={sectionRef}>
-      <div className="ecosystem-track">
-        <div
-          className={`ecosystem-sheet${pull > 0.015 ? ' is-active' : ''}`}
-          style={{ transform: `translate3d(0, ${sheetY.toFixed(3)}%, 0)` }}>
+      <div className="ecosystem-track" aria-hidden />
+      <div
+        className={`ecosystem-sheet${active && pull > 0.01 ? ' is-active' : ''}`}
+        style={{ height: `${sheetH.toFixed(3)}vh` }}
+        aria-hidden={pull < 0.02}>
+        <div className="ecosystem-sheet-inner">
           <div className="ecosystem-intro">
             <p className="ecosystem-eyebrow">Our Ecosystem</p>
             <h2 className="ecosystem-heading">
-              We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to the
-              final clinical insight.
+              We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to
+              the final clinical insight.
             </h2>
           </div>
 
@@ -485,7 +480,7 @@ function EcosystemSection() {
                     className="ecosystem-col-reveal"
                     style={{
                       opacity: open,
-                      transform: `translate3d(0, ${(1 - open) * 22}px, 0)`,
+                      transform: `translate3d(0, ${(1 - open) * 18}px, 0)`,
                     }}>
                     <p className="ecosystem-col-body">{item.body}</p>
                     <ul className="ecosystem-col-points">
