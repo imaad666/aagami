@@ -210,11 +210,14 @@ export default function App() {
 
   useEffect(() => {
     const onScroll = () => {
-      // Progress is driven only by the hero shell so the blast finishes
-      // before the ecosystem section enters the viewport.
       const shell = document.querySelector('.experience-shell')
-      const shellScroll = shell ? Math.max(1, shell.offsetHeight - window.innerHeight) : 1
-      progressApi.target = clamp(window.scrollY / shellScroll)
+      const total = shell
+        ? Math.max(1, shell.offsetHeight - window.innerHeight)
+        : Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
+      // Finish the full ball → AAGAMISEQ beat before the end hold; then ecosystem
+      const hold = Math.min(total * 0.18, window.innerHeight * 1.15)
+      const animScroll = Math.max(1, total - hold)
+      progressApi.target = clamp(window.scrollY / animScroll)
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -256,14 +259,15 @@ export default function App() {
   }, [])
 
   return (
-    <>
+    <main>
       <SiteNav />
-      <div className="gradient-wash" aria-hidden />
-      <div className="shade-vignette" aria-hidden />
-      <div className="grain-coarse" aria-hidden />
-      <div className="grain-overlay" aria-hidden />
 
-      <main className="experience-shell">
+      <div className="experience-shell">
+        <div className="gradient-wash" aria-hidden />
+        <div className="shade-vignette" aria-hidden />
+        <div className="grain-coarse" aria-hidden />
+        <div className="grain-overlay" aria-hidden />
+
         <div className="canvas-stage">
           <div className="canvas-grain" aria-hidden />
           <Canvas
@@ -318,9 +322,11 @@ export default function App() {
           </div>
         </div>
         <div className="scroll-space" aria-hidden />
-      </main>
+        <div className="experience-end-hold" aria-hidden />
+      </div>
+
       <EcosystemSection />
-    </>
+    </main>
   )
 }
 
@@ -368,97 +374,65 @@ function ManifestoFill({ fill, opacity }) {
 
 const ECOSYSTEM_ITEMS = [
   {
-    id: 'readout',
-    category: 'Hardware',
+    kicker: 'The Engine of Discovery',
     title: 'Core Readout Device',
-    subtitle: 'The Engine of Discovery',
-    copy:
-      'Ultra-low-noise sensing hardware for high-precision current measurement and consistent signal readout from nanopore chips.',
+    body: 'Ultra-low-noise sensing hardware for high-precision current measurement and consistent signal readout from nanopore chips.',
     points: ['Pico-ampere sensitivity', 'Multi-channel I/O', 'Compact benchtop form factor'],
     cta: 'Coming Soon',
-    ctaHref: null,
+    ctaActive: false,
   },
   {
-    id: 'chips',
-    category: 'Sensors',
+    kicker: 'Custom-Engineered Precision',
     title: 'Solid-State Nanopore Chips',
-    subtitle: 'Custom-Engineered Precision',
-    copy:
-      'Silicon-nitride membranes with atomically precise pores, tuned to specific biomarker sizes for reliable, high-fidelity sensing.',
+    body: 'Silicon-nitride membranes with atomically precise pores, tuned to specific biomarker sizes for reliable, high-fidelity sensing.',
     points: ['Custom pore diameters', 'High durability', 'Sub-nanometer precision'],
     cta: 'Contact Sales',
-    ctaHref: '#contact',
+    ctaActive: true,
   },
   {
-    id: 'software',
-    category: 'Software',
+    kicker: 'Intelligent Signal Processing',
     title: 'AI Analysis Software',
-    subtitle: 'Intelligent Signal Processing',
-    copy:
-      'A cloud-native suite using deep learning to classify molecular signatures and identify cancer markers with real-time analysis.',
+    body: 'A cloud-native suite using deep learning to classify molecular signatures and identify cancer markers with real-time analysis.',
     points: ['Real-time functionality', 'Automated anomaly detection', 'Clinical reporting dashboard'],
     cta: 'Coming Soon',
-    ctaHref: null,
+    ctaActive: false,
   },
   {
-    id: 'kits',
-    category: 'Workflow',
+    kicker: 'Standardized Workflow',
     title: 'Consumables & Kits',
-    subtitle: 'Standardized Workflow',
-    copy:
-      'Ready-to-use sample prep kits and buffer solutions, optimized for high signal-to-noise and consistent, repeatable assay workflows.',
+    body: 'Ready-to-use sample prep kits and buffer solutions, optimized for high signal-to-noise and consistent, repeatable assay workflows.',
     points: ['Fast sample prep', 'High stability reagents', 'Lot-to-lot consistency'],
     cta: 'Coming Soon',
-    ctaHref: null,
+    ctaActive: false,
   },
 ]
 
 function EcosystemSection() {
   return (
     <section id="ecosystem" className="ecosystem">
-      <div className="ecosystem-top">
-        <p className="ecosystem-kicker">Our Ecosystem</p>
+      <div className="ecosystem-intro">
+        <p className="ecosystem-eyebrow">Our Ecosystem</p>
         <h2 className="ecosystem-heading">
-          A complete path from physical sensor to clinical insight
+          We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to the
+          final clinical insight.
         </h2>
-        <p className="ecosystem-lead">
-          We provide a complete, integrated solution for single-molecule sensing, from the physical
-          sensor to the final clinical insight.
-        </p>
       </div>
 
       <div className="ecosystem-grid">
         {ECOSYSTEM_ITEMS.map((item) => (
-          <article key={item.id} className="ecosystem-col">
-            <div className="ecosystem-media" aria-hidden>
-              {/* Image slot — drop assets in later */}
-              <div className="ecosystem-media-skeleton">
-                <span>Image</span>
-              </div>
-              <div className="ecosystem-media-veil" />
-            </div>
-
-            <div className="ecosystem-reveal">
-              <p className="ecosystem-subtitle">{item.subtitle}</p>
-              <p className="ecosystem-copy">{item.copy}</p>
-              <ul className="ecosystem-points">
+          <article key={item.title} className="ecosystem-col" tabIndex={0}>
+            <div className="ecosystem-col-reveal">
+              <p className="ecosystem-col-body">{item.body}</p>
+              <ul className="ecosystem-col-points">
                 {item.points.map((point) => (
                   <li key={point}>{point}</li>
                 ))}
               </ul>
-              {item.ctaHref ? (
-                <a className="ecosystem-cta is-link" href={item.ctaHref}>
-                  {item.cta}
-                  <span aria-hidden>↗</span>
-                </a>
-              ) : (
-                <span className="ecosystem-cta">{item.cta}</span>
-              )}
+              <span className={`ecosystem-col-cta${item.ctaActive ? ' is-active' : ''}`}>{item.cta}</span>
             </div>
-
-            <div className="ecosystem-foot">
-              <p className="ecosystem-cat">{item.category}</p>
-              <h3 className="ecosystem-title">{item.title}</h3>
+            <div className="ecosystem-col-foot">
+              <p className="ecosystem-col-kicker">{item.kicker}</p>
+              <h3 className="ecosystem-col-title">{item.title}</h3>
             </div>
           </article>
         ))}
