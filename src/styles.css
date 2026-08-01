@@ -376,15 +376,15 @@ body {
   animation: wash-drift 36s ease-in-out infinite alternate;
 }
 
-/* Soft vignette — darker corners */
+/* Soft vignette — darker corners (no bottom band — conflicts with ecosystem sheet) */
 .shade-vignette {
   position: fixed;
   inset: 0;
   z-index: 4;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 72% 68% at 50% 45%, transparent 30%, rgba(0, 0, 0, 0.68) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, transparent 14%, transparent 80%, rgba(0, 0, 0, 0.48) 100%);
+    radial-gradient(ellipse 72% 68% at 50% 42%, transparent 32%, rgba(0, 0, 0, 0.55) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, transparent 14%, transparent 100%);
 }
 
 /* Fine film grain — quieter */
@@ -641,7 +641,8 @@ body {
   overflow: hidden;
   background: #000;
   pointer-events: none;
-  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
+  border: 0;
 }
 
 .ecosystem-sheet.is-active {
@@ -654,16 +655,20 @@ body {
   right: 0;
   bottom: 0;
   top: 0;
-  height: auto;
-  min-height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   background: #000;
+}
+
+/* Once fully covering, switch to Dognosis layout: intro top, titles bottom */
+.ecosystem-sheet.is-full .ecosystem-sheet-inner {
+  justify-content: flex-end;
 }
 
 .ecosystem-intro {
   flex: 0 0 auto;
+  order: -1;
   max-width: 52rem;
   margin: 0;
   padding: 0 1.5rem;
@@ -675,23 +680,16 @@ body {
   transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease;
 }
 
-.ecosystem-sheet.is-tall .ecosystem-intro {
+.ecosystem-sheet.is-tall .ecosystem-intro,
+.ecosystem-sheet.is-full .ecosystem-intro {
   opacity: 1;
-  max-height: 12rem;
-  padding: 0.75rem 1.5rem 0.85rem;
+  max-height: 14rem;
+  padding: 5.1rem 1.5rem 1rem;
   pointer-events: auto;
 }
 
-.ecosystem-sheet.is-full .ecosystem-intro {
-  max-height: none;
-  padding: 5.1rem 1.5rem 1rem;
-}
-
 @media (min-width: 900px) {
-  .ecosystem-sheet.is-tall .ecosystem-intro {
-    padding: 0.75rem 2.5rem 0.9rem;
-  }
-
+  .ecosystem-sheet.is-tall .ecosystem-intro,
   .ecosystem-sheet.is-full .ecosystem-intro {
     padding: 5.1rem 2.5rem 1.1rem;
   }
@@ -720,12 +718,12 @@ body {
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
-  border-top: 1px solid transparent;
+  border-top: 0;
 }
 
-.ecosystem-sheet.is-tall .ecosystem-grid {
-  border-top-color: rgba(255, 255, 255, 0.1);
+.ecosystem-sheet.is-full .ecosystem-grid {
   flex: 1 1 auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @media (min-width: 900px) {
@@ -738,17 +736,21 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   min-height: 0;
-  padding: 0.85rem 1.25rem 1.5rem;
+  padding: 1rem 1.25rem 1.15rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
+.ecosystem-sheet.is-full .ecosystem-col {
+  justify-content: flex-end;
+  height: 100%;
+  padding: 1.1rem 1.35rem 1.65rem;
+}
+
 @media (min-width: 900px) {
   .ecosystem-col {
-    height: 100%;
-    padding: 0.85rem 1.35rem 1.65rem;
     border-bottom: 0;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
   }
@@ -782,6 +784,12 @@ body {
     right: 1.35rem;
     bottom: 5.4rem;
   }
+}
+
+.ecosystem-col-foot {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
 }
 
 .ecosystem-col-body {
