@@ -422,24 +422,24 @@ function EcosystemSection() {
       if (el) {
         const vh = window.innerHeight
         const start = el.offsetTop
-        const span = Math.max(1, el.offsetHeight - vh)
         const y = window.scrollY
+        const span = Math.max(1, el.offsetHeight - vh)
         const t = clamp((y - start) / span)
-        const inView = y + vh > start && y < start + el.offsetHeight
-        setActive(inView)
+        setActive(y + vh > start && y < start + el.offsetHeight)
 
-        // Grow sheet from bottom over AAGAMISEQ, then equal column beats
-        const PULL = 0.24
-        const pullTarget = smoother(0, PULL, t)
-        setPull((prev) => lerp(prev, pullTarget, 0.32))
+        // Cover AAGAMISEQ within the first viewport of scroll — keep hero pinned under it
+        const pullTarget = clamp((y - start) / (vh * 0.9))
+        const pullEase = pullTarget * pullTarget * (3 - 2 * pullTarget)
+        setPull((prev) => lerp(prev, pullEase, 0.34))
 
-        const rest = 1 - PULL
-        const slot = rest / ECOSYSTEM_ITEMS.length
+        // Column beats only after the sheet is fully up
+        const revealT = clamp((t - 0.2) / 0.8)
+        const slot = 1 / ECOSYSTEM_ITEMS.length
         const nextOpens = ECOSYSTEM_ITEMS.map((_, i) => {
-          const a = PULL + i * slot
-          return smoother(a, a + slot * 0.7, t)
+          const a = i * slot
+          return smoother(a, a + slot * 0.7, revealT)
         })
-        setOpens((prev) => prev.map((v, i) => lerp(v, nextOpens[i], 0.32)))
+        setOpens((prev) => prev.map((v, i) => lerp(v, nextOpens[i], 0.34)))
       }
       raf = requestAnimationFrame(update)
     }
@@ -456,7 +456,9 @@ function EcosystemSection() {
     <section id="ecosystem" className="ecosystem" ref={sectionRef}>
       <div className="ecosystem-track" aria-hidden />
       <div
-        className={`ecosystem-sheet${active && pull > 0.01 ? ' is-active' : ''}`}
+        className={`ecosystem-sheet${active && pull > 0.008 ? ' is-active' : ''}${pull > 0.78 ? ' is-tall' : ''}${
+          pull > 0.98 ? ' is-full' : ''
+        }`}
         style={{ height: `${sheetH.toFixed(3)}vh` }}
         aria-hidden={pull < 0.02}>
         <div className="ecosystem-sheet-inner">
@@ -480,7 +482,7 @@ function EcosystemSection() {
                     className="ecosystem-col-reveal"
                     style={{
                       opacity: open,
-                      transform: `translate3d(0, ${(1 - open) * 18}px, 0)`,
+                      transform: `translate3d(0, ${(1 - open) * 16}px, 0)`,
                     }}>
                     <p className="ecosystem-col-body">{item.body}</p>
                     <ul className="ecosystem-col-points">

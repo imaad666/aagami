@@ -575,7 +575,7 @@ body {
 }
 
 .experience-end-hold {
-  height: 100vh;
+  height: 160vh;
   pointer-events: none;
 }
 
@@ -653,9 +653,12 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 100vh;
+  top: 0;
+  height: auto;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   background: #000;
 }
 
@@ -663,13 +666,34 @@ body {
   flex: 0 0 auto;
   max-width: 52rem;
   margin: 0;
-  padding: 5.25rem 1.5rem 1rem;
+  padding: 0 1.5rem;
   text-align: left;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease;
+}
+
+.ecosystem-sheet.is-tall .ecosystem-intro {
+  opacity: 1;
+  max-height: 12rem;
+  padding: 0.75rem 1.5rem 0.85rem;
+  pointer-events: auto;
+}
+
+.ecosystem-sheet.is-full .ecosystem-intro {
+  max-height: none;
+  padding: 5.1rem 1.5rem 1rem;
 }
 
 @media (min-width: 900px) {
-  .ecosystem-intro {
-    padding: 5.25rem 2.5rem 1.1rem;
+  .ecosystem-sheet.is-tall .ecosystem-intro {
+    padding: 0.75rem 2.5rem 0.9rem;
+  }
+
+  .ecosystem-sheet.is-full .ecosystem-intro {
+    padding: 5.1rem 2.5rem 1.1rem;
   }
 }
 
@@ -692,11 +716,16 @@ body {
 }
 
 .ecosystem-grid {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid transparent;
+}
+
+.ecosystem-sheet.is-tall .ecosystem-grid {
+  border-top-color: rgba(255, 255, 255, 0.1);
+  flex: 1 1 auto;
 }
 
 @media (min-width: 900px) {
@@ -711,15 +740,15 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   min-height: 0;
-  height: 100%;
-  padding: 1rem 1.25rem 1.75rem;
+  padding: 0.85rem 1.25rem 1.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
 @media (min-width: 900px) {
   .ecosystem-col {
-    padding: 1.1rem 1.35rem 1.9rem;
+    height: 100%;
+    padding: 0.85rem 1.35rem 1.65rem;
     border-bottom: 0;
     border-right: 1px solid rgba(255, 255, 255, 0.1);
   }
@@ -730,12 +759,16 @@ body {
 }
 
 .ecosystem-col-reveal {
+  display: none;
+}
+
+.ecosystem-sheet.is-full .ecosystem-col-reveal {
+  display: flex;
   position: absolute;
   left: 1.25rem;
   right: 1.25rem;
   top: 0.5rem;
-  bottom: 5.5rem;
-  display: flex;
+  bottom: 5.1rem;
   flex-direction: column;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -744,10 +777,10 @@ body {
 }
 
 @media (min-width: 900px) {
-  .ecosystem-col-reveal {
+  .ecosystem-sheet.is-full .ecosystem-col-reveal {
     left: 1.35rem;
     right: 1.35rem;
-    bottom: 5.9rem;
+    bottom: 5.4rem;
   }
 }
 
