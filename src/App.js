@@ -408,34 +408,85 @@ const ECOSYSTEM_ITEMS = [
 ]
 
 function EcosystemSection() {
-  return (
-    <section id="ecosystem" className="ecosystem">
-      <div className="ecosystem-intro">
-        <p className="ecosystem-eyebrow">Our Ecosystem</p>
-        <h2 className="ecosystem-heading">
-          We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to the
-          final clinical insight.
-        </h2>
-      </div>
+  const sectionRef = useRef(null)
+  const [scrub, setScrub] = useState(0)
+  const [mobile, setMobile] = useState(false)
 
-      <div className="ecosystem-grid">
-        {ECOSYSTEM_ITEMS.map((item) => (
-          <article key={item.title} className="ecosystem-col" tabIndex={0}>
-            <div className="ecosystem-col-reveal">
-              <p className="ecosystem-col-body">{item.body}</p>
-              <ul className="ecosystem-col-points">
-                {item.points.map((point) => (
-                  <li key={point}>{point}</li>
-                ))}
-              </ul>
-              <span className={`ecosystem-col-cta${item.ctaActive ? ' is-active' : ''}`}>{item.cta}</span>
-            </div>
-            <div className="ecosystem-col-foot">
-              <p className="ecosystem-col-kicker">{item.kicker}</p>
-              <h3 className="ecosystem-col-title">{item.title}</h3>
-            </div>
-          </article>
-        ))}
+  useEffect(() => {
+    const onResize = () => setMobile(window.innerWidth < 900)
+    onResize()
+    window.addEventListener('resize', onResize)
+
+    let raf = 0
+    let running = true
+    const update = () => {
+      if (!running) return
+      const el = sectionRef.current
+      if (el) {
+        const start = el.offsetTop
+        const scrollable = Math.max(1, el.offsetHeight - window.innerHeight)
+        const raw = clamp((window.scrollY - start) / scrollable)
+        setScrub((prev) => lerp(prev, raw, 0.1))
+      }
+      raf = requestAnimationFrame(update)
+    }
+    raf = requestAnimationFrame(update)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
+
+  const opens = ECOSYSTEM_ITEMS.map((_, i) => {
+    if (mobile) return smoother(0.08 + i * 0.18, 0.2 + i * 0.18, scrub)
+    const start = 0.16 + i * 0.18
+    return smoother(start, start + 0.12, scrub)
+  })
+
+  return (
+    <section id="ecosystem" className="ecosystem" ref={sectionRef}>
+      <div className="ecosystem-track">
+        <div className="ecosystem-sticky">
+          <div className="ecosystem-intro">
+            <p className="ecosystem-eyebrow">Our Ecosystem</p>
+            <h2 className="ecosystem-heading">
+              We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to
+              the final clinical insight.
+            </h2>
+          </div>
+
+          <div className="ecosystem-grid">
+            {ECOSYSTEM_ITEMS.map((item, i) => {
+              const open = opens[i]
+              return (
+                <article
+                  key={item.title}
+                  className={`ecosystem-col${open > 0.55 ? ' is-open' : ''}`}
+                  style={{ '--open': open }}>
+                  <div
+                    className="ecosystem-col-reveal"
+                    style={{
+                      opacity: open,
+                      transform: `translate3d(0, ${(1 - open) * 18}px, 0)`,
+                    }}>
+                    <p className="ecosystem-col-body">{item.body}</p>
+                    <ul className="ecosystem-col-points">
+                      {item.points.map((point) => (
+                        <li key={point}>{point}</li>
+                      ))}
+                    </ul>
+                    <span className={`ecosystem-col-cta${item.ctaActive ? ' is-active' : ''}`}>{item.cta}</span>
+                  </div>
+                  <div className="ecosystem-col-foot">
+                    <p className="ecosystem-col-kicker">{item.kicker}</p>
+                    <h3 className="ecosystem-col-title">{item.title}</h3>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </section>
   )
