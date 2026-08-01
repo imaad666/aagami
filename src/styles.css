@@ -575,7 +575,7 @@ body {
 }
 
 .experience-end-hold {
-  height: 160vh;
+  height: 120vh;
   pointer-events: none;
 }
 
@@ -616,7 +616,7 @@ body {
 }
 
 
-/* ── Ecosystem: bottom-growing sheet over AAGAMISEQ ──────────────────────── */
+/* ── Ecosystem: sticky cover panel (no height hacks) ─────────────────────── */
 .ecosystem {
   position: relative;
   z-index: 16;
@@ -627,71 +627,32 @@ body {
 }
 
 .ecosystem-track {
-  height: 520vh;
-  pointer-events: none;
+  height: 420vh;
 }
 
 .ecosystem-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 16;
-  height: 0;
-  overflow: hidden;
-  background: #000;
-  pointer-events: none;
-  box-shadow: none;
-  border: 0;
-}
-
-.ecosystem-sheet.is-active {
-  pointer-events: auto;
-}
-
-.ecosystem-sheet-inner {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: sticky;
   top: 0;
+  z-index: 16;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  overflow: hidden;
   background: #000;
-}
-
-/* Once fully covering, switch to Dognosis layout: intro top, titles bottom */
-.ecosystem-sheet.is-full .ecosystem-sheet-inner {
-  justify-content: flex-end;
 }
 
 .ecosystem-intro {
   flex: 0 0 auto;
-  order: -1;
   max-width: 52rem;
   margin: 0;
-  padding: 0 1.5rem;
-  text-align: left;
-  opacity: 0;
-  max-height: 0;
-  overflow: hidden;
-  pointer-events: none;
-  transition: opacity 0.3s ease, max-height 0.3s ease, padding 0.3s ease;
-}
-
-.ecosystem-sheet.is-tall .ecosystem-intro,
-.ecosystem-sheet.is-full .ecosystem-intro {
-  opacity: 1;
-  max-height: 14rem;
   padding: 5.1rem 1.5rem 1rem;
-  pointer-events: auto;
+  text-align: left;
 }
 
 @media (min-width: 900px) {
-  .ecosystem-sheet.is-tall .ecosystem-intro,
-  .ecosystem-sheet.is-full .ecosystem-intro {
-    padding: 5.1rem 2.5rem 1.1rem;
+  .ecosystem-intro {
+    padding: 5.1rem 2.5rem 1.15rem;
   }
 }
 
@@ -714,15 +675,10 @@ body {
 }
 
 .ecosystem-grid {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr;
-  border-top: 0;
-}
-
-.ecosystem-sheet.is-full .ecosystem-grid {
-  flex: 1 1 auto;
+  grid-template-columns: repeat(2, 1fr);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -736,22 +692,28 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: flex-end;
   min-height: 0;
-  padding: 1rem 1.25rem 1.15rem;
+  height: 100%;
+  padding: 1rem 1.2rem 1.6rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
-}
-
-.ecosystem-sheet.is-full .ecosystem-col {
-  justify-content: flex-end;
-  height: 100%;
-  padding: 1.1rem 1.35rem 1.65rem;
 }
 
 @media (min-width: 900px) {
   .ecosystem-col {
     border-bottom: 0;
+    padding: 1.1rem 1.35rem 1.75rem;
+  }
+}
+
+.ecosystem-col:nth-child(2n) {
+  border-right: 0;
+}
+
+@media (min-width: 900px) {
+  .ecosystem-col:nth-child(2n) {
     border-right: 1px solid rgba(255, 255, 255, 0.1);
   }
 
@@ -761,42 +723,31 @@ body {
 }
 
 .ecosystem-col-reveal {
-  display: none;
-}
-
-.ecosystem-sheet.is-full .ecosystem-col-reveal {
-  display: flex;
   position: absolute;
-  left: 1.25rem;
-  right: 1.25rem;
-  top: 0.5rem;
-  bottom: 5.1rem;
+  left: 1.2rem;
+  right: 1.2rem;
+  top: 0.6rem;
+  bottom: 5.2rem;
+  display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: 0.7rem;
   overflow: hidden;
   pointer-events: none;
 }
 
 @media (min-width: 900px) {
-  .ecosystem-sheet.is-full .ecosystem-col-reveal {
+  .ecosystem-col-reveal {
     left: 1.35rem;
     right: 1.35rem;
-    bottom: 5.4rem;
+    bottom: 5.5rem;
   }
-}
-
-.ecosystem-col-foot {
-  position: relative;
-  z-index: 1;
-  flex: 0 0 auto;
 }
 
 .ecosystem-col-body {
   margin: 0;
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   line-height: 1.45;
-  letter-spacing: -0.01em;
   color: rgba(220, 232, 226, 0.82);
 }
 
@@ -811,7 +762,7 @@ body {
 .ecosystem-col-points li {
   position: relative;
   padding-left: 0.85rem;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   line-height: 1.35;
   color: rgba(190, 210, 202, 0.72);
 }
@@ -829,7 +780,7 @@ body {
 
 .ecosystem-col-cta {
   margin-top: 0.15rem;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(168, 188, 180, 0.55);
@@ -847,15 +798,15 @@ body {
 
 .ecosystem-col-kicker {
   margin: 0 0 0.4rem;
-  font-size: 0.66rem;
-  letter-spacing: 0.18em;
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #7dcfb6;
 }
 
 .ecosystem-col-title {
   margin: 0;
-  font-size: clamp(1.15rem, 1.6vw, 1.6rem);
+  font-size: clamp(1.05rem, 1.5vw, 1.55rem);
   font-weight: 400;
   line-height: 1.15;
   letter-spacing: -0.025em;
@@ -865,22 +816,4 @@ body {
 
 .ecosystem-col.is-open .ecosystem-col-title {
   color: #f4f8f6;
-}
-
-@media (max-width: 899px) {
-  .ecosystem {
-    margin-top: -80vh;
-  }
-
-  .ecosystem-track {
-    height: 420vh;
-  }
-
-  .ecosystem-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .ecosystem-col:nth-child(odd) {
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-  }
 }

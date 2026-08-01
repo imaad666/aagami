@@ -409,9 +409,7 @@ const ECOSYSTEM_ITEMS = [
 
 function EcosystemSection() {
   const sectionRef = useRef(null)
-  const [pull, setPull] = useState(0)
   const [opens, setOpens] = useState(() => ECOSYSTEM_ITEMS.map(() => 0))
-  const [active, setActive] = useState(false)
 
   useEffect(() => {
     let raf = 0
@@ -422,24 +420,16 @@ function EcosystemSection() {
       if (el) {
         const vh = window.innerHeight
         const start = el.offsetTop
-        const y = window.scrollY
         const span = Math.max(1, el.offsetHeight - vh)
-        const t = clamp((y - start) / span)
-        setActive(y + vh > start && y < start + el.offsetHeight)
-
-        // Cover AAGAMISEQ within the first viewport of scroll — keep hero pinned under it
-        const pullTarget = clamp((y - start) / (vh * 0.9))
-        const pullEase = pullTarget * pullTarget * (3 - 2 * pullTarget)
-        setPull((prev) => lerp(prev, pullEase, 0.34))
-
-        // Column beats only after the sheet is fully up
-        const revealT = clamp((t - 0.2) / 0.8)
+        // First ~1 viewport: sheet covers AAGAMISEQ. After that: column beats.
+        const cover = Math.min(vh, span * 0.22)
+        const revealT = clamp((window.scrollY - start - cover) / Math.max(1, span - cover))
         const slot = 1 / ECOSYSTEM_ITEMS.length
-        const nextOpens = ECOSYSTEM_ITEMS.map((_, i) => {
+        const next = ECOSYSTEM_ITEMS.map((_, i) => {
           const a = i * slot
-          return smoother(a, a + slot * 0.7, revealT)
+          return smoother(a, a + slot * 0.65, revealT)
         })
-        setOpens((prev) => prev.map((v, i) => lerp(v, nextOpens[i], 0.34)))
+        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.3)))
       }
       raf = requestAnimationFrame(update)
     }
@@ -450,18 +440,10 @@ function EcosystemSection() {
     }
   }, [])
 
-  const sheetH = Math.max(0, Math.min(100, pull * 100))
-
   return (
     <section id="ecosystem" className="ecosystem" ref={sectionRef}>
-      <div className="ecosystem-track" aria-hidden />
-      <div
-        className={`ecosystem-sheet${active && pull > 0.008 ? ' is-active' : ''}${pull > 0.78 ? ' is-tall' : ''}${
-          pull > 0.98 ? ' is-full' : ''
-        }`}
-        style={{ height: `${sheetH.toFixed(3)}vh` }}
-        aria-hidden={pull < 0.02}>
-        <div className="ecosystem-sheet-inner">
+      <div className="ecosystem-track">
+        <div className="ecosystem-sheet">
           <div className="ecosystem-intro">
             <p className="ecosystem-eyebrow">Our Ecosystem</p>
             <h2 className="ecosystem-heading">
