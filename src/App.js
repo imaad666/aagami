@@ -14,9 +14,9 @@ const lookAtTarget = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
 const _dir = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
-const _fogA = new THREE.Color('#031416')
-const _fogB = new THREE.Color('#052028')
-const _fogC = new THREE.Color('#061e1c')
+const _fogA = new THREE.Color('#12383c')
+const _fogB = new THREE.Color('#164850')
+const _fogC = new THREE.Color('#143e3c')
 const _fogNow = new THREE.Color()
 const _cursorDir = new THREE.Vector3()
 const _heroColor = new THREE.Color()
@@ -121,9 +121,9 @@ const BEATS = {
   poreInStart: 0.08,
   poreInEnd: 0.36,
   transitStart: 0.34,
-  transitEnd: 0.52,
-  diveStart: 0.48,
-  diveEnd: 0.72,
+  transitEnd: 0.54,
+  diveStart: 0.5,
+  diveEnd: 0.7,
   // Fade nanopore once hero is below and membrane sits at frame top
   clearStart: 0.48,
   clearEnd: 0.62,
@@ -146,12 +146,14 @@ const BEATS = {
   manifestoOutEnd: 0.54,
 }
 
-const MANIFESTO =
-  'Detecting molecular signatures with sub-nanometer precision. A paradigm shift in early-stage oncology.'
+const MANIFESTO_LINES = [
+  'Detecting molecular signatures',
+  'with sub-nanometer precision.',
+  'A paradigm shift in early-stage oncology.',
+]
+const MANIFESTO = MANIFESTO_LINES.join(' ')
 
 const progressApi = { current: 0, target: 0 }
-// Shared cursor — 3D lights + DOM text shade
-const pointerApi = { x: 0, y: 0, nx: 0, ny: 0 }
 // Live hero sphere pose — molecules bounce off this instead of clipping through
 const heroApi = { x: 0, y: 7.35, z: -1.35, r: 0.34 }
 
@@ -208,19 +210,15 @@ export default function App() {
 
   useEffect(() => {
     const onScroll = () => {
-      const scrollable = document.documentElement.scrollHeight - window.innerHeight
-      progressApi.target = scrollable > 0 ? clamp(window.scrollY / scrollable) : 0
-    }
-    const onMove = (e) => {
-      pointerApi.x = e.clientX
-      pointerApi.y = e.clientY
-      pointerApi.nx = (e.clientX / window.innerWidth) * 2 - 1
-      pointerApi.ny = -(e.clientY / window.innerHeight) * 2 + 1
+      // Progress is driven only by the hero shell so the blast finishes
+      // before the ecosystem section enters the viewport.
+      const shell = document.querySelector('.experience-shell')
+      const shellScroll = shell ? Math.max(1, shell.offsetHeight - window.innerHeight) : 1
+      progressApi.target = clamp(window.scrollY / shellScroll)
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
-    window.addEventListener('pointermove', onMove, { passive: true })
 
     let raf = 0
     let lastKey = -1
@@ -253,152 +251,219 @@ export default function App() {
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
-      window.removeEventListener('pointermove', onMove)
       cancelAnimationFrame(raf)
     }
   }, [])
 
   return (
-    <main className="experience-shell">
+    <>
       <SiteNav />
       <div className="gradient-wash" aria-hidden />
       <div className="shade-vignette" aria-hidden />
       <div className="grain-coarse" aria-hidden />
       <div className="grain-overlay" aria-hidden />
 
-      <div className="canvas-stage">
-        <div className="canvas-grain" aria-hidden />
-        <Canvas
-          frameloop="never"
-          dpr={[1, 1.5]}
-          camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
-          gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
-          onCreated={({ gl, scene, camera }) => {
-            gl.setClearColor(new THREE.Color('#031416'), 1)
-            gl.toneMapping = THREE.ACESFilmicToneMapping
-            gl.toneMappingExposure = 0.72
-            window.__aagami = { gl, scene, camera }
-          }}>
-          <color attach="background" args={['#031416']} />
-          <Atmosphere />
-          <ambientLight intensity={0.28} color="#4a6e68" />
-          <directionalLight position={[5, 9, 4]} intensity={0.95} color="#b8d4cc" />
-          <directionalLight position={[-4, 1, -3]} intensity={0.32} color="#2a5860" />
-          <pointLight position={[0, 2, 5]} intensity={0.35} color="#3a7a70" distance={28} />
-          <CursorGlow />
+      <main className="experience-shell">
+        <div className="canvas-stage">
+          <div className="canvas-grain" aria-hidden />
+          <Canvas
+            frameloop="never"
+            dpr={[1, 1.5]}
+            camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
+            gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+            onCreated={({ gl, scene, camera }) => {
+              gl.setClearColor(new THREE.Color('#12383c'), 1)
+              gl.toneMapping = THREE.ACESFilmicToneMapping
+              gl.toneMappingExposure = 0.98
+              window.__aagami = { gl, scene, camera }
+            }}>
+            <color attach="background" args={['#12383c']} />
+            <Atmosphere />
+            <ambientLight intensity={0.45} color="#6a9088" />
+            <directionalLight position={[5, 9, 4]} intensity={1.1} color="#c8ddd4" />
+            <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#3a6870" />
+            <pointLight position={[0, 2, 5]} intensity={0.45} color="#4a8a80" distance={28} />
+            <CursorGlow />
 
-          <CameraRig />
-          <FrameLoopGuard />
-          <Starfield />
-          <FieldMolecules />
-          <HeroSphere />
-          <Nanopore />
-        </Canvas>
+            <CameraRig />
+            <FrameLoopGuard />
+            <Starfield />
+            <FieldMolecules />
+            <HeroSphere />
+            <Nanopore />
+          </Canvas>
 
-        <ManifestoFill fill={ui.fill} opacity={ui.manifesto} />
+          <ManifestoFill fill={ui.fill} opacity={ui.manifesto} />
 
-        <div className="brand-reveal" style={{ opacity: ui.brand }}>
-          <div className="brand-name">
-            AAGAMI
-            <span>
-              SE
-              <span className="brand-q">
-                Q
-                <i
-                  className="brand-q-glow"
-                  style={{
-                    opacity: ui.blast * 0.7,
-                    transform: `translate(-50%, -50%) scale(${0.85 + ui.blast * 0.4})`,
-                  }}
-                  aria-hidden
-                />
-                <i className="brand-q-dot" style={{ opacity: ui.blast }} aria-hidden />
+          <div className="brand-reveal" style={{ opacity: ui.brand }}>
+            <div className="brand-name">
+              AAGAMI
+              <span>
+                SE
+                <span className="brand-q">
+                  Q
+                  <i
+                    className="brand-q-glow"
+                    style={{
+                      opacity: ui.blast * 0.7,
+                      transform: `translate(-50%, -50%) scale(${0.85 + ui.blast * 0.4})`,
+                    }}
+                    aria-hidden
+                  />
+                  <i className="brand-q-dot" style={{ opacity: ui.blast }} aria-hidden />
+                </span>
               </span>
-            </span>
+            </div>
+            <p className="brand-tagline">Nanopore Diagnostics</p>
           </div>
-          <p className="brand-tagline">Clarity in the fight against cancer</p>
-          <BrandCursorGlow active={ui.brand > 0.02} />
         </div>
-      </div>
-      <div className="scroll-space" aria-hidden />
-    </main>
+        <div className="scroll-space" aria-hidden />
+      </main>
+      <EcosystemSection />
+    </>
   )
-}
-
-function usePointerLocal(ref, active = true) {
-  useEffect(() => {
-    if (!active) return undefined
-    let raf = 0
-    let mx = 0
-    let my = 0
-    const tick = () => {
-      const el = ref.current
-      if (el) {
-        const r = el.getBoundingClientRect()
-        mx = lerp(mx, pointerApi.x - r.left, 0.2)
-        my = lerp(my, pointerApi.y - r.top, 0.2)
-        const topBias = Math.max(0, pointerApi.ny)
-        el.style.setProperty('--mx', `${mx}px`)
-        el.style.setProperty('--my', `${my}px`)
-        el.style.setProperty('--glow', String(0.55 + topBias * 0.4))
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [ref, active])
 }
 
 function ManifestoFill({ fill, opacity }) {
-  const wrapRef = useRef()
-  const chars = useMemo(() => Array.from(MANIFESTO), [])
-  usePointerLocal(wrapRef, opacity > 0.02)
+  const lines = useMemo(() => {
+    let offset = 0
+    return MANIFESTO_LINES.map((line) => {
+      const start = offset
+      offset += line.length + 1 // +1 for the joining space in MANIFESTO
+      return { line, start }
+    })
+  }, [])
   if (opacity < 0.02) return null
 
-  const n = chars.length
-  const glowNodes = chars.map((ch, i) => {
-    if (ch === ' ' && chars[i - 1] === '.') return <br key={`gbr-${i}`} />
-    return ch
-  })
-
+  const n = MANIFESTO.length
   return (
-    <div className="manifesto-wrap" ref={wrapRef} style={{ opacity }} aria-label={MANIFESTO}>
-      <p className="manifesto-fill" aria-hidden>
-        {chars.map((ch, i) => {
-          if (ch === ' ' && chars[i - 1] === '.') {
-            return <br key={`br-${i}`} />
-          }
-          if (ch === ' ') {
+    <p className="manifesto-fill" style={{ opacity }} aria-label={MANIFESTO}>
+      {lines.map(({ line, start }, li) => (
+        <span key={li} className="manifesto-line">
+          {Array.from(line).map((ch, ci) => {
+            const i = start + ci
+            if (ch === ' ') {
+              return (
+                <span key={`s-${i}`} className="manifesto-space" aria-hidden>
+                  {' '}
+                </span>
+              )
+            }
+            const local = clamp(fill * n - i)
             return (
-              <span key={`s-${i}`} className="manifesto-space">
-                {' '}
+              <span
+                key={`c-${i}`}
+                className="manifesto-char"
+                style={{ '--char-fill': local }}
+                aria-hidden>
+                {ch}
               </span>
             )
-          }
-          const local = clamp(fill * n - i)
-          return (
-            <span key={`c-${i}`} className="manifesto-char" style={{ '--char-fill': local }}>
-              {ch}
-            </span>
-          )
-        })}
-      </p>
-      {/* Cursor shade clipped to glyphs only — never washes the scene */}
-      <p className="manifesto-cursor-glow" aria-hidden>
-        {glowNodes}
-      </p>
-    </div>
+          })}
+        </span>
+      ))}
+    </p>
   )
 }
 
-function BrandCursorGlow({ active }) {
-  const ref = useRef()
-  usePointerLocal(ref, active)
-  if (!active) return null
+const ECOSYSTEM_ITEMS = [
+  {
+    id: 'readout',
+    category: 'Hardware',
+    title: 'Core Readout Device',
+    subtitle: 'The Engine of Discovery',
+    copy:
+      'Ultra-low-noise sensing hardware for high-precision current measurement and consistent signal readout from nanopore chips.',
+    points: ['Pico-ampere sensitivity', 'Multi-channel I/O', 'Compact benchtop form factor'],
+    cta: 'Coming Soon',
+    ctaHref: null,
+  },
+  {
+    id: 'chips',
+    category: 'Sensors',
+    title: 'Solid-State Nanopore Chips',
+    subtitle: 'Custom-Engineered Precision',
+    copy:
+      'Silicon-nitride membranes with atomically precise pores, tuned to specific biomarker sizes for reliable, high-fidelity sensing.',
+    points: ['Custom pore diameters', 'High durability', 'Sub-nanometer precision'],
+    cta: 'Contact Sales',
+    ctaHref: '#contact',
+  },
+  {
+    id: 'software',
+    category: 'Software',
+    title: 'AI Analysis Software',
+    subtitle: 'Intelligent Signal Processing',
+    copy:
+      'A cloud-native suite using deep learning to classify molecular signatures and identify cancer markers with real-time analysis.',
+    points: ['Real-time functionality', 'Automated anomaly detection', 'Clinical reporting dashboard'],
+    cta: 'Coming Soon',
+    ctaHref: null,
+  },
+  {
+    id: 'kits',
+    category: 'Workflow',
+    title: 'Consumables & Kits',
+    subtitle: 'Standardized Workflow',
+    copy:
+      'Ready-to-use sample prep kits and buffer solutions, optimized for high signal-to-noise and consistent, repeatable assay workflows.',
+    points: ['Fast sample prep', 'High stability reagents', 'Lot-to-lot consistency'],
+    cta: 'Coming Soon',
+    ctaHref: null,
+  },
+]
+
+function EcosystemSection() {
   return (
-    <div className="brand-cursor-glow" ref={ref} aria-hidden>
-      AAGAMISEQ
-    </div>
+    <section id="ecosystem" className="ecosystem">
+      <div className="ecosystem-top">
+        <p className="ecosystem-kicker">Our Ecosystem</p>
+        <h2 className="ecosystem-heading">
+          A complete path from physical sensor to clinical insight
+        </h2>
+        <p className="ecosystem-lead">
+          We provide a complete, integrated solution for single-molecule sensing, from the physical
+          sensor to the final clinical insight.
+        </p>
+      </div>
+
+      <div className="ecosystem-grid">
+        {ECOSYSTEM_ITEMS.map((item) => (
+          <article key={item.id} className="ecosystem-col">
+            <div className="ecosystem-media" aria-hidden>
+              {/* Image slot — drop assets in later */}
+              <div className="ecosystem-media-skeleton">
+                <span>Image</span>
+              </div>
+              <div className="ecosystem-media-veil" />
+            </div>
+
+            <div className="ecosystem-reveal">
+              <p className="ecosystem-subtitle">{item.subtitle}</p>
+              <p className="ecosystem-copy">{item.copy}</p>
+              <ul className="ecosystem-points">
+                {item.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+              {item.ctaHref ? (
+                <a className="ecosystem-cta is-link" href={item.ctaHref}>
+                  {item.cta}
+                  <span aria-hidden>↗</span>
+                </a>
+              ) : (
+                <span className="ecosystem-cta">{item.cta}</span>
+              )}
+            </div>
+
+            <div className="ecosystem-foot">
+              <p className="ecosystem-cat">{item.category}</p>
+              <h3 className="ecosystem-title">{item.title}</h3>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -412,7 +477,10 @@ const NAV_LINKS = [
 ]
 
 function SiteNav() {
+  const [open, setOpen] = useState(false)
+
   const go = (id) => {
+    setOpen(false)
     if (id === 'hero') {
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
@@ -420,6 +488,19 @@ function SiteNav() {
     const el = document.getElementById(id)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
 
   return (
     <header className="site-nav">
@@ -442,24 +523,40 @@ function SiteNav() {
           ))}
         </nav>
 
-        <select
-          className="site-nav-mobile"
-          defaultValue=""
-          aria-label="Navigate"
-          onChange={(e) => {
-            const id = e.target.value
-            if (id) go(id)
-            e.target.value = ''
-          }}>
-          <option value="" disabled>
-            Navigate
-          </option>
-          {NAV_LINKS.map((link) => (
-            <option key={link.id} value={link.id}>
-              {link.label}
-            </option>
-          ))}
-        </select>
+        <button
+          type="button"
+          className={`site-nav-toggle${open ? ' is-open' : ''}`}
+          aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open}
+          aria-controls="site-nav-menu"
+          onClick={() => setOpen((v) => !v)}>
+          <span className="site-nav-toggle-bars" aria-hidden>
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="site-nav-toggle-label">{open ? 'Close' : 'Menu'}</span>
+        </button>
+      </div>
+
+      <div
+        id="site-nav-menu"
+        className={`site-nav-panel${open ? ' is-open' : ''}`}
+        aria-hidden={!open}>
+        <button type="button" className="site-nav-backdrop" aria-label="Close menu" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)} />
+        <nav className="site-nav-drawer" aria-label="Mobile">
+          <p className="site-nav-drawer-kicker">Navigate</p>
+          <ul className="site-nav-drawer-list">
+            {NAV_LINKS.map((link, i) => (
+              <li key={link.id} style={{ '--i': i }}>
+                <button type="button" className="site-nav-drawer-link" tabIndex={open ? 0 : -1} onClick={() => go(link.id)}>
+                  <span className="site-nav-drawer-index">{String(i + 1).padStart(2, '0')}</span>
+                  {link.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </div>
     </header>
   )
@@ -480,7 +577,7 @@ function Atmosphere() {
     document.documentElement.style.setProperty('--fog-b', String(Math.round(_fogNow.b * 255)))
   })
 
-  return <fog ref={fogRef} attach="fog" args={['#031416', 14, 42]} />
+  return <fog ref={fogRef} attach="fog" args={['#12383c', 18, 52]} />
 }
 
 /** Own rAF loop — avoids blank canvas when the host stalls r3f's internal frameloop */
@@ -526,14 +623,14 @@ function CameraRig() {
     const p = progressApi.current
     const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
     const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
-    const dive = smooth(BEATS.diveStart, BEATS.diveEnd, p)
+    const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
     const reenter = smooth(BEATS.reenterStart, BEATS.reenterEnd, p)
     const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
 
     const camX =
       lerp(0.15, 2.4, focus) * (1 - brand * 0.7) + reenter * 0.35 + brand * 0.55
     const camY =
-      lerp(3.15, 1.45, focus) * lerp(1, 0.55, transit) * lerp(1, 0.35, dive) * (1 - brand * 0.35) +
+      lerp(3.15, 1.45, focus) * lerp(1, 0.62, transit) * lerp(1, 0.48, dive) * (1 - brand * 0.35) +
       brand * 0.4 +
       reenter * 0.15
     const camZ = lerp(11.6, 9.0, focus) * lerp(1, 1.06, brand)
@@ -543,7 +640,7 @@ function CameraRig() {
     const lookY =
       lerp(1.85, 1.2, focus) * (1 - transit) +
       lerp(1.2, -0.8, transit) * (1 - dive) * (1 - brand) +
-      lerp(-0.8, -2.2, dive) * (1 - reenter) * (1 - brand) +
+      lerp(-0.8, -1.85, dive) * (1 - reenter) * (1 - brand) +
       reenter * 0.15 * (1 - brand) +
       brand * 0.35
     const lookX = brand * 0.55 + reenter * 0.25
@@ -564,11 +661,21 @@ function CursorGlow() {
   const soft = useRef()
   const target = useRef(new THREE.Vector3(0, 2.5, 2))
   const { camera } = useThree()
+  const pointer = useRef({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const onMove = (e) => {
+      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1
+      pointer.current.y = -(e.clientY / window.innerHeight) * 2 + 1
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [])
 
   useFrame((_, delta) => {
     if (!light.current || !soft.current) return
-    const px = pointerApi.nx
-    const py = pointerApi.ny
+    const px = pointer.current.x
+    const py = pointer.current.y
 
     _cursorDir.set(px, py, 0.32).unproject(camera)
     _cursorDir.sub(camera.position).normalize()
@@ -658,11 +765,11 @@ function FieldMolecules() {
   // current world-space XZ positions for every molecule — written each frame
   // by HoverMolecule, then the separation pass reads + adjusts them
   const posXZ = useRef(null)  // Float32Array [x0,z0, x1,z1, ...]
-  const posY = useRef(null)  // Float32Array [y0, y1, ...]
+  const posY  = useRef(null)  // Float32Array [y0, y1, ...]
 
   const layout = useMemo(() => {
     posXZ.current = new Float32Array(COUNT * 2)
-    posY.current = new Float32Array(COUNT)
+    posY.current  = new Float32Array(COUNT)
     const items = []
     for (let i = 0; i < COUNT; i += 1) {
       const scale = 0.35 + seededRandom(i + 51) * 0.45
@@ -721,9 +828,9 @@ function FieldMolecules() {
             const push = (minDist - dist) * 0.5
             const nx = (dx / dist) * push
             const nz = (dz / dist) * push
-            px[a * 2] += nx
+            px[a * 2]     += nx
             px[a * 2 + 1] += nz
-            px[b * 2] -= nx
+            px[b * 2]     -= nx
             px[b * 2 + 1] -= nz
           }
         }
@@ -944,7 +1051,7 @@ function HeroSphere() {
     const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
     const poreReady = smooth(BEATS.poreInStart, BEATS.poreInEnd, p)
     const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
-    const dive = smooth(BEATS.diveStart, BEATS.diveEnd, p)
+    const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
     const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
     // Arrive at Q fully before any dissolve/blast
     const settle = smooth(BEATS.reenterStart, BEATS.dissolveStart, p)
@@ -975,9 +1082,9 @@ function HeroSphere() {
         hoverZ,
       )
     } else if (p < BEATS.diveEnd) {
-      // Single gentle ease — avoid double-smoothstep (that mid-dive rush)
+      // Single ease only — double smoothstep made the mid-drop race
       const through = transit
-      const down = smoother(BEATS.diveStart, BEATS.diveEnd, p)
+      const down = dive
       const yThrough = lerp(1.45, -1.55, through)
       const yOff = lerp(-1.55, offDown.y, down)
       heroTarget.set(Math.sin(t * 0.1) * 0.015 * (1 - down), lerp(yThrough, yOff, down), 0.04)
@@ -1134,11 +1241,11 @@ function Nanopore() {
 
   const discBands = useMemo(
     () => [
-      { inner: PORE, outer: 3.15, opacity: 0.9, color: '#1e4e49' },
-      { inner: 3.15, outer: 3.55, opacity: 0.58, color: '#1a4641' },
-      { inner: 3.55, outer: 3.95, opacity: 0.3, color: '#163e3a' },
-      { inner: 3.95, outer: 4.3, opacity: 0.12, color: '#123532' },
-      { inner: 4.3, outer: 4.55, opacity: 0.04, color: '#0e2c29' },
+      { inner: PORE, outer: 3.15, opacity: 0.88, color: '#3a7a72' },
+      { inner: 3.15, outer: 3.55, opacity: 0.55, color: '#347068' },
+      { inner: 3.55, outer: 3.95, opacity: 0.3, color: '#2c635c' },
+      { inner: 3.95, outer: 4.3, opacity: 0.14, color: '#245650' },
+      { inner: 4.3, outer: 4.55, opacity: 0.05, color: '#1c4844' },
     ],
     [],
   )
@@ -1218,8 +1325,8 @@ function Nanopore() {
               discMats.current[i] = m
             }}
             color={band.color}
-            emissive="#0a1f1c"
-            emissiveIntensity={0.08}
+            emissive="#1a4a44"
+            emissiveIntensity={0.16}
             metalness={0.2}
             roughness={0.55}
             transparent
@@ -1244,9 +1351,9 @@ function Nanopore() {
               ref={(m) => {
                 latticeMats.current[i] = m
               }}
-              color="#2f6a64"
-              emissive="#0c2a27"
-              emissiveIntensity={0.07}
+              color="#4a9088"
+              emissive="#1a4a44"
+              emissiveIntensity={0.14}
               metalness={0.32}
               roughness={0.42}
               transparent
