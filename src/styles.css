@@ -575,7 +575,7 @@ body {
 }
 
 .experience-end-hold {
-  height: 110vh;
+  height: 100vh;
   pointer-events: none;
 }
 
@@ -615,29 +615,43 @@ body {
   }
 }
 
-/* ── Ecosystem (scroll-reveal columns) ───────────────────────────────────── */
+/* ── Ecosystem (pull-up sheet + scroll-reveal columns) ───────────────────── */
 .ecosystem {
   position: relative;
-  z-index: 6;
-  background: #000;
+  z-index: 16;
+  margin-top: -100vh;
+  background: transparent;
   color: #e8f0ec;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .ecosystem-track {
-  height: 420vh;
+  height: 480vh;
+  pointer-events: none;
 }
 
-.ecosystem-sticky {
+.ecosystem-sheet {
   position: sticky;
   top: 0;
+  z-index: 16;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   padding: 5.5rem 0 0;
   background: #000;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  will-change: transform;
+  pointer-events: none;
+  box-shadow: 0 -24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.ecosystem-sheet.is-active {
+  pointer-events: auto;
+}
+
+.ecosystem-sheet.is-docked {
+  transform: none !important;
 }
 
 .ecosystem-intro {
@@ -796,14 +810,22 @@ body {
 }
 
 @media (max-width: 899px) {
-  .ecosystem-track {
-    height: auto;
+  .ecosystem {
+    margin-top: -70vh;
   }
 
-  .ecosystem-sticky {
+  .ecosystem-track {
+    height: auto;
+    min-height: 100vh;
+    pointer-events: auto;
+  }
+
+  .ecosystem-sheet {
     position: relative;
+    transform: none !important;
     min-height: 0;
     padding-top: 4.5rem;
+    pointer-events: auto;
   }
 
   .ecosystem-col {

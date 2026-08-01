@@ -409,6 +409,7 @@ const ECOSYSTEM_ITEMS = [
 
 function EcosystemSection() {
   const sectionRef = useRef(null)
+  const [pull, setPull] = useState(0)
   const [scrub, setScrub] = useState(0)
   const [mobile, setMobile] = useState(false)
 
@@ -424,9 +425,17 @@ function EcosystemSection() {
       const el = sectionRef.current
       if (el) {
         const start = el.offsetTop
-        const scrollable = Math.max(1, el.offsetHeight - window.innerHeight)
-        const raw = clamp((window.scrollY - start) / scrollable)
-        setScrub((prev) => lerp(prev, raw, 0.1))
+        const vh = window.innerHeight
+        // Snappy sheet pull covering the post-explosion AAGAMISEQ screen
+        const pullRaw = clamp((window.scrollY - start) / (vh * 0.92))
+        const pullSnap = 1 - (1 - pullRaw) ** 2.6
+        setPull((prev) => lerp(prev, pullSnap, 0.22))
+
+        // Column reveals only after the sheet has docked
+        const afterPull = start + vh * 0.92
+        const revealScroll = Math.max(1, el.offsetHeight - vh - vh * 0.92)
+        const scrubRaw = clamp((window.scrollY - afterPull) / revealScroll)
+        setScrub((prev) => lerp(prev, scrubRaw, 0.12))
       }
       raf = requestAnimationFrame(update)
     }
@@ -439,15 +448,19 @@ function EcosystemSection() {
   }, [])
 
   const opens = ECOSYSTEM_ITEMS.map((_, i) => {
-    if (mobile) return smoother(0.08 + i * 0.18, 0.2 + i * 0.18, scrub)
-    const start = 0.16 + i * 0.18
-    return smoother(start, start + 0.12, scrub)
+    if (mobile) return smoother(0.05 + i * 0.2, 0.18 + i * 0.2, Math.max(scrub, pull > 0.95 ? scrub : 0))
+    const start = 0.06 + i * 0.2
+    return smoother(start, start + 0.14, scrub)
   })
+
+  const sheetY = (1 - pull) * 100
 
   return (
     <section id="ecosystem" className="ecosystem" ref={sectionRef}>
       <div className="ecosystem-track">
-        <div className="ecosystem-sticky">
+        <div
+          className={`ecosystem-sheet${pull > 0.02 ? ' is-active' : ''}${pull > 0.98 ? ' is-docked' : ''}`}
+          style={{ transform: `translate3d(0, ${sheetY.toFixed(3)}%, 0)` }}>
           <div className="ecosystem-intro">
             <p className="ecosystem-eyebrow">Our Ecosystem</p>
             <h2 className="ecosystem-heading">
