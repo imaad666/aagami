@@ -327,6 +327,7 @@ export default function App() {
       </div>
 
       <EcosystemSection />
+      <ImpactSection />
     </main>
   )
 }
@@ -496,6 +497,146 @@ function EcosystemSection() {
               )
             })}
           </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const IMPACT_ITEMS = [
+  {
+    tone: 'clinics',
+    label: 'Clinical Clinics',
+    title: 'Point-of-Care Diagnosis',
+    body: 'Our compact readout device allows small clinics to perform liquid biopsy tests without sending samples to centralized labs, reducing wait times from weeks to hours.',
+    metric: '90% Faster Results',
+    icon: 'clinic',
+  },
+  {
+    tone: 'labs',
+    label: 'Research Labs',
+    title: 'Single Molecule Precision',
+    body: 'Empowering biophysicists and oncologists with the tools to study molecular dynamics, epigenetics, and protein folding in real-time at unprecedented resolution.',
+    metric: 'Sub-nm Resolution',
+    icon: 'labs',
+  },
+  {
+    tone: 'hospitals',
+    label: 'Hospitals',
+    title: 'Large-Scale Screening',
+    body: 'Standardized chips and AI software enable high-throughput screening of entire populations, making early detection a routine part of annual health checkups.',
+    metric: 'Cost Reduction: 60%',
+    icon: 'hospital',
+  },
+]
+
+function ImpactIcon({ type }) {
+  if (type === 'clinic') {
+    return (
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden>
+        <path
+          d="M12 40V20l12-9 12 9v20"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinejoin="round"
+        />
+        <path d="M20 40V29h8v11" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
+        <path d="M22 22h4M24 20v4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  if (type === 'labs') {
+    return (
+      <svg viewBox="0 0 48 48" fill="none" aria-hidden>
+        <path d="M20 10h8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        <path d="M24 10v12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        <path
+          d="M16 22h16l3.2 5.6A8.5 8.5 0 0 1 24 40a8.5 8.5 0 0 1-11.2-12.4L16 22Z"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinejoin="round"
+        />
+        <path d="M18 30h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="33.5" cy="33.5" r="5.5" stroke="currentColor" strokeWidth="2.2" />
+        <path d="M37.5 37.5 41 41" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 48 48" fill="none" aria-hidden>
+      <path
+        d="M9 40V22h9V12h12v10h9v18"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M21 18h6M24 15v6M15 28h4M29 28h4M15 34h4M29 34h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function ImpactSection() {
+  const sectionRef = useRef(null)
+  const [opens, setOpens] = useState(() => IMPACT_ITEMS.map(() => 0))
+
+  useEffect(() => {
+    let raf = 0
+    let running = true
+    const update = () => {
+      if (!running) return
+      const el = sectionRef.current
+      if (el) {
+        const rect = el.getBoundingClientRect()
+        const vh = window.innerHeight
+        const next = IMPACT_ITEMS.map((_, i) => {
+          const start = rect.top + vh * (0.08 + i * 0.08)
+          return smoother(0, 1, clamp((vh * 0.78 - start) / (vh * 0.28)))
+        })
+        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.16)))
+      }
+      raf = requestAnimationFrame(update)
+    }
+    raf = requestAnimationFrame(update)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  return (
+    <section id="impact" className="impact" ref={sectionRef} aria-labelledby="impact-heading">
+      <div className="impact-inner">
+        <header className="impact-header">
+          <h2 id="impact-heading">Driving Global Impact</h2>
+          <p>We are bridging the gap between cutting-edge biophysics and everyday medical practice.</p>
+        </header>
+
+        <div className="impact-grid">
+          {IMPACT_ITEMS.map((item, i) => {
+            const open = opens[i]
+            return (
+              <article
+                key={item.title}
+                className={`impact-card tone-${item.tone}`}
+                style={{
+                  opacity: 0.2 + open * 0.8,
+                  transform: `translate3d(0, ${(1 - open) * 28}px, 0)`,
+                }}>
+                <div className="impact-icon" aria-hidden>
+                  <ImpactIcon type={item.icon} />
+                </div>
+                <p className="impact-label">{item.label}</p>
+                <h3 className="impact-title">{item.title}</h3>
+                <p className="impact-body">{item.body}</p>
+                <span className="impact-metric">{item.metric}</span>
+              </article>
+            )
+          })}
         </div>
       </div>
     </section>

@@ -927,3 +927,184 @@ body {
     overflow: visible;
   }
 }
+
+/* ── Impact: Driving Global Impact ───────────────────────────────────────── */
+.impact {
+  position: relative;
+  z-index: 16;
+  background:
+    radial-gradient(ellipse 70% 55% at 12% 0%, rgba(125, 207, 182, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 92% 100%, rgba(74, 144, 226, 0.1), transparent 50%),
+    #f7faf9;
+  color: #1a2422;
+  font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
+  overflow: hidden;
+}
+
+.impact-inner {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+  padding: clamp(4.5rem, 10vh, 7rem) clamp(1.15rem, 3.5vw, 2.5rem) clamp(4rem, 9vh, 6.5rem);
+}
+
+.impact-header {
+  max-width: 40rem;
+  margin: 0 auto clamp(2.75rem, 6vh, 4.25rem);
+  text-align: center;
+}
+
+.impact-header h2 {
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.85rem, 4.2vw, 2.85rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  color: #121a19;
+}
+
+.impact-header p {
+  margin: 0;
+  font-size: clamp(0.98rem, 1.5vw, 1.12rem);
+  line-height: 1.55;
+  color: #5a6b67;
+  text-wrap: pretty;
+}
+
+.impact-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.5rem, 3.5vw, 2.75rem);
+  align-items: stretch;
+}
+
+.impact-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+  will-change: transform, opacity;
+}
+
+.impact-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1.15rem;
+  border-radius: 0.9rem;
+  transition: transform 0.35s ease;
+}
+
+.impact-icon svg {
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
+.impact-card:hover .impact-icon {
+  transform: translateY(-3px);
+}
+
+.impact-label {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.impact-title {
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.15rem, 1.7vw, 1.4rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: #121a19;
+  text-wrap: balance;
+}
+
+.impact-body {
+  margin: 0 0 1.5rem;
+  flex: 1 1 auto;
+  font-size: clamp(0.9rem, 1.15vw, 0.98rem);
+  line-height: 1.55;
+  color: #5f706c;
+  text-wrap: pretty;
+}
+
+.impact-metric {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.05rem;
+  border-radius: 0.7rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.impact-card.tone-clinics .impact-icon {
+  background: #fce8eb;
+  color: #d6455d;
+}
+
+.impact-card.tone-clinics .impact-label,
+.impact-card.tone-clinics .impact-metric {
+  color: #d6455d;
+}
+
+.impact-card.tone-clinics .impact-metric {
+  background: #fce8eb;
+}
+
+.impact-card.tone-labs .impact-icon {
+  background: #e7f0fc;
+  color: #3d7fd4;
+}
+
+.impact-card.tone-labs .impact-label,
+.impact-card.tone-labs .impact-metric {
+  color: #3d7fd4;
+}
+
+.impact-card.tone-labs .impact-metric {
+  background: #e7f0fc;
+}
+
+.impact-card.tone-hospitals .impact-icon {
+  background: #e3f6f7;
+  color: #1f9eae;
+}
+
+.impact-card.tone-hospitals .impact-label,
+.impact-card.tone-hospitals .impact-metric {
+  color: #1f9eae;
+}
+
+.impact-card.tone-hospitals .impact-metric {
+  background: #e3f6f7;
+}
+
+@media (max-width: 900px) {
+  .impact-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    max-width: 28rem;
+    margin: 0 auto;
+  }
+
+  .impact-body {
+    margin-bottom: 1.25rem;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .impact-grid {
+    gap: 1.35rem;
+  }
+
+  .impact-body {
+    font-size: 0.88rem;
+  }
+}
