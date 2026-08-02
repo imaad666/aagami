@@ -575,7 +575,7 @@ body {
 }
 
 .experience-end-hold {
-  height: 140vh;
+  height: 130vh;
   pointer-events: none;
 }
 
@@ -616,36 +616,30 @@ body {
 }
 
 
-
-/* ── Ecosystem: fades in over finished AAGAMISEQ (no slide) ──────────────── */
+/* ── Ecosystem: starts only after AAGAMISEQ animation + hold ─────────────── */
 .ecosystem {
   position: relative;
   z-index: 16;
-  background: transparent;
+  margin-top: 0;
+  background: #000;
   color: #e8f0ec;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
 }
 
 .ecosystem-track {
-  height: 360vh;
-  pointer-events: none;
+  height: 420vh;
 }
 
 .ecosystem-sheet {
-  position: fixed;
-  inset: 0;
+  position: sticky;
+  top: 0;
   z-index: 16;
+  height: 100vh;
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: #000;
-  opacity: 0;
-  pointer-events: none;
-  will-change: opacity;
-}
-
-.ecosystem-sheet.is-visible {
-  pointer-events: auto;
 }
 
 .ecosystem-intro {
