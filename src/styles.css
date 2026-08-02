@@ -929,13 +929,14 @@ body {
 }
 
 
+
 /* ── Impact: Amaterasu Vision (sphere → nature circles → golden ratio) ───── */
 .impact {
   position: relative;
   z-index: 16;
-  color: #102028;
+  color: #e8f4f2;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
-  background: #f4f6f5;
+  background: #0c2a2e;
 }
 
 .impact-track {
@@ -950,7 +951,7 @@ body {
   max-height: 100vh;
   max-height: 100dvh;
   overflow: hidden;
-  background: #f4f6f5;
+  background: #0c2a2e;
 }
 
 .impact-stage {
@@ -966,11 +967,11 @@ body {
   background:
     linear-gradient(
       105deg,
-      #07102a 0%,
-      #0c3a55 28%,
-      #128a9a 58%,
-      #2de0d0 82%,
-      #7ef5e8 100%
+      #0c2a2e 0%,
+      #0e3d44 22%,
+      #156f78 48%,
+      #1fb5b0 72%,
+      #5ee8d8 100%
     );
   -webkit-mask-image: radial-gradient(
     circle at 52% var(--mask-y, 118%),
@@ -1002,33 +1003,28 @@ body {
   width: min(120vw, 64rem);
   height: auto;
   transform: translate(-50%, -50%);
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(232, 248, 245, 0.88);
   overflow: visible;
 }
 
 .impact-nature-circle {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.4;
-  transition: opacity 0.05s linear;
+  stroke-width: 2.2;
 }
 
 .impact-nature-path {
   fill: none;
-  stroke: #24ff00;
-  stroke-width: 2.6;
+  stroke: rgba(160, 235, 210, 0.55);
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 1;
 }
 
-.impact-nature-path.p-2,
-.impact-nature-path.p-3,
-.impact-nature-path.p-4,
-.impact-nature-path.p-5,
-.impact-nature-path.p-6,
-.impact-nature-path.p-7 {
-  stroke: #00ff38;
+.impact-nature-path.p-1,
+.impact-nature-path.p-8 {
+  stroke: rgba(180, 245, 220, 0.62);
 }
 
 .impact-ratio-svg {
@@ -1038,24 +1034,17 @@ body {
   width: min(88vw, 48rem);
   height: auto;
   transform: translate(-40%, -46%);
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(230, 250, 246, 0.9);
   overflow: visible;
-  filter: drop-shadow(0 0 12px rgba(180, 255, 245, 0.3));
 }
 
 .impact-ratio-path {
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 1;
-}
-
-.impact-ratio-path-soft {
-  stroke: rgba(200, 255, 245, 0.35);
-  stroke-width: 3.2;
-  filter: blur(1.5px);
 }
 
 .impact-copy {
@@ -1079,9 +1068,8 @@ body {
   font-weight: 500;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: color-mix(in srgb, #1a9a88 100%, #9fe8dc calc(var(--ink-mix, 0) * 100%));
+  color: rgba(175, 225, 220, 0.85);
   pointer-events: auto;
-  transition: color 0.25s ease;
 }
 
 .impact-intro {
@@ -1101,9 +1089,8 @@ body {
   font-weight: 400;
   line-height: 1.35;
   letter-spacing: -0.02em;
-  color: color-mix(in srgb, #0f1c22 100%, #f4faf9 calc(var(--ink-mix, 0) * 100%));
+  color: #f2f8f7;
   text-wrap: pretty;
-  transition: color 0.25s ease;
 }
 
 .impact-copy-stack {
@@ -1135,8 +1122,7 @@ body {
   font-weight: 500;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: color-mix(in srgb, #1a9a88 100%, #9fe8dc calc(var(--ink-mix, 0) * 100%));
-  transition: color 0.25s ease;
+  color: rgba(165, 230, 215, 0.88);
 }
 
 .impact-kicker-dot {
@@ -1153,18 +1139,16 @@ body {
   font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1.15;
-  color: color-mix(in srgb, #0f1c22 100%, #f4faf9 calc(var(--ink-mix, 0) * 100%));
+  color: #f4faf9;
   text-wrap: balance;
-  transition: color 0.25s ease;
 }
 
 .impact-body {
   margin: 0 0 1.15rem;
   font-size: clamp(0.92rem, 1.25vw, 1.06rem);
   line-height: 1.55;
-  color: color-mix(in srgb, rgba(20, 40, 48, 0.78) 100%, rgba(230, 245, 242, 0.88) calc(var(--ink-mix, 0) * 100%));
+  color: rgba(215, 235, 230, 0.86);
   text-wrap: pretty;
-  transition: color 0.25s ease;
 }
 
 .impact-metric {
@@ -1172,31 +1156,13 @@ body {
   font-size: clamp(0.78rem, 1.05vw, 0.92rem);
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: color-mix(in srgb, #0d7a6c 100%, #9ff0e0 calc(var(--ink-mix, 0) * 100%));
-  transition: color 0.25s ease;
-}
-
-.impact-copy::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  width: min(100%, 38rem);
-  height: min(58%, 24rem);
-  background: linear-gradient(
-    180deg,
-    transparent,
-    color-mix(in srgb, rgba(244, 246, 245, 0.88) 100%, rgba(6, 18, 28, 0.55) calc(var(--ink-mix, 0) * 100%)) 40%,
-    color-mix(in srgb, rgba(244, 246, 245, 0.94) 100%, rgba(6, 18, 28, 0.72) calc(var(--ink-mix, 0) * 100%))
-  );
-  pointer-events: none;
-  z-index: -1;
+  color: #9ff0e0;
 }
 
 @media (max-width: 900px) {
   .impact-nature-svg {
     width: min(180vw, 56rem);
-    top: 62%;
+    top: 56%;
   }
 
   .impact-ratio-svg {
@@ -1286,10 +1252,6 @@ body {
     width: 100%;
     min-height: 0;
     padding: 0;
-  }
-
-  .impact-copy::before {
-    display: none;
   }
 
   .impact-eyebrow {

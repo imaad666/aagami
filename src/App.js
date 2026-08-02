@@ -582,21 +582,22 @@ function impactBeat(progress, a, b) {
 }
 
 function ImpactVisionStage({ progress }) {
-  // Sphere mask rises / expands
+  // Sphere mask rises / expands over hero teal
   const sphereT = impactBeat(progress, 0, 0.22)
   const maskRadius = `${16 + sphereT * 110}vmax`
   const maskY = `${122 - sphereT * 78}%`
 
-  // Circles fly from scatter → settle
-  const circleBase = impactBeat(progress, 0.06, 0.42)
-  // Connector paths draw after circles start landing
-  const pathT = impactBeat(progress, 0.22, 0.52)
-  // Golden ratio draws last
-  const ratioT = impactBeat(progress, 0.38, 0.72)
-  const ratioOpacity = impactBeat(progress, 0.35, 0.48)
+  // Circles fly from scatter → settle (picture 1 peak)
+  const circleBase = impactBeat(progress, 0.06, 0.4)
+  // Soft connector paths — draw briefly, then fade so ratio can lead
+  const pathT = impactBeat(progress, 0.2, 0.42)
+  const pathHold = 1 - impactBeat(progress, 0.45, 0.62)
+  // Golden ratio takes over cleanly after picture 1
+  const ratioT = impactBeat(progress, 0.42, 0.78)
+  const ratioOpacity = impactBeat(progress, 0.4, 0.55)
 
-  // Nature layer stays strong through mid, softens as ratio finishes
-  const natureOpacity = 0.45 + impactBeat(progress, 0.05, 0.28) * 0.5 - impactBeat(progress, 0.75, 0.95) * 0.2
+  const circlesOpacity = 0.55 + impactBeat(progress, 0.05, 0.3) * 0.4 - impactBeat(progress, 0.55, 0.85) * 0.25
+  const pathsOpacity = pathT * pathHold * 0.7
 
   return (
     <div className="impact-stage" aria-hidden>
@@ -605,33 +606,29 @@ function ImpactVisionStage({ progress }) {
         style={{
           '--mask-radius': maskRadius,
           '--mask-y': maskY,
-          opacity: 0.2 + sphereT * 0.8,
+          opacity: 0.35 + sphereT * 0.65,
         }}
       />
 
-      <div className="impact-graphics" style={{ opacity: natureOpacity }}>
+      <div className="impact-graphics">
         <svg
           className="impact-nature-svg"
           viewBox="150 1900 1700 1400"
           fill="none"
-          preserveAspectRatio="xMidYMid meet">
+          preserveAspectRatio="xMidYMid meet"
+          style={{ opacity: circlesOpacity }}>
           {NATURE_CIRCLES.map((c, i) => {
             const start = i / NATURE_CIRCLES.length
             const t = smoother(start * 0.4, start * 0.4 + 0.5, circleBase)
             const tx = c.ox * (1 - t)
             const ty = c.oy * (1 - t)
             return (
-              <g key={c.cls} transform={`translate(${tx} ${ty})`} opacity={0.2 + t * 0.8}>
-                <circle
-                  className={`impact-nature-circle ${c.cls}`}
-                  cx={c.cx}
-                  cy={c.cy}
-                  r={c.r}
-                />
+              <g key={c.cls} transform={`translate(${tx} ${ty})`} opacity={0.25 + t * 0.75}>
+                <circle className={`impact-nature-circle ${c.cls}`} cx={c.cx} cy={c.cy} r={c.r} />
               </g>
             )
           })}
-          <g className="impact-nature-paths">
+          <g className="impact-nature-paths" style={{ opacity: pathsOpacity }}>
             {NATURE_PATHS.map((p, i) => {
               const start = i / NATURE_PATHS.length
               const draw = smoother(start * 0.35, start * 0.35 + 0.55, pathT)
@@ -641,7 +638,7 @@ function ImpactVisionStage({ progress }) {
                   className={`impact-nature-path ${p.cls}`}
                   d={p.d}
                   pathLength="1"
-                  style={{ strokeDashoffset: 1 - draw, opacity: 0.15 + draw * 0.85 }}
+                  style={{ strokeDashoffset: 1 - draw }}
                 />
               )
             })}
@@ -658,12 +655,6 @@ function ImpactVisionStage({ progress }) {
             d={RATIO_PATH}
             pathLength="1"
             style={{ strokeDashoffset: 1 - ratioT }}
-          />
-          <path
-            className="impact-ratio-path impact-ratio-path-soft"
-            d={RATIO_PATH}
-            pathLength="1"
-            style={{ strokeDashoffset: 1 - clamp(ratioT * 0.92) }}
           />
         </svg>
       </div>
@@ -692,10 +683,12 @@ function ImpactSection() {
           setProgress(0.72)
         } else {
           const vh = window.innerHeight
-          const start = el.offsetTop
           const span = Math.max(1, el.offsetHeight - vh)
-          const raw = clamp((window.scrollY - start) / span)
-          smoothed = lerp(smoothed, raw, 0.22)
+          // Use viewport rect so sticky track progress stays correct
+          const raw = clamp(-el.getBoundingClientRect().top / span)
+          // Catch up fast on big scroll jumps; ease only for fine motion
+          const catchUp = Math.abs(raw - smoothed) > 0.08 ? 0.55 : 0.22
+          smoothed = lerp(smoothed, raw, catchUp)
           setProgress(smoothed)
         }
       }
@@ -710,7 +703,6 @@ function ImpactSection() {
   }, [])
 
   const introAmt = stacked ? 0 : clamp(1 - impactBeat(progress, 0.14, 0.26) * 1.15)
-  const inkLight = stacked ? 1 : impactBeat(progress, 0.1, 0.24)
   const stepWindow = stacked ? null : (() => {
     const usable = clamp((progress - 0.22) / 0.68)
     const f = usable * IMPACT_STEPS.length
@@ -722,10 +714,10 @@ function ImpactSection() {
   return (
     <section
       id="impact"
-      className={`impact${stacked ? ' is-stacked' : ''}${inkLight > 0.55 ? ' is-ink-light' : ''}`}
+      className={`impact${stacked ? ' is-stacked' : ''}`}
       ref={sectionRef}
       aria-labelledby="impact-heading"
-      style={{ '--ink-mix': inkLight }}>
+      data-progress={progress.toFixed(3)}>
       <div className="impact-track">
         <div className="impact-sheet">
           <ImpactVisionStage progress={stacked ? 0.72 : progress} />
