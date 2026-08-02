@@ -575,7 +575,7 @@ body {
 }
 
 .experience-end-hold {
-  height: 120vh;
+  height: 140vh;
   pointer-events: none;
 }
 
@@ -616,30 +616,36 @@ body {
 }
 
 
-/* ── Ecosystem: sticky cover panel (no height hacks) ─────────────────────── */
+
+/* ── Ecosystem: fades in over finished AAGAMISEQ (no slide) ──────────────── */
 .ecosystem {
   position: relative;
   z-index: 16;
-  margin-top: -100vh;
   background: transparent;
   color: #e8f0ec;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
 }
 
 .ecosystem-track {
-  height: 420vh;
+  height: 360vh;
+  pointer-events: none;
 }
 
 .ecosystem-sheet {
-  position: sticky;
-  top: 0;
+  position: fixed;
+  inset: 0;
   z-index: 16;
-  height: 100vh;
-  max-height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: #000;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.ecosystem-sheet.is-visible {
+  pointer-events: auto;
 }
 
 .ecosystem-intro {

@@ -211,11 +211,13 @@ export default function App() {
   useEffect(() => {
     const onScroll = () => {
       const shell = document.querySelector('.experience-shell')
-      const total = shell
-        ? Math.max(1, shell.offsetHeight - window.innerHeight)
-        : Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
-      // Finish the full ball → AAGAMISEQ beat before the end hold; then ecosystem
-      const hold = Math.min(total * 0.18, window.innerHeight * 1.15)
+      if (!shell) {
+        progressApi.target = 0
+        return
+      }
+      // Animation completes before the end-hold (brand linger + ecosystem fade)
+      const hold = window.innerHeight * 1.35
+      const total = Math.max(1, shell.offsetHeight - window.innerHeight)
       const animScroll = Math.max(1, total - hold)
       progressApi.target = clamp(window.scrollY / animScroll)
     }
@@ -231,10 +233,8 @@ export default function App() {
       const clear = smooth(BEATS.clearStart, BEATS.clearEnd, p)
       const poreOut = smooth(BEATS.poreOutStart, BEATS.poreOutEnd, p)
       const reveal = smooth(BEATS.brandRevealStart, BEATS.brandRevealEnd, p)
-      // Never show title while field/nanopore lattice is still up
       const brand = reveal * clear * poreOut
       const dissolve = smooth(BEATS.dissolveStart, BEATS.dissolveEnd, p)
-      // CSS Q glow is residual only — late, after the hero blast has peaked
       const blast = dissolve > 0.55 ? clamp((dissolve - 0.55) / 0.45) * 0.85 : 0
       const manifestoOut = smooth(BEATS.manifestoOutStart, BEATS.manifestoOutEnd, p)
       const manifesto = 1 - manifestoOut
@@ -409,6 +409,7 @@ const ECOSYSTEM_ITEMS = [
 
 function EcosystemSection() {
   const sectionRef = useRef(null)
+  const [fade, setFade] = useState(0)
   const [opens, setOpens] = useState(() => ECOSYSTEM_ITEMS.map(() => 0))
 
   useEffect(() => {
@@ -416,21 +417,34 @@ function EcosystemSection() {
     let running = true
     const update = () => {
       if (!running) return
+      const shell = document.querySelector('.experience-shell')
       const el = sectionRef.current
-      if (el) {
-        const vh = window.innerHeight
-        const start = el.offsetTop
-        const span = Math.max(1, el.offsetHeight - vh)
-        // First ~1 viewport: sheet covers AAGAMISEQ. After that: column beats.
-        const cover = Math.min(vh, span * 0.22)
-        const revealT = clamp((window.scrollY - start - cover) / Math.max(1, span - cover))
+      const vh = window.innerHeight
+      const y = window.scrollY
+
+      if (shell) {
+        // After AAGAMISEQ animation is done, fade ecosystem in (no slide)
+        const hold = vh * 1.35
+        const total = Math.max(1, shell.offsetHeight - vh)
+        const animEnd = Math.max(1, total - hold)
+        const linger = vh * 0.25
+        const fadeStart = animEnd + linger
+        const fadeDist = vh * 0.75
+        const fadeTarget = smoother(fadeStart, fadeStart + fadeDist, y)
+        setFade((prev) => lerp(prev, fadeTarget, 0.22))
+
+        // Column beats after fade has mostly landed
+        const revealStart = fadeStart + fadeDist * 0.85
+        const revealSpan = el ? Math.max(1, el.offsetHeight - vh * 0.35) : vh * 3
+        const revealT = clamp((y - revealStart) / revealSpan)
         const slot = 1 / ECOSYSTEM_ITEMS.length
         const next = ECOSYSTEM_ITEMS.map((_, i) => {
           const a = i * slot
           return smoother(a, a + slot * 0.65, revealT)
         })
-        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.3)))
+        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.28)))
       }
+
       raf = requestAnimationFrame(update)
     }
     raf = requestAnimationFrame(update)
@@ -442,46 +456,49 @@ function EcosystemSection() {
 
   return (
     <section id="ecosystem" className="ecosystem" ref={sectionRef}>
-      <div className="ecosystem-track">
-        <div className="ecosystem-sheet">
-          <div className="ecosystem-intro">
-            <p className="ecosystem-eyebrow">Our Ecosystem</p>
-            <h2 className="ecosystem-heading">
-              We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to
-              the final clinical insight.
-            </h2>
-          </div>
+      {/* Scroll runway only — the visible page is the fixed fade overlay */}
+      <div className="ecosystem-track" aria-hidden />
+      <div
+        className={`ecosystem-sheet${fade > 0.04 ? ' is-visible' : ''}`}
+        style={{ opacity: fade }}
+        aria-hidden={fade < 0.05}>
+        <div className="ecosystem-intro">
+          <p className="ecosystem-eyebrow">Our Ecosystem</p>
+          <h2 className="ecosystem-heading">
+            We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to the
+            final clinical insight.
+          </h2>
+        </div>
 
-          <div className="ecosystem-grid">
-            {ECOSYSTEM_ITEMS.map((item, i) => {
-              const open = opens[i]
-              return (
-                <article
-                  key={item.title}
-                  className={`ecosystem-col${open > 0.55 ? ' is-open' : ''}`}
-                  style={{ '--open': open }}>
-                  <div
-                    className="ecosystem-col-reveal"
-                    style={{
-                      opacity: open,
-                      transform: `translate3d(0, ${(1 - open) * 16}px, 0)`,
-                    }}>
-                    <p className="ecosystem-col-body">{item.body}</p>
-                    <ul className="ecosystem-col-points">
-                      {item.points.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
-                    <span className={`ecosystem-col-cta${item.ctaActive ? ' is-active' : ''}`}>{item.cta}</span>
-                  </div>
-                  <div className="ecosystem-col-foot">
-                    <p className="ecosystem-col-kicker">{item.kicker}</p>
-                    <h3 className="ecosystem-col-title">{item.title}</h3>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
+        <div className="ecosystem-grid">
+          {ECOSYSTEM_ITEMS.map((item, i) => {
+            const open = opens[i]
+            return (
+              <article
+                key={item.title}
+                className={`ecosystem-col${open > 0.55 ? ' is-open' : ''}`}
+                style={{ '--open': open }}>
+                <div
+                  className="ecosystem-col-reveal"
+                  style={{
+                    opacity: open,
+                    transform: `translate3d(0, ${(1 - open) * 16}px, 0)`,
+                  }}>
+                  <p className="ecosystem-col-body">{item.body}</p>
+                  <ul className="ecosystem-col-points">
+                    {item.points.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
+                  <span className={`ecosystem-col-cta${item.ctaActive ? ' is-active' : ''}`}>{item.cta}</span>
+                </div>
+                <div className="ecosystem-col-foot">
+                  <p className="ecosystem-col-kicker">{item.kicker}</p>
+                  <h3 className="ecosystem-col-title">{item.title}</h3>
+                </div>
+              </article>
+            )
+          })}
         </div>
       </div>
     </section>
