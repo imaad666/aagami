@@ -510,8 +510,8 @@ const IMPACT_STEPS = [
     title: 'Point-of-Care Diagnosis',
     body: 'Our compact readout device allows small clinics to perform liquid biopsy tests without sending samples to centralized labs, reducing wait times from weeks to hours.',
     metric: '90% Faster Results',
-    x: 40,
-    y: 36,
+    x: 38,
+    y: 34,
   },
   {
     num: '02',
@@ -519,8 +519,8 @@ const IMPACT_STEPS = [
     title: 'Single Molecule Precision',
     body: 'Empowering biophysicists and oncologists with the tools to study molecular dynamics, epigenetics, and protein folding in real-time at unprecedented resolution.',
     metric: 'Sub-nm Resolution',
-    x: 74,
-    y: 30,
+    x: 72,
+    y: 28,
   },
   {
     num: '03',
@@ -528,12 +528,15 @@ const IMPACT_STEPS = [
     title: 'Large-Scale Screening',
     body: 'Standardized chips and AI software enable high-throughput screening of entire populations, making early detection a routine part of annual health checkups.',
     metric: 'Cost Reduction: 60%',
-    x: 72,
-    y: 70,
+    x: 70,
+    y: 72,
   },
 ]
 
 const IMPACT_RING = 2 * Math.PI * 22
+
+// One continuous curve through nodes 01 → 02 → 03 (viewBox 0–100 matches % stage coords)
+const IMPACT_LINK_PATH = `M${IMPACT_STEPS[0].x} ${IMPACT_STEPS[0].y}C52 16 64 14 ${IMPACT_STEPS[1].x} ${IMPACT_STEPS[1].y}C86 40 84 56 ${IMPACT_STEPS[2].x} ${IMPACT_STEPS[2].y}`
 
 // Amaterasu .nature-svg circles — settle at (cx,cy); scatter offsets from live transforms
 const NATURE_CIRCLES = [
@@ -621,6 +624,7 @@ function impactPhase(progress) {
 }
 
 function ImpactVisionStage({ progress, phase }) {
+  const linkPathRef = useRef(null)
   const vizRef = useRef({
     settles: NATURE_CIRCLES.map(() => 0),
     pathDraws: NATURE_PATHS.map(() => 0),
@@ -629,6 +633,7 @@ function ImpactVisionStage({ progress, phase }) {
     pathsOp: 0,
     form: 0,
     sphere: 0,
+    linkDraw: 0,
     travelerX: IMPACT_STEPS[0].x,
     travelerY: IMPACT_STEPS[0].y,
     travelerOn: 0,
@@ -649,6 +654,13 @@ function ImpactVisionStage({ progress, phase }) {
   const pathsOpTarget = pathBase * natureHold * 0.7
   const formTarget = phase.form
 
+  // Continuous draw 0→1 along the full 01→02→03 path
+  let linkDrawTarget = 0
+  if (phase.phase === 'form') linkDrawTarget = formTarget * 0.02
+  else if (phase.phase === 'traverse') {
+    linkDrawTarget = clamp((step + local) / IMPACT_STEPS.length)
+  }
+
   const settleTargets = NATURE_CIRCLES.map((_, i) => {
     const start = (i / NATURE_CIRCLES.length) * 0.55
     return smoother(start, start + 0.62, circleBase)
@@ -660,18 +672,7 @@ function ImpactVisionStage({ progress, phase }) {
   const petalTargets = MANDALA_PETALS.map((_, i) => smoother(i * 0.06, 0.45 + i * 0.07, formTarget))
   const nodeTargets = IMPACT_STEPS.map((_, i) => smoother(0.2 + i * 0.1, 0.5 + i * 0.08, formTarget))
 
-  let travelerTX = IMPACT_STEPS[0].x
-  let travelerTY = IMPACT_STEPS[0].y
-  let travelerOnT = 0
-  if (phase.phase === 'traverse' || phase.phase === 'form') {
-    const from = IMPACT_STEPS[Math.max(0, step)]
-    const nextExists = step < IMPACT_STEPS.length - 1 && phase.phase === 'traverse'
-    const to = IMPACT_STEPS[Math.min(IMPACT_STEPS.length - 1, step + (nextExists ? 1 : 0))]
-    const travelT = phase.phase === 'form' ? 0 : smoother(0.25, 0.92, local)
-    travelerTX = lerp(from.x, to.x, travelT)
-    travelerTY = lerp(from.y, to.y, travelT)
-    travelerOnT = formTarget > 0.4 ? 1 : formTarget / 0.4
-  }
+  const travelerOnT = formTarget > 0.35 ? clamp((formTarget - 0.35) / 0.35) : 0
 
   const fillTargets = IMPACT_STEPS.map((_, i) => {
     const done = phase.phase === 'traverse' && step > i
@@ -687,8 +688,7 @@ function ImpactVisionStage({ progress, phase }) {
     pathsOpTarget,
     formTarget,
     sphereTarget,
-    travelerTX,
-    travelerTY,
+    linkDrawTarget,
     travelerOnT,
     nodeTargets,
     fillTargets,
@@ -707,6 +707,25 @@ function ImpactVisionStage({ progress, phase }) {
       const v = vizRef.current
       const ease = 0.11
       const easeSlow = 0.08
+      const linkDraw = lerp(v.linkDraw, t.linkDrawTarget, 0.14)
+
+      let travelerX = v.travelerX
+      let travelerY = v.travelerY
+      const pathEl = linkPathRef.current
+      if (pathEl && linkDraw > 0.001) {
+        try {
+          const len = pathEl.getTotalLength()
+          const pt = pathEl.getPointAtLength(len * clamp(linkDraw))
+          travelerX = lerp(v.travelerX, pt.x, 0.18)
+          travelerY = lerp(v.travelerY, pt.y, 0.18)
+        } catch {
+          /* path not ready */
+        }
+      } else {
+        travelerX = lerp(v.travelerX, IMPACT_STEPS[0].x, 0.12)
+        travelerY = lerp(v.travelerY, IMPACT_STEPS[0].y, 0.12)
+      }
+
       vizRef.current = {
         settles: v.settles.map((s, i) => lerp(s, t.settleTargets[i], easeSlow)),
         pathDraws: v.pathDraws.map((s, i) => lerp(s, t.pathTargets[i], ease)),
@@ -715,8 +734,9 @@ function ImpactVisionStage({ progress, phase }) {
         pathsOp: lerp(v.pathsOp, t.pathsOpTarget, ease),
         form: lerp(v.form, t.formTarget, easeSlow),
         sphere: lerp(v.sphere, t.sphereTarget, easeSlow),
-        travelerX: lerp(v.travelerX, t.travelerTX, 0.13),
-        travelerY: lerp(v.travelerY, t.travelerTY, 0.13),
+        linkDraw,
+        travelerX,
+        travelerY,
         travelerOn: lerp(v.travelerOn, t.travelerOnT, ease),
         nodes: v.nodes.map((s, i) => lerp(s, t.nodeTargets[i], easeSlow)),
         fills: v.fills.map((s, i) => lerp(s, t.fillTargets[i], 0.15)),
@@ -804,33 +824,25 @@ function ImpactVisionStage({ progress, phase }) {
               r="122"
               style={{ opacity: 0.1 + v.form * 0.42 }}
             />
-            <path
-              className={`impact-mandala-arc${step >= 0 && phase.phase !== 'nature' ? ' is-on' : ''}`}
-              d="M268 262C300 220 360 200 430 200C500 200 545 230 560 270"
-              pathLength="1"
-              style={{
-                strokeDashoffset: 1 - (step === 0 ? local : step > 0 ? 1 : 0) * v.form,
-              }}
-            />
-            <path
-              className={`impact-mandala-arc${step >= 1 ? ' is-on' : ''}`}
-              d="M524 183C560 220 575 280 560 360C545 430 500 480 450 505"
-              pathLength="1"
-              style={{
-                strokeDashoffset: 1 - (step === 1 ? local : step > 1 ? 1 : 0) * v.form,
-              }}
-            />
-            <path
-              className={`impact-mandala-arc${step >= 2 ? ' is-on' : ''}`}
-              d="M537 472C480 520 400 540 320 520C250 500 210 450 200 400"
-              pathLength="1"
-              style={{
-                strokeDashoffset: 1 - (step === 2 ? local : 0) * v.form,
-              }}
-            />
           </svg>
         </div>
       </div>
+
+      {/* Continuous 01 → 02 → 03 connector in stage % space */}
+      <svg
+        className="impact-link-svg"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{ opacity: v.form }}>
+        <path className="impact-link-track" d={IMPACT_LINK_PATH} pathLength="1" />
+        <path
+          ref={linkPathRef}
+          className="impact-link-progress"
+          d={IMPACT_LINK_PATH}
+          pathLength="1"
+          style={{ strokeDashoffset: 1 - v.linkDraw }}
+        />
+      </svg>
 
       {IMPACT_STEPS.map((item, i) => {
         const nodeIn = v.nodes[i]
