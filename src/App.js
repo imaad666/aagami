@@ -422,14 +422,28 @@ function EcosystemSection() {
         const vh = window.innerHeight
         const start = el.offsetTop
         const span = Math.max(1, el.offsetHeight - vh)
-        // Reveal columns across the pinned ecosystem scroll
-        const revealT = clamp((window.scrollY - start) / span)
-        const slot = 1 / ECOSYSTEM_ITEMS.length
-        const next = ECOSYSTEM_ITEMS.map((_, i) => {
-          const a = 0.08 + i * slot * 0.9
-          return smoother(a, a + slot * 0.55, revealT)
-        })
-        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.3)))
+        const stacked = window.matchMedia('(max-width: 639px), (max-height: 500px)').matches
+
+        let next
+        if (stacked) {
+          // One card after another as each enters the viewport
+          const cols = el.querySelectorAll('.ecosystem-col')
+          next = ECOSYSTEM_ITEMS.map((_, i) => {
+            const col = cols[i]
+            if (!col) return 0
+            const rect = col.getBoundingClientRect()
+            const visible = clamp((vh * 0.82 - rect.top) / (vh * 0.35))
+            return smoother(0, 1, visible)
+          })
+        } else {
+          const revealT = clamp((window.scrollY - start) / span)
+          const slot = 1 / ECOSYSTEM_ITEMS.length
+          next = ECOSYSTEM_ITEMS.map((_, i) => {
+            const a = 0.08 + i * slot * 0.9
+            return smoother(a, a + slot * 0.55, revealT)
+          })
+        }
+        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.28)))
       }
       raf = requestAnimationFrame(update)
     }
@@ -464,7 +478,7 @@ function EcosystemSection() {
                     className="ecosystem-col-reveal"
                     style={{
                       opacity: open,
-                      transform: `translate3d(0, ${(1 - open) * 16}px, 0)`,
+                      transform: `translate3d(0, ${(1 - open) * 14}px, 0)`,
                     }}>
                     <p className="ecosystem-col-body">{item.body}</p>
                     <ul className="ecosystem-col-points">

@@ -616,7 +616,7 @@ body {
 }
 
 
-/* ── Ecosystem: starts only after AAGAMISEQ animation + hold ─────────────── */
+/* ── Ecosystem: responsive sticky panel ──────────────────────────────────── */
 .ecosystem {
   position: relative;
   z-index: 16;
@@ -635,57 +635,49 @@ body {
   top: 0;
   z-index: 16;
   height: 100vh;
+  height: 100dvh;
   max-height: 100vh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   background: #000;
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .ecosystem-intro {
   flex: 0 0 auto;
-  max-width: 52rem;
+  width: min(100%, 52rem);
   margin: 0;
-  padding: 5.1rem 1.5rem 1rem;
+  padding: clamp(4.25rem, 10vh, 5.25rem) clamp(1rem, 3vw, 2.5rem) clamp(0.75rem, 1.5vh, 1.15rem);
   text-align: left;
 }
 
-@media (min-width: 900px) {
-  .ecosystem-intro {
-    padding: 5.1rem 2.5rem 1.15rem;
-  }
-}
-
 .ecosystem-eyebrow {
-  margin: 0 0 0.7rem;
-  font-size: 0.72rem;
+  margin: 0 0 0.65rem;
+  font-size: clamp(0.62rem, 1.1vw, 0.72rem);
   font-weight: 400;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #7dcfb6;
 }
 
 .ecosystem-heading {
   margin: 0;
-  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  font-size: clamp(1rem, 2.1vw, 1.55rem);
   font-weight: 400;
   line-height: 1.35;
   letter-spacing: -0.02em;
   color: #f2f7f4;
+  text-wrap: pretty;
 }
 
 .ecosystem-grid {
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-@media (min-width: 900px) {
-  .ecosystem-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
 }
 
 .ecosystem-col {
@@ -693,62 +685,40 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  gap: clamp(0.65rem, 1.5vh, 1.1rem);
+  min-width: 0;
   min-height: 0;
   height: 100%;
-  padding: 1rem 1.2rem 1.6rem;
+  padding: clamp(0.75rem, 2vh, 1.25rem) clamp(0.85rem, 1.5vw, 1.35rem) clamp(1rem, 2.2vh, 1.75rem);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
 }
 
-@media (min-width: 900px) {
-  .ecosystem-col {
-    border-bottom: 0;
-    padding: 1.1rem 1.35rem 1.75rem;
-  }
-}
-
-.ecosystem-col:nth-child(2n) {
+.ecosystem-col:last-child {
   border-right: 0;
 }
 
-@media (min-width: 900px) {
-  .ecosystem-col:nth-child(2n) {
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .ecosystem-col:last-child {
-    border-right: 0;
-  }
-}
-
 .ecosystem-col-reveal {
-  position: absolute;
-  left: 1.2rem;
-  right: 1.2rem;
-  top: 0.6rem;
-  bottom: 5.2rem;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  gap: 0.7rem;
+  gap: clamp(0.45rem, 1.2vh, 0.75rem);
   overflow: hidden;
   pointer-events: none;
 }
 
-@media (min-width: 900px) {
-  .ecosystem-col-reveal {
-    left: 1.35rem;
-    right: 1.35rem;
-    bottom: 5.5rem;
-  }
-}
-
 .ecosystem-col-body {
   margin: 0;
-  font-size: 0.86rem;
+  font-size: clamp(0.72rem, 1.05vw, 0.9rem);
   line-height: 1.45;
   color: rgba(220, 232, 226, 0.82);
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
 }
 
 .ecosystem-col-points {
@@ -756,13 +726,13 @@ body {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.35rem;
+  gap: clamp(0.25rem, 0.8vh, 0.4rem);
 }
 
 .ecosystem-col-points li {
   position: relative;
   padding-left: 0.85rem;
-  font-size: 0.78rem;
+  font-size: clamp(0.68rem, 0.95vw, 0.8rem);
   line-height: 1.35;
   color: rgba(190, 210, 202, 0.72);
 }
@@ -779,9 +749,9 @@ body {
 }
 
 .ecosystem-col-cta {
-  margin-top: 0.15rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
+  margin-top: 0.1rem;
+  font-size: clamp(0.6rem, 0.85vw, 0.7rem);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(168, 188, 180, 0.55);
 }
@@ -797,23 +767,163 @@ body {
 }
 
 .ecosystem-col-kicker {
-  margin: 0 0 0.4rem;
-  font-size: 0.64rem;
-  letter-spacing: 0.16em;
+  margin: 0 0 0.35rem;
+  font-size: clamp(0.56rem, 0.85vw, 0.66rem);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #7dcfb6;
 }
 
 .ecosystem-col-title {
   margin: 0;
-  font-size: clamp(1.05rem, 1.5vw, 1.55rem);
+  font-size: clamp(0.95rem, 1.45vw, 1.55rem);
   font-weight: 400;
-  line-height: 1.15;
+  line-height: 1.18;
   letter-spacing: -0.025em;
   color: rgba(244, 248, 246, 0.5);
   transition: color 0.3s ease;
+  text-wrap: balance;
 }
 
 .ecosystem-col.is-open .ecosystem-col-title {
   color: #f4f8f6;
+}
+
+/* Short laptop heights */
+@media (max-height: 760px) and (min-width: 900px) {
+  .ecosystem-intro {
+    padding-top: 4rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .ecosystem-heading {
+    font-size: clamp(0.95rem, 1.8vw, 1.25rem);
+  }
+
+  .ecosystem-col-body {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .ecosystem-col-points li:nth-child(n + 3) {
+    display: none;
+  }
+}
+
+@media (max-height: 620px) and (min-width: 900px) {
+  .ecosystem-col-body,
+  .ecosystem-col-points {
+    display: none;
+  }
+}
+
+/* Tablet: 2x2 */
+@media (max-width: 899px) and (min-width: 640px) {
+  .ecosystem-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ecosystem-col {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .ecosystem-col:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .ecosystem-col:nth-child(n + 3) {
+    border-bottom: 0;
+  }
+
+  .ecosystem-col-body {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+
+/* Phones: stack, no sticky pin */
+@media (max-width: 639px) {
+  .ecosystem-track {
+    height: auto;
+  }
+
+  .ecosystem-sheet {
+    position: relative;
+    height: auto;
+    max-height: none;
+    min-height: 100svh;
+    overflow: visible;
+  }
+
+  .ecosystem-intro {
+    padding: 5rem 1.15rem 1.25rem;
+  }
+
+  .ecosystem-heading {
+    font-size: clamp(1.15rem, 5.5vw, 1.45rem);
+  }
+
+  .ecosystem-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ecosystem-col {
+    height: auto;
+    min-height: 0;
+    padding: 1.35rem 1.15rem 1.5rem;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 1rem;
+    overflow: visible;
+  }
+
+  .ecosystem-col:last-child {
+    border-bottom: 0;
+  }
+
+  .ecosystem-col-reveal {
+    overflow: visible;
+  }
+
+  .ecosystem-col-body {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    font-size: 0.92rem;
+  }
+
+  .ecosystem-col-points li {
+    font-size: 0.84rem;
+  }
+
+  .ecosystem-col-points li:nth-child(n + 3) {
+    display: list-item;
+  }
+
+  .ecosystem-col-title {
+    font-size: 1.35rem;
+  }
+}
+
+/* Short landscape */
+@media (max-height: 500px) {
+  .ecosystem-track {
+    height: auto;
+  }
+
+  .ecosystem-sheet {
+    position: relative;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .ecosystem-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ecosystem-col {
+    height: auto;
+    overflow: visible;
+  }
 }
