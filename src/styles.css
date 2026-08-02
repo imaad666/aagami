@@ -28,24 +28,8 @@ body {
 
 .experience-shell {
   position: relative;
-  z-index: 1;
   min-height: 620vh;
-  background: transparent;
-}
-
-/* One fixed page background — content scrolls over it */
-.page-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.page-fx {
-  position: fixed;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
+  background: #0c2a2e;
 }
 
 /* ── Site nav ────────────────────────────────────────────────────────────── */
@@ -366,10 +350,11 @@ body {
   }
 }
 
-/* Lifted wash — the single fixed page background */
+/* Lifted wash */
 .gradient-wash {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   background:
     radial-gradient(
@@ -391,10 +376,11 @@ body {
   animation: wash-drift 36s ease-in-out infinite alternate;
 }
 
-/* Soft vignette — darker corners */
+/* Soft vignette — darker corners (no bottom band — conflicts with ecosystem sheet) */
 .shade-vignette {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 4;
   pointer-events: none;
   background:
     radial-gradient(ellipse 72% 68% at 50% 42%, transparent 32%, rgba(0, 0, 0, 0.55) 100%),
@@ -403,8 +389,9 @@ body {
 
 /* Fine film grain — quieter */
 .grain-overlay {
-  position: absolute;
+  position: fixed;
   inset: -8%;
+  z-index: 5;
   pointer-events: none;
   opacity: 0.32;
   mix-blend-mode: soft-light;
@@ -415,8 +402,9 @@ body {
 
 /* Coarser secondary grain for texture depth */
 .grain-coarse {
-  position: absolute;
+  position: fixed;
   inset: -12%;
+  z-index: 5;
   pointer-events: none;
   opacity: 0.14;
   mix-blend-mode: overlay;
@@ -443,7 +431,6 @@ body {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: transparent;
 }
 
 .canvas-stage canvas {
@@ -451,7 +438,6 @@ body {
   width: 100%;
   height: 100%;
   touch-action: none;
-  background: transparent;
 }
 
 .manifesto-fill {
@@ -635,7 +621,7 @@ body {
   position: relative;
   z-index: 16;
   margin-top: 0;
-  background: transparent;
+  background: #0c2a2e;
   color: #e8f0ec;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
 }
@@ -655,7 +641,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: transparent;
+  background: #0c2a2e;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -967,18 +953,30 @@ body {
   background: transparent;
 }
 
-.impact-glow {
-  display: none;
-}
-
-.impact-glow-soft {
-  display: none;
-}
-
 .impact-stage {
   position: absolute;
   inset: 0;
   z-index: 1;
+  pointer-events: none;
+}
+
+.impact-circles-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.impact-aura {
+  position: absolute;
+  left: 62%;
+  top: 48%;
+  width: min(70vw, 34rem);
+  height: min(70vw, 34rem);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(120, 220, 200, 0.16), transparent 68%);
+  filter: blur(28px);
+  animation: impact-aura-breathe 5.5s ease-in-out infinite;
   pointer-events: none;
 }
 
@@ -994,22 +992,107 @@ body {
   pointer-events: none;
 }
 
-.impact-circles circle {
+.impact-circles-back {
+  color: rgba(180, 220, 215, 0.22);
+}
+
+.impact-circles-orbit {
+  overflow: visible;
+}
+
+.impact-circles circle,
+.impact-circles ellipse {
   stroke: currentColor;
-  stroke-width: 1.25;
+  stroke-width: 1.15;
   fill: none;
 }
 
+.impact-petal {
+  transition: opacity 0.35s ease, stroke 0.35s ease;
+}
+
+.impact-petal.is-lit {
+  stroke: rgba(180, 255, 235, 0.85);
+  filter: drop-shadow(0 0 6px rgba(140, 240, 220, 0.35));
+}
+
 .impact-circles-core {
-  color: rgba(190, 245, 240, 0.72);
+  stroke: rgba(190, 245, 240, 0.72);
+  stroke-width: 1.4;
+}
+
+.impact-core-pulse {
+  stroke: rgba(160, 240, 225, 0.4);
+  stroke-width: 1;
+  fill: none;
+  animation: impact-pulse 3.6s ease-out infinite;
+}
+
+.impact-core-pulse-delay {
+  animation-delay: 1.2s;
+  stroke: rgba(160, 240, 225, 0.25);
+}
+
+.impact-ring-dashed {
+  stroke-dasharray: 3 10;
+  stroke: rgba(180, 220, 215, 0.28);
+  animation: impact-dash-drift 28s linear infinite;
+}
+
+.impact-ring-ghost {
+  stroke: rgba(170, 210, 205, 0.12);
+  stroke-width: 1;
+}
+
+.impact-ellipse {
+  stroke: rgba(170, 210, 205, 0.18);
+  stroke-dasharray: 2 14;
+  animation: impact-dash-drift 40s linear infinite reverse;
 }
 
 .impact-spiral {
   fill: none;
-  stroke: rgba(180, 240, 235, 0.7);
-  stroke-width: 1.5;
+  stroke: rgba(180, 240, 235, 0.72);
+  stroke-width: 1.55;
   stroke-linecap: round;
   stroke-dasharray: 1;
+  filter: drop-shadow(0 0 4px rgba(140, 240, 220, 0.35));
+}
+
+.impact-spiral-soft {
+  stroke: rgba(160, 220, 215, 0.35);
+  stroke-width: 1.1;
+  filter: none;
+}
+
+.impact-link {
+  fill: none;
+  stroke: rgba(150, 220, 210, 0.15);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  transition: stroke 0.3s ease;
+}
+
+.impact-link.is-on {
+  stroke: rgba(170, 255, 235, 0.75);
+  filter: drop-shadow(0 0 5px rgba(120, 240, 220, 0.45));
+}
+
+.impact-orbit-glow {
+  fill: rgba(140, 230, 215, 0.12);
+  stroke: none;
+}
+
+.impact-orbit-dot {
+  fill: rgba(200, 255, 240, 0.85);
+  stroke: none;
+}
+
+.impact-beacon {
+  fill: #c8fff0;
+  stroke: none;
+  filter: drop-shadow(0 0 8px rgba(160, 255, 230, 0.9));
 }
 
 .impact-center-label {
@@ -1023,7 +1106,7 @@ body {
   text-transform: uppercase;
   color: rgba(235, 250, 248, 0.82);
   pointer-events: none;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.25s ease, transform 0.35s ease;
 }
 
 .impact-node {
@@ -1042,10 +1125,27 @@ body {
   transition: color 0.25s ease, transform 0.25s ease;
 }
 
+.impact-node-halo {
+  position: absolute;
+  inset: -0.55rem;
+  border-radius: 50%;
+  border: 1px solid rgba(170, 240, 225, 0);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.35s ease, transform 0.45s ease, border-color 0.35s ease;
+}
+
 .impact-node:hover,
 .impact-node.is-active {
   color: #fff;
   transform: translate(-50%, -50%) scale(1.08);
+}
+
+.impact-node.is-active .impact-node-halo {
+  opacity: 1;
+  border-color: rgba(170, 240, 225, 0.45);
+  transform: scale(1);
+  animation: impact-halo 2.4s ease-out infinite;
 }
 
 .impact-node-ring {
@@ -1085,6 +1185,50 @@ body {
 
 .impact-node.is-done .impact-node-track {
   stroke: rgba(190, 245, 235, 0.65);
+}
+
+@keyframes impact-pulse {
+  0% {
+    opacity: 0.65;
+    stroke-width: 1.2;
+  }
+  70% {
+    opacity: 0;
+    stroke-width: 0.4;
+  }
+  100% {
+    opacity: 0;
+    stroke-width: 0.4;
+  }
+}
+
+@keyframes impact-dash-drift {
+  to {
+    stroke-dashoffset: -180;
+  }
+}
+
+@keyframes impact-aura-breathe {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.08);
+    opacity: 0.55;
+  }
+}
+
+@keyframes impact-halo {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.55);
+    opacity: 0;
+  }
 }
 
 .impact-copy {

@@ -263,29 +263,26 @@ export default function App() {
     <main>
       <SiteNav />
 
-      <div className="page-bg" aria-hidden>
-        <div className="gradient-wash" />
-      </div>
-      <div className="page-fx" aria-hidden>
-        <div className="shade-vignette" />
-        <div className="grain-coarse" />
-        <div className="grain-overlay" />
-      </div>
-
       <div className="experience-shell">
+        <div className="gradient-wash" aria-hidden />
+        <div className="shade-vignette" aria-hidden />
+        <div className="grain-coarse" aria-hidden />
+        <div className="grain-overlay" aria-hidden />
+
         <div className="canvas-stage">
           <div className="canvas-grain" aria-hidden />
           <Canvas
             frameloop="never"
             dpr={[1, 1.5]}
             camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
-            gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+            gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
             onCreated={({ gl, scene, camera }) => {
-              gl.setClearColor(0x000000, 0)
+              gl.setClearColor(new THREE.Color('#12383c'), 1)
               gl.toneMapping = THREE.ACESFilmicToneMapping
               gl.toneMappingExposure = 0.98
               window.__aagami = { gl, scene, camera }
             }}>
+            <color attach="background" args={['#12383c']} />
             <Atmosphere />
             <ambientLight intensity={0.45} color="#6a9088" />
             <directionalLight position={[5, 9, 4]} intensity={1.1} color="#c8ddd4" />
@@ -541,40 +538,158 @@ const IMPACT_STEPS = [
 
 const IMPACT_RING = 2 * Math.PI * 22 // r=22 in node svg viewBox
 
-function ImpactCircles({ progress, active }) {
-  const rotate = progress * 18
-  const scale = 0.92 + Math.sin(progress * Math.PI) * 0.06
+const IMPACT_ORBIT_DOTS = [
+  { r: 210, speed: 1, size: 10, phase: 0 },
+  { r: 210, speed: 1, size: 7, phase: 2.1 },
+  { r: 210, speed: 1, size: 6, phase: 4.2 },
+  { r: 278, speed: -0.65, size: 5, phase: 0.8 },
+  { r: 278, speed: -0.65, size: 8, phase: 2.9 },
+  { r: 278, speed: -0.65, size: 5, phase: 5.0 },
+  { r: 155, speed: 1.4, size: 4, phase: 1.2 },
+  { r: 155, speed: 1.4, size: 6, phase: 3.5 },
+]
+
+const IMPACT_PETALS = [
+  [336, 123],
+  [458, 209],
+  [549, 328],
+  [458, 453],
+  [336, 532],
+  [215, 453],
+  [123, 328],
+  [214, 209],
+]
+
+function ImpactCircles({ progress, step, local }) {
+  const [tick, setTick] = useState(0)
+  const cx = 336
+  const cy = 328
+
+  useEffect(() => {
+    let raf = 0
+    let running = true
+    const start = performance.now()
+    const loop = (now) => {
+      if (!running) return
+      setTick((now - start) / 1000)
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  const rotate = progress * 26 + tick * 4.5
+  const counter = -progress * 14 - tick * 2.8
+  const breathe = 1 + Math.sin(tick * 1.2) * 0.018
+  const scale = (0.9 + Math.sin(progress * Math.PI) * 0.08) * breathe
+  const spiralDraw = clamp(progress * 1.25)
+  const activePetal = step < 0 ? -1 : (step * 3 + Math.floor(local * 3)) % IMPACT_PETALS.length
+  const linkT = step < 0 ? 0 : clamp(local)
+
   return (
-    <svg
-      className="impact-circles"
-      viewBox="0 0 672 655"
-      fill="none"
-      aria-hidden
-      style={{ transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})` }}>
-      {/* Flower-of-life ring — Amaterasu ecosystem geometry */}
-      <circle cx="336" cy="123" r="122" />
-      <circle cx="458" cy="209" r="122" />
-      <circle cx="549" cy="328" r="122" />
-      <circle cx="458" cy="453" r="122" />
-      <circle cx="336" cy="532" r="122" />
-      <circle cx="215" cy="453" r="122" />
-      <circle cx="123" cy="328" r="122" />
-      <circle cx="214" cy="209" r="122" />
-      <circle
-        className="impact-circles-core"
-        cx="335"
-        cy="328"
-        r="122"
-        style={{ opacity: 0.35 + active * 0.25 }}
-      />
-      {/* Soft spiral accent path */}
-      <path
-        className="impact-spiral"
-        d="M120 330C120 180 240 90 336 90C480 90 580 200 580 330C580 480 460 560 336 560C240 560 160 480 160 400C160 340 200 300 250 300C290 300 320 330 320 365"
-        pathLength="1"
-        style={{ strokeDashoffset: 1 - clamp(progress * 1.15) }}
-      />
-    </svg>
+    <div className="impact-circles-wrap" aria-hidden>
+      <svg
+        className="impact-circles impact-circles-back"
+        viewBox="0 0 672 655"
+        fill="none"
+        style={{ transform: `translate(-50%, -50%) rotate(${counter}deg) scale(${scale * 1.12})` }}>
+        <circle className="impact-ring-dashed" cx={cx} cy={cy} r="278" />
+        <circle className="impact-ring-ghost" cx={cx} cy={cy} r="320" />
+        <ellipse className="impact-ellipse" cx={cx} cy={cy} rx="300" ry="210" />
+      </svg>
+
+      <svg
+        className="impact-circles"
+        viewBox="0 0 672 655"
+        fill="none"
+        style={{ transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})` }}>
+        {IMPACT_PETALS.map(([x, y], i) => (
+          <circle
+            key={`p-${i}`}
+            className={`impact-petal${i === activePetal ? ' is-lit' : ''}`}
+            cx={x}
+            cy={y}
+            r="122"
+            style={{
+              opacity: i === activePetal ? 0.55 + local * 0.35 : 0.22 + (i % 3) * 0.04,
+            }}
+          />
+        ))}
+        <circle
+          className="impact-circles-core"
+          cx={cx}
+          cy={cy}
+          r="122"
+          style={{ opacity: 0.32 + (step < 0 ? 0.1 : local) * 0.4 }}
+        />
+        <circle className="impact-core-pulse" cx={cx} cy={cy} r="88" />
+        <circle className="impact-core-pulse impact-core-pulse-delay" cx={cx} cy={cy} r="56" />
+
+        {/* Golden-ratio–ish spiral */}
+        <path
+          className="impact-spiral"
+          d="M120 330C120 180 240 90 336 90C480 90 580 200 580 330C580 480 460 560 336 560C240 560 160 480 160 400C160 340 200 300 250 300C290 300 320 330 320 365"
+          pathLength="1"
+          style={{ strokeDashoffset: 1 - spiralDraw }}
+        />
+        <path
+          className="impact-spiral impact-spiral-soft"
+          d="M200 310C200 220 260 160 336 160C440 160 520 230 520 330C520 440 430 500 336 500C270 500 220 450 220 400"
+          pathLength="1"
+          style={{ strokeDashoffset: 1 - clamp(spiralDraw * 0.85 - 0.1) }}
+        />
+
+        {/* Node connector arcs — light up with step */}
+        <path
+          className={`impact-link${step >= 0 ? ' is-on' : ''}`}
+          d="M268 262C300 220 360 200 430 200C500 200 545 230 560 270"
+          pathLength="1"
+          style={{ strokeDashoffset: 1 - (step === 0 ? linkT : step > 0 ? 1 : 0) }}
+        />
+        <path
+          className={`impact-link${step >= 1 ? ' is-on' : ''}`}
+          d="M524 183C560 220 575 280 560 360C545 430 500 480 450 505"
+          pathLength="1"
+          style={{ strokeDashoffset: 1 - (step === 1 ? linkT : step > 1 ? 1 : 0) }}
+        />
+        <path
+          className={`impact-link${step >= 2 ? ' is-on' : ''}`}
+          d="M537 472C480 520 400 540 320 520C250 500 210 450 200 400"
+          pathLength="1"
+          style={{ strokeDashoffset: 1 - (step === 2 ? linkT : 0) }}
+        />
+      </svg>
+
+      <svg
+        className="impact-circles impact-circles-orbit"
+        viewBox="0 0 672 655"
+        fill="none"
+        style={{ transform: `translate(-50%, -50%) scale(${scale})` }}>
+        {IMPACT_ORBIT_DOTS.map((dot, i) => {
+          const a = tick * dot.speed + dot.phase + progress * 1.4
+          const x = cx + Math.cos(a) * dot.r
+          const y = cy + Math.sin(a) * dot.r * 0.92
+          return (
+            <g key={`d-${i}`}>
+              <circle className="impact-orbit-glow" cx={x} cy={y} r={dot.size * 2.2} />
+              <circle className="impact-orbit-dot" cx={x} cy={y} r={dot.size * 0.45} />
+            </g>
+          )
+        })}
+        {/* Traveling beacon along outer ring */}
+        <circle
+          className="impact-beacon"
+          cx={cx + Math.cos(tick * 0.9 + progress * 2) * 278}
+          cy={cy + Math.sin(tick * 0.9 + progress * 2) * 255}
+          r="3.5"
+        />
+      </svg>
+
+      <div className="impact-aura" style={{ opacity: 0.35 + (step < 0 ? 0 : local) * 0.35 }} />
+    </div>
   )
 }
 
@@ -637,16 +752,14 @@ function ImpactSection() {
     <section id="impact" className="impact" ref={sectionRef} aria-labelledby="impact-heading">
       <div className="impact-track">
         <div className="impact-sheet">
-          <div className="impact-glow" aria-hidden />
-          <div className="impact-glow impact-glow-soft" aria-hidden />
-
           <div className="impact-stage">
-            <ImpactCircles progress={state.progress} active={state.step < 0 ? 0 : state.local} />
+            <ImpactCircles progress={state.progress} step={state.step} local={state.local} />
 
             <div
               className="impact-center-label"
               style={{
-                opacity: activeStep ? 0.6 + state.local * 0.3 : 0.2,
+                opacity: activeStep ? 0.6 + state.local * 0.3 : 0.25,
+                transform: `translate(-50%, -50%) scale(${activeStep ? 1 + state.local * 0.04 : 1})`,
               }}>
               {activeStep ? activeStep.center : 'IMPACT'}
             </div>
@@ -664,6 +777,7 @@ function ImpactSection() {
                   aria-label={`${item.num} ${item.kicker}`}
                   aria-current={isActive ? 'step' : undefined}
                   onClick={() => goToStep(i)}>
+                  <span className="impact-node-halo" aria-hidden />
                   <svg className="impact-node-ring" viewBox="0 0 56 56" aria-hidden>
                     <circle className="impact-node-track" cx="28" cy="28" r="22" />
                     <circle
