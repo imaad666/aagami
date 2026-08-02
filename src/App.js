@@ -503,78 +503,73 @@ function EcosystemSection() {
   )
 }
 
-const IMPACT_ITEMS = [
+const IMPACT_STEPS = [
   {
-    tone: 'clinics',
-    label: 'Clinical Clinics',
+    num: '01',
+    kicker: 'Clinical Clinics',
     title: 'Point-of-Care Diagnosis',
     body: 'Our compact readout device allows small clinics to perform liquid biopsy tests without sending samples to centralized labs, reducing wait times from weeks to hours.',
     metric: '90% Faster Results',
-    icon: 'clinic',
+    center: 'CLINICS',
+    x: 40,
+    y: 40,
   },
   {
-    tone: 'labs',
-    label: 'Research Labs',
+    num: '02',
+    kicker: 'Research Labs',
     title: 'Single Molecule Precision',
     body: 'Empowering biophysicists and oncologists with the tools to study molecular dynamics, epigenetics, and protein folding in real-time at unprecedented resolution.',
     metric: 'Sub-nm Resolution',
-    icon: 'labs',
+    center: 'LABS',
+    x: 78,
+    y: 28,
   },
   {
-    tone: 'hospitals',
-    label: 'Hospitals',
+    num: '03',
+    kicker: 'Hospitals',
     title: 'Large-Scale Screening',
     body: 'Standardized chips and AI software enable high-throughput screening of entire populations, making early detection a routine part of annual health checkups.',
     metric: 'Cost Reduction: 60%',
-    icon: 'hospital',
+    center: 'CARE',
+    x: 80,
+    y: 72,
   },
 ]
 
-function ImpactIcon({ type }) {
-  if (type === 'clinic') {
-    return (
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden>
-        <path
-          d="M12 40V20l12-9 12 9v20"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinejoin="round"
-        />
-        <path d="M20 40V29h8v11" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
-        <path d="M22 22h4M24 20v4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      </svg>
-    )
-  }
-  if (type === 'labs') {
-    return (
-      <svg viewBox="0 0 48 48" fill="none" aria-hidden>
-        <path d="M20 10h8" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-        <path d="M24 10v12" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-        <path
-          d="M16 22h16l3.2 5.6A8.5 8.5 0 0 1 24 40a8.5 8.5 0 0 1-11.2-12.4L16 22Z"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinejoin="round"
-        />
-        <path d="M18 30h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="33.5" cy="33.5" r="5.5" stroke="currentColor" strokeWidth="2.2" />
-        <path d="M37.5 37.5 41 41" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      </svg>
-    )
-  }
+const IMPACT_RING = 2 * Math.PI * 22 // r=22 in node svg viewBox
+
+function ImpactCircles({ progress, active }) {
+  const rotate = progress * 18
+  const scale = 0.92 + Math.sin(progress * Math.PI) * 0.06
   return (
-    <svg viewBox="0 0 48 48" fill="none" aria-hidden>
-      <path
-        d="M9 40V22h9V12h12v10h9v18"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinejoin="round"
+    <svg
+      className="impact-circles"
+      viewBox="0 0 672 655"
+      fill="none"
+      aria-hidden
+      style={{ transform: `translate(-50%, -50%) rotate(${rotate}deg) scale(${scale})` }}>
+      {/* Flower-of-life ring — Amaterasu ecosystem geometry */}
+      <circle cx="336" cy="123" r="122" />
+      <circle cx="458" cy="209" r="122" />
+      <circle cx="549" cy="328" r="122" />
+      <circle cx="458" cy="453" r="122" />
+      <circle cx="336" cy="532" r="122" />
+      <circle cx="215" cy="453" r="122" />
+      <circle cx="123" cy="328" r="122" />
+      <circle cx="214" cy="209" r="122" />
+      <circle
+        className="impact-circles-core"
+        cx="335"
+        cy="328"
+        r="122"
+        style={{ opacity: 0.35 + active * 0.25 }}
       />
+      {/* Soft spiral accent path */}
       <path
-        d="M21 18h6M24 15v6M15 28h4M29 28h4M15 34h4M29 34h4"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
+        className="impact-spiral"
+        d="M120 330C120 180 240 90 336 90C480 90 580 200 580 330C580 480 460 560 336 560C240 560 160 480 160 400C160 340 200 300 250 300C290 300 320 330 320 365"
+        pathLength="1"
+        style={{ strokeDashoffset: 1 - clamp(progress * 1.15) }}
       />
     </svg>
   )
@@ -582,22 +577,36 @@ function ImpactIcon({ type }) {
 
 function ImpactSection() {
   const sectionRef = useRef(null)
-  const [opens, setOpens] = useState(() => IMPACT_ITEMS.map(() => 0))
+  const [state, setState] = useState({ progress: 0, step: 0, local: 0 })
 
   useEffect(() => {
     let raf = 0
     let running = true
+    let progress = 0
     const update = () => {
       if (!running) return
       const el = sectionRef.current
       if (el) {
-        const rect = el.getBoundingClientRect()
         const vh = window.innerHeight
-        const next = IMPACT_ITEMS.map((_, i) => {
-          const start = rect.top + vh * (0.08 + i * 0.08)
-          return smoother(0, 1, clamp((vh * 0.78 - start) / (vh * 0.28)))
-        })
-        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.16)))
+        const start = el.offsetTop
+        const span = Math.max(1, el.offsetHeight - vh)
+        const raw = clamp((window.scrollY - start) / span)
+        progress = lerp(progress, raw, 0.28)
+        // Intro beat, then one slot per step
+        const intro = 0.1
+        let step = -1
+        let local = clamp(progress / Math.max(intro, 0.0001))
+        if (progress >= intro) {
+          const usable = (progress - intro) / (1 - intro)
+          const f = usable * IMPACT_STEPS.length
+          step = Math.min(IMPACT_STEPS.length - 1, Math.floor(f))
+          local = clamp(f - step)
+        }
+        setState((prev) =>
+          prev.progress === progress && prev.step === step && prev.local === local
+            ? prev
+            : { progress, step, local },
+        )
       }
       raf = requestAnimationFrame(update)
     }
@@ -608,35 +617,109 @@ function ImpactSection() {
     }
   }, [])
 
+  const goToStep = (i) => {
+    const el = sectionRef.current
+    if (!el) return
+    const vh = window.innerHeight
+    const span = Math.max(1, el.offsetHeight - vh)
+    const intro = 0.1
+    const t = intro + ((i + 0.4) / IMPACT_STEPS.length) * (1 - intro)
+    window.scrollTo({ top: el.offsetTop + t * span, behavior: 'smooth' })
+  }
+
+  const activeStep = state.step < 0 ? null : IMPACT_STEPS[state.step]
+  const introAmt = state.step < 0 ? clamp(1 - state.local * 0.85) : 0
+
   return (
     <section id="impact" className="impact" ref={sectionRef} aria-labelledby="impact-heading">
-      <div className="impact-inner">
-        <header className="impact-header">
-          <h2 id="impact-heading">Driving Global Impact</h2>
-          <p>We are bridging the gap between cutting-edge biophysics and everyday medical practice.</p>
-        </header>
+      <div className="impact-track">
+        <div className="impact-sheet">
+          <div className="impact-glow" aria-hidden />
+          <div className="impact-glow impact-glow-soft" aria-hidden />
 
-        <div className="impact-grid">
-          {IMPACT_ITEMS.map((item, i) => {
-            const open = opens[i]
-            return (
-              <article
-                key={item.title}
-                className={`impact-card tone-${item.tone}`}
-                style={{
-                  opacity: 0.2 + open * 0.8,
-                  transform: `translate3d(0, ${(1 - open) * 28}px, 0)`,
-                }}>
-                <div className="impact-icon" aria-hidden>
-                  <ImpactIcon type={item.icon} />
-                </div>
-                <p className="impact-label">{item.label}</p>
-                <h3 className="impact-title">{item.title}</h3>
-                <p className="impact-body">{item.body}</p>
-                <span className="impact-metric">{item.metric}</span>
-              </article>
-            )
-          })}
+          <div className="impact-stage">
+            <ImpactCircles progress={state.progress} active={state.step < 0 ? 0 : state.local} />
+
+            <div
+              className="impact-center-label"
+              style={{
+                opacity: activeStep ? 0.6 + state.local * 0.3 : 0.2,
+              }}>
+              {activeStep ? activeStep.center : 'IMPACT'}
+            </div>
+
+            {IMPACT_STEPS.map((item, i) => {
+              const isActive = state.step === i
+              const done = state.step > i
+              const fill = done ? 1 : isActive ? Math.max(state.local, 0.08) : 0
+              return (
+                <button
+                  key={item.num}
+                  type="button"
+                  className={`impact-node${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}`}
+                  style={{ left: `${item.x}%`, top: `${item.y}%` }}
+                  aria-label={`${item.num} ${item.kicker}`}
+                  aria-current={isActive ? 'step' : undefined}
+                  onClick={() => goToStep(i)}>
+                  <svg className="impact-node-ring" viewBox="0 0 56 56" aria-hidden>
+                    <circle className="impact-node-track" cx="28" cy="28" r="22" />
+                    <circle
+                      className="impact-node-progress"
+                      cx="28"
+                      cy="28"
+                      r="22"
+                      style={{
+                        strokeDasharray: IMPACT_RING,
+                        strokeDashoffset: IMPACT_RING * (1 - fill),
+                      }}
+                    />
+                  </svg>
+                  <span className="impact-node-num">{item.num}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="impact-copy">
+            <p className="impact-eyebrow" id="impact-heading">
+              Driving Global Impact
+            </p>
+
+            <div
+              className="impact-intro"
+              style={{
+                opacity: introAmt,
+                filter: `blur(${(1 - introAmt) * 10}px)`,
+                visibility: introAmt < 0.02 ? 'hidden' : 'visible',
+              }}>
+              <h2>We are bridging the gap between cutting-edge biophysics and everyday medical practice.</h2>
+            </div>
+
+            <div className="impact-copy-stack" aria-live="polite">
+              {IMPACT_STEPS.map((item, i) => {
+                const show = state.step === i ? 1 : 0
+                return (
+                  <article
+                    key={item.num}
+                    className={`impact-step${state.step === i ? ' is-active' : ''}`}
+                    style={{
+                      opacity: show,
+                      filter: show ? 'none' : 'blur(12px)',
+                      transform: `translate3d(0, ${show ? 0 : 22}px, 0)`,
+                      visibility: show ? 'visible' : 'hidden',
+                    }}>
+                    <p className="impact-kicker">
+                      <span className="impact-kicker-dot" aria-hidden />
+                      {item.kicker}
+                    </p>
+                    <h3 className="impact-title">{item.title}</h3>
+                    <p className="impact-body">{item.body}</p>
+                    <p className="impact-metric">{item.metric}</p>
+                  </article>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </section>
