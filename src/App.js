@@ -263,8 +263,10 @@ export default function App() {
     <main>
       <SiteNav />
 
-      <div className="page-atmosphere" aria-hidden>
+      <div className="page-bg" aria-hidden>
         <div className="gradient-wash" />
+      </div>
+      <div className="page-fx" aria-hidden>
         <div className="shade-vignette" />
         <div className="grain-coarse" />
         <div className="grain-overlay" />
@@ -277,14 +279,13 @@ export default function App() {
             frameloop="never"
             dpr={[1, 1.5]}
             camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
-            gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+            gl={{ antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
             onCreated={({ gl, scene, camera }) => {
-              gl.setClearColor(new THREE.Color('#12383c'), 1)
+              gl.setClearColor(0x000000, 0)
               gl.toneMapping = THREE.ACESFilmicToneMapping
               gl.toneMappingExposure = 0.98
               window.__aagami = { gl, scene, camera }
             }}>
-            <color attach="background" args={['#12383c']} />
             <Atmosphere />
             <ambientLight intensity={0.45} color="#6a9088" />
             <directionalLight position={[5, 9, 4]} intensity={1.1} color="#c8ddd4" />
