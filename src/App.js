@@ -263,12 +263,14 @@ export default function App() {
     <main>
       <SiteNav />
 
-      <div className="experience-shell">
-        <div className="gradient-wash" aria-hidden />
-        <div className="shade-vignette" aria-hidden />
-        <div className="grain-coarse" aria-hidden />
-        <div className="grain-overlay" aria-hidden />
+      <div className="page-atmosphere" aria-hidden>
+        <div className="gradient-wash" />
+        <div className="shade-vignette" />
+        <div className="grain-coarse" />
+        <div className="grain-overlay" />
+      </div>
 
+      <div className="experience-shell">
         <div className="canvas-stage">
           <div className="canvas-grain" aria-hidden />
           <Canvas

@@ -29,7 +29,11 @@ body {
 .experience-shell {
   position: relative;
   min-height: 620vh;
-  background: #0c2a2e;
+  background: transparent;
+}
+
+.page-atmosphere {
+  pointer-events: none;
 }
 
 /* ── Site nav ────────────────────────────────────────────────────────────── */
@@ -621,7 +625,7 @@ body {
   position: relative;
   z-index: 16;
   margin-top: 0;
-  background: #0c2a2e;
+  background: transparent;
   color: #e8f0ec;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
 }
@@ -641,7 +645,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #0c2a2e;
+  background: transparent;
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -935,7 +939,7 @@ body {
   z-index: 16;
   color: #e8f4f2;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
-  background: #0c2a2e;
+  background: transparent;
 }
 
 .impact-track {
@@ -950,11 +954,7 @@ body {
   max-height: 100vh;
   max-height: 100dvh;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 90% 55% at 78% 10%, rgba(40, 120, 112, 0.28), transparent 58%),
-    radial-gradient(ellipse 70% 50% at 10% 90%, rgba(32, 80, 100, 0.26), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 48% 48%, rgba(28, 90, 82, 0.24), transparent 62%),
-    linear-gradient(162deg, #0a282c 0%, #12383c 34%, #164850 55%, #123e3c 78%, #0c2a2e 100%);
+  background: transparent;
 }
 
 .impact-glow {
