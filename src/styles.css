@@ -987,7 +987,7 @@ body {
   );
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
-  will-change: opacity, mask-image, -webkit-mask-image;
+  will-change: opacity;
 }
 
 .impact-graphics {
@@ -1048,7 +1048,7 @@ body {
   fill: none;
   stroke: currentColor;
   stroke-width: 1.35;
-  transition: opacity 0.25s ease, stroke 0.3s ease;
+  transition: stroke 0.5s ease, filter 0.5s ease;
 }
 
 .impact-mandala-petal.is-lit {

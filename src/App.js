@@ -600,11 +600,11 @@ function impactBeat(progress, a, b) {
 }
 
 function impactPhase(progress) {
-  // 0–0.32 nature / PoC · 0.32–0.45 mandala forms · 0.45–1 traverse 01→02→03
-  const natureEnd = 0.32
-  const formEnd = 0.45
+  // Longer overlaps so nature → mandala never hard-cuts
+  const natureEnd = 0.34
+  const formEnd = 0.52
   if (progress < natureEnd) {
-    return { phase: 'nature', step: progress > 0.2 ? 0 : -1, local: clamp((progress - 0.2) / 0.12), form: 0 }
+    return { phase: 'nature', step: progress > 0.18 ? 0 : -1, local: clamp((progress - 0.18) / 0.14), form: 0 }
   }
   if (progress < formEnd) {
     return {
@@ -621,34 +621,119 @@ function impactPhase(progress) {
 }
 
 function ImpactVisionStage({ progress, phase }) {
-  const sphereT = impactBeat(progress, 0, 0.2)
-  const maskRadius = `${16 + sphereT * 110}vmax`
-  const maskY = `${122 - sphereT * 78}%`
+  const vizRef = useRef({
+    settles: NATURE_CIRCLES.map(() => 0),
+    pathDraws: NATURE_PATHS.map(() => 0),
+    petals: MANDALA_PETALS.map(() => 0),
+    natureOp: 0,
+    pathsOp: 0,
+    form: 0,
+    sphere: 0,
+    travelerX: IMPACT_STEPS[0].x,
+    travelerY: IMPACT_STEPS[0].y,
+    travelerOn: 0,
+    nodes: IMPACT_STEPS.map(() => 0),
+    fills: IMPACT_STEPS.map(() => 0),
+  })
+  const targetsRef = useRef(null)
+  const [, bump] = useState(0)
 
-  const circleBase = impactBeat(progress, 0.05, 0.28)
-  const pathT = impactBeat(progress, 0.16, 0.3)
-  const natureHold = 1 - impactBeat(progress, 0.3, 0.44)
-  const circlesOpacity = (0.5 + impactBeat(progress, 0.04, 0.22) * 0.45) * natureHold
-  const pathsOpacity = pathT * natureHold * 0.65
-
-  const form = phase.form
-  const mandalaOp = form
   const step = phase.step
   const local = phase.local
 
-  // Traveler between nodes during traverse
-  let traveler = null
+  const sphereTarget = impactBeat(progress, 0, 0.22)
+  const circleBase = impactBeat(progress, 0.04, 0.32)
+  const pathBase = impactBeat(progress, 0.14, 0.34)
+  const natureHold = 1 - impactBeat(progress, 0.3, 0.55)
+  const natureOpTarget = (0.4 + impactBeat(progress, 0.03, 0.2) * 0.55) * natureHold
+  const pathsOpTarget = pathBase * natureHold * 0.7
+  const formTarget = phase.form
+
+  const settleTargets = NATURE_CIRCLES.map((_, i) => {
+    const start = (i / NATURE_CIRCLES.length) * 0.55
+    return smoother(start, start + 0.62, circleBase)
+  })
+  const pathTargets = NATURE_PATHS.map((_, i) => {
+    const start = (i / NATURE_PATHS.length) * 0.45
+    return smoother(start, start + 0.6, pathBase)
+  })
+  const petalTargets = MANDALA_PETALS.map((_, i) => smoother(i * 0.06, 0.45 + i * 0.07, formTarget))
+  const nodeTargets = IMPACT_STEPS.map((_, i) => smoother(0.2 + i * 0.1, 0.5 + i * 0.08, formTarget))
+
+  let travelerTX = IMPACT_STEPS[0].x
+  let travelerTY = IMPACT_STEPS[0].y
+  let travelerOnT = 0
   if (phase.phase === 'traverse' || phase.phase === 'form') {
     const from = IMPACT_STEPS[Math.max(0, step)]
-    const nextExists = step < IMPACT_STEPS.length - 1
-    const to = IMPACT_STEPS[Math.min(IMPACT_STEPS.length - 1, step + (phase.phase === 'traverse' && nextExists ? 1 : 0))]
-    const travelT = phase.phase === 'form' ? 0 : smoother(0.35, 0.95, local)
-    traveler = {
-      x: lerp(from.x, to.x, travelT),
-      y: lerp(from.y, to.y, travelT),
-      on: form > 0.55,
-    }
+    const nextExists = step < IMPACT_STEPS.length - 1 && phase.phase === 'traverse'
+    const to = IMPACT_STEPS[Math.min(IMPACT_STEPS.length - 1, step + (nextExists ? 1 : 0))]
+    const travelT = phase.phase === 'form' ? 0 : smoother(0.25, 0.92, local)
+    travelerTX = lerp(from.x, to.x, travelT)
+    travelerTY = lerp(from.y, to.y, travelT)
+    travelerOnT = formTarget > 0.4 ? 1 : formTarget / 0.4
   }
+
+  const fillTargets = IMPACT_STEPS.map((_, i) => {
+    const done = phase.phase === 'traverse' && step > i
+    const isActive = phase.phase !== 'nature' && step === i
+    return done ? 1 : isActive ? Math.max(local, 0.08) : 0
+  })
+
+  targetsRef.current = {
+    settleTargets,
+    pathTargets,
+    petalTargets,
+    natureOpTarget,
+    pathsOpTarget,
+    formTarget,
+    sphereTarget,
+    travelerTX,
+    travelerTY,
+    travelerOnT,
+    nodeTargets,
+    fillTargets,
+  }
+
+  useEffect(() => {
+    let raf = 0
+    let running = true
+    const tick = () => {
+      if (!running) return
+      const t = targetsRef.current
+      if (!t) {
+        raf = requestAnimationFrame(tick)
+        return
+      }
+      const v = vizRef.current
+      const ease = 0.11
+      const easeSlow = 0.08
+      vizRef.current = {
+        settles: v.settles.map((s, i) => lerp(s, t.settleTargets[i], easeSlow)),
+        pathDraws: v.pathDraws.map((s, i) => lerp(s, t.pathTargets[i], ease)),
+        petals: v.petals.map((s, i) => lerp(s, t.petalTargets[i], easeSlow)),
+        natureOp: lerp(v.natureOp, t.natureOpTarget, easeSlow),
+        pathsOp: lerp(v.pathsOp, t.pathsOpTarget, ease),
+        form: lerp(v.form, t.formTarget, easeSlow),
+        sphere: lerp(v.sphere, t.sphereTarget, easeSlow),
+        travelerX: lerp(v.travelerX, t.travelerTX, 0.13),
+        travelerY: lerp(v.travelerY, t.travelerTY, 0.13),
+        travelerOn: lerp(v.travelerOn, t.travelerOnT, ease),
+        nodes: v.nodes.map((s, i) => lerp(s, t.nodeTargets[i], easeSlow)),
+        fills: v.fills.map((s, i) => lerp(s, t.fillTargets[i], 0.15)),
+      }
+      bump((n) => (n + 1) % 100000)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  const v = vizRef.current
+  const maskRadius = `${16 + v.sphere * 110}vmax`
+  const maskY = `${122 - v.sphere * 78}%`
 
   return (
     <div className="impact-stage" aria-hidden>
@@ -657,7 +742,7 @@ function ImpactVisionStage({ progress, phase }) {
         style={{
           '--mask-radius': maskRadius,
           '--mask-y': maskY,
-          opacity: 0.35 + sphereT * 0.65,
+          opacity: 0.35 + v.sphere * 0.65,
         }}
       />
 
@@ -667,40 +752,40 @@ function ImpactVisionStage({ progress, phase }) {
           viewBox="150 1900 1700 1400"
           fill="none"
           preserveAspectRatio="xMidYMid meet"
-          style={{ opacity: circlesOpacity }}>
+          style={{ opacity: v.natureOp }}>
           {NATURE_CIRCLES.map((c, i) => {
-            const start = i / NATURE_CIRCLES.length
-            const t = smoother(start * 0.4, start * 0.4 + 0.5, circleBase)
+            const t = v.settles[i]
             const tx = c.ox * (1 - t)
             const ty = c.oy * (1 - t)
             return (
-              <g key={c.cls} transform={`translate(${tx} ${ty})`} opacity={0.25 + t * 0.75}>
+              <g key={c.cls} transform={`translate(${tx} ${ty})`} opacity={0.2 + t * 0.8}>
                 <circle className={`impact-nature-circle ${c.cls}`} cx={c.cx} cy={c.cy} r={c.r} />
               </g>
             )
           })}
-          <g className="impact-nature-paths" style={{ opacity: pathsOpacity }}>
-            {NATURE_PATHS.map((p, i) => {
-              const start = i / NATURE_PATHS.length
-              const draw = smoother(start * 0.35, start * 0.35 + 0.55, pathT)
-              return (
-                <path
-                  key={p.cls}
-                  className={`impact-nature-path ${p.cls}`}
-                  d={p.d}
-                  pathLength="1"
-                  style={{ strokeDashoffset: 1 - draw }}
-                />
-              )
-            })}
+          <g className="impact-nature-paths" style={{ opacity: v.pathsOp }}>
+            {NATURE_PATHS.map((p, i) => (
+              <path
+                key={p.cls}
+                className={`impact-nature-path ${p.cls}`}
+                d={p.d}
+                pathLength="1"
+                style={{ strokeDashoffset: 1 - v.pathDraws[i] }}
+              />
+            ))}
           </g>
         </svg>
 
-        <div className="impact-mandala-wrap" style={{ opacity: mandalaOp, transform: `translate(-50%, -50%) scale(${0.82 + form * 0.18})` }}>
+        <div
+          className="impact-mandala-wrap"
+          style={{
+            opacity: v.form,
+            transform: `translate(-50%, -50%) scale(${0.78 + v.form * 0.22})`,
+          }}>
           <svg className="impact-mandala-svg" viewBox="0 0 672 655" fill="none">
             {MANDALA_PETALS.map(([x, y], i) => {
-              const petalT = smoother(i * 0.08, 0.35 + i * 0.08, form)
-              const lit = step >= 0 && i === (step * 3) % MANDALA_PETALS.length
+              const petalT = v.petals[i]
+              const lit = step >= 0 && phase.phase !== 'nature' && i === (step * 3) % MANDALA_PETALS.length
               return (
                 <circle
                   key={`petal-${i}`}
@@ -708,7 +793,7 @@ function ImpactVisionStage({ progress, phase }) {
                   cx={x}
                   cy={y}
                   r="122"
-                  style={{ opacity: 0.12 + petalT * (lit ? 0.55 : 0.32) }}
+                  style={{ opacity: 0.08 + petalT * (lit ? 0.58 : 0.34) }}
                 />
               )
             })}
@@ -717,36 +802,41 @@ function ImpactVisionStage({ progress, phase }) {
               cx={MANDALA_CORE[0]}
               cy={MANDALA_CORE[1]}
               r="122"
-              style={{ opacity: 0.15 + form * 0.4 }}
+              style={{ opacity: 0.1 + v.form * 0.42 }}
             />
-            {/* Traversal arcs between node petals */}
             <path
-              className={`impact-mandala-arc${step >= 0 ? ' is-on' : ''}`}
+              className={`impact-mandala-arc${step >= 0 && phase.phase !== 'nature' ? ' is-on' : ''}`}
               d="M268 262C300 220 360 200 430 200C500 200 545 230 560 270"
               pathLength="1"
-              style={{ strokeDashoffset: 1 - (step === 0 ? local : step > 0 ? 1 : 0) * form }}
+              style={{
+                strokeDashoffset: 1 - (step === 0 ? local : step > 0 ? 1 : 0) * v.form,
+              }}
             />
             <path
               className={`impact-mandala-arc${step >= 1 ? ' is-on' : ''}`}
               d="M524 183C560 220 575 280 560 360C545 430 500 480 450 505"
               pathLength="1"
-              style={{ strokeDashoffset: 1 - (step === 1 ? local : step > 1 ? 1 : 0) * form }}
+              style={{
+                strokeDashoffset: 1 - (step === 1 ? local : step > 1 ? 1 : 0) * v.form,
+              }}
             />
             <path
               className={`impact-mandala-arc${step >= 2 ? ' is-on' : ''}`}
               d="M537 472C480 520 400 540 320 520C250 500 210 450 200 400"
               pathLength="1"
-              style={{ strokeDashoffset: 1 - (step === 2 ? local : 0) * form }}
+              style={{
+                strokeDashoffset: 1 - (step === 2 ? local : 0) * v.form,
+              }}
             />
           </svg>
         </div>
       </div>
 
       {IMPACT_STEPS.map((item, i) => {
-        const nodeIn = smoother(0.35 + i * 0.12, 0.55 + i * 0.1, form)
+        const nodeIn = v.nodes[i]
         const isActive = phase.phase !== 'nature' && step === i
         const done = phase.phase === 'traverse' && step > i
-        const fill = done ? 1 : isActive ? Math.max(local, 0.1) : 0
+        const fill = v.fills[i]
         return (
           <div
             key={item.num}
@@ -755,7 +845,7 @@ function ImpactVisionStage({ progress, phase }) {
               left: `${item.x}%`,
               top: `${item.y}%`,
               opacity: nodeIn,
-              transform: `translate(-50%, -50%) scale(${0.85 + nodeIn * 0.15 + (isActive ? 0.08 : 0)})`,
+              transform: `translate(-50%, -50%) scale(${0.82 + nodeIn * 0.18 + (isActive ? 0.06 : 0)})`,
             }}>
             <span className="impact-node-halo" aria-hidden />
             <svg className="impact-node-ring" viewBox="0 0 56 56" aria-hidden>
@@ -776,16 +866,14 @@ function ImpactVisionStage({ progress, phase }) {
         )
       })}
 
-      {traveler && traveler.on && (
-        <span
-          className="impact-traveler"
-          style={{
-            left: `${traveler.x}%`,
-            top: `${traveler.y}%`,
-            opacity: form,
-          }}
-        />
-      )}
+      <span
+        className="impact-traveler"
+        style={{
+          left: `${v.travelerX}%`,
+          top: `${v.travelerY}%`,
+          opacity: v.travelerOn,
+        }}
+      />
     </div>
   )
 }
@@ -813,7 +901,7 @@ function ImpactSection() {
           const vh = window.innerHeight
           const span = Math.max(1, el.offsetHeight - vh)
           const raw = clamp(-el.getBoundingClientRect().top / span)
-          const catchUp = Math.abs(raw - smoothed) > 0.08 ? 0.55 : 0.22
+          const catchUp = Math.abs(raw - smoothed) > 0.12 ? 0.4 : 0.16
           smoothed = lerp(smoothed, raw, catchUp)
           setProgress(smoothed)
         }
