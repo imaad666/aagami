@@ -125,7 +125,7 @@ main {
 
 .site-nav-logo {
   position: relative;
-  z-index: 22;
+  z-index: 1;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -145,6 +145,12 @@ main {
   height: 3.35rem;
   width: auto;
   display: block;
+}
+
+/* Keep logo from sitting on top of the open drawer */
+.site-nav:has(.site-nav-panel.is-open) .site-nav-logo {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .site-nav-links {
@@ -198,7 +204,7 @@ main {
 
 .site-nav-toggle {
   position: relative;
-  z-index: 22;
+  z-index: 23;
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
