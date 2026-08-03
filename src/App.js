@@ -1519,6 +1519,12 @@ function SiteFooter() {
 
         <div className="site-footer-bottom">
           <p className="site-footer-legal">© 2026 AagamiSEQ Technologies. All rights reserved.</p>
+          <p className="site-footer-credit">
+            Website crafted by{' '}
+            <a href="https://imaad6.vercel.app" target="_blank" rel="noopener noreferrer">
+              Imaad
+            </a>
+          </p>
         </div>
       </div>
 

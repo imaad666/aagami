@@ -2785,6 +2785,11 @@ main {
 }
 
 .site-footer-bottom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.65rem 1.5rem;
   padding-top: 1.35rem;
 }
 
@@ -2793,6 +2798,25 @@ main {
   font-size: 0.78rem;
   letter-spacing: 0.02em;
   color: rgba(160, 190, 185, 0.55);
+}
+
+.site-footer-credit {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: rgba(160, 190, 185, 0.55);
+}
+
+.site-footer-credit a {
+  color: rgba(180, 230, 220, 0.78);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(160, 240, 225, 0.28);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.site-footer-credit a:hover {
+  color: #9ff0e0;
+  border-color: rgba(160, 240, 225, 0.7);
 }
 
 .site-footer-mark {
