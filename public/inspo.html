@@ -1,9 +1,0 @@
-<!doctype html>
-<html><head><meta charset="utf-8"><title>inspo</title></head>
-<body style="margin:0;background:#000;display:grid;place-items:center;min-height:100vh">
-<video id="v" src="./inspo.mov" controls playsinline style="max-width:100%;max-height:100vh"></video>
-<script>
-const v=document.getElementById('v');
-v.addEventListener('loadedmetadata',()=>{ document.title='dur='+v.duration.toFixed(2); window.__v=v; });
-</script>
-</body></html>
