@@ -1293,8 +1293,14 @@ function TrustSection() {
 function AboutSection() {
   const sectionRef = useRef(null)
   const sheetRef = useRef(null)
+  const [stacked, setStacked] = useState(false)
 
   useEffect(() => {
+    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
+    const sync = () => setStacked(mq.matches)
+    sync()
+    mq.addEventListener?.('change', sync)
+
     let raf = 0
     let running = true
     const tick = () => {
@@ -1302,14 +1308,21 @@ function AboutSection() {
       const el = sectionRef.current
       const sheet = sheetRef.current
       if (el && sheet) {
-        const vh = window.innerHeight || 1
-        const span = Math.max(1, el.offsetHeight - vh)
-        const raw = clamp(-el.getBoundingClientRect().top / span)
-        const t = smoother(0, 1, raw)
-        sheet.style.setProperty('--about-orb-x', `${50 + Math.sin(t * Math.PI) * 10}%`)
-        sheet.style.setProperty('--about-orb-y', `${90 - t * 62}%`)
-        sheet.style.setProperty('--about-orb-s', `${34 + t * 52}%`)
-        sheet.style.setProperty('--about-orb-o', String(0.2 + t * 0.42))
+        if (mq.matches) {
+          sheet.style.setProperty('--about-orb-x', '50%')
+          sheet.style.setProperty('--about-orb-y', '28%')
+          sheet.style.setProperty('--about-orb-s', '58%')
+          sheet.style.setProperty('--about-orb-o', '0.38')
+        } else {
+          const vh = window.innerHeight || 1
+          const span = Math.max(1, el.offsetHeight - vh)
+          const raw = clamp(-el.getBoundingClientRect().top / span)
+          const t = smoother(0, 1, raw)
+          sheet.style.setProperty('--about-orb-x', `${50 + Math.sin(t * Math.PI) * 10}%`)
+          sheet.style.setProperty('--about-orb-y', `${90 - t * 62}%`)
+          sheet.style.setProperty('--about-orb-s', `${34 + t * 52}%`)
+          sheet.style.setProperty('--about-orb-o', String(0.2 + t * 0.42))
+        }
       }
       raf = requestAnimationFrame(tick)
     }
@@ -1317,11 +1330,16 @@ function AboutSection() {
     return () => {
       running = false
       cancelAnimationFrame(raf)
+      mq.removeEventListener?.('change', sync)
     }
   }, [])
 
   return (
-    <section id="about" className="about" ref={sectionRef} aria-labelledby="about-heading">
+    <section
+      id="about"
+      className={`about${stacked ? ' is-stacked' : ''}`}
+      ref={sectionRef}
+      aria-labelledby="about-heading">
       <div className="about-track">
         <div className="about-sheet" ref={sheetRef}>
           <div className="about-orb" aria-hidden />
@@ -1332,9 +1350,9 @@ function AboutSection() {
             <div className="about-pane about-pane-left">
               <p className="about-eyebrow">About Us</p>
               <h2 id="about-heading">
-                Pioneering the next
+                Pioneering the next{' '}
                 <br />
-                generation of
+                generation of{' '}
                 <br />
                 <span>genetic diagnostics.</span>
               </h2>

@@ -723,6 +723,7 @@ main {
 }
 
 @keyframes brand-q-glow {
+
   0%,
   100% {
     color: #dffcf4;
@@ -1001,7 +1002,8 @@ main {
 }
 
 /* Stacked: phone, tablet, short landscape — simple single-column flow */
-@media (max-width: 899px), (max-height: 560px) {
+@media (max-width: 899px),
+(max-height: 560px) {
   .ecosystem-track {
     height: auto;
   }
@@ -1386,7 +1388,8 @@ main {
 }
 
 /* Stacked: DNA fills the screen, copy overlays on top */
-@media (max-width: 899px), (max-height: 560px) {
+@media (max-width: 899px),
+(max-height: 560px) {
   .sensing-track {
     height: auto;
   }
@@ -1417,7 +1420,7 @@ main {
     pointer-events: none;
   }
 
-  .sensing-dna > div,
+  .sensing-dna>div,
   .sensing-dna canvas {
     width: 100% !important;
     height: 100% !important;
@@ -1493,7 +1496,7 @@ main {
     align-self: stretch;
   }
 
-  .sensing-card + .sensing-card {
+  .sensing-card+.sensing-card {
     border-top: 1px solid rgba(160, 210, 200, 0.22);
   }
 
@@ -1930,7 +1933,8 @@ main {
 }
 
 /* Stacked: mandala fills the section, text overlays, scroll drives nodes */
-@media (max-width: 899px), (max-height: 560px) {
+@media (max-width: 899px),
+(max-height: 560px) {
   .impact-track {
     height: auto;
   }
@@ -2072,7 +2076,7 @@ main {
     opacity: 1;
   }
 
-  .impact-step + .impact-step {
+  .impact-step+.impact-step {
     border-top: 1px solid rgba(160, 210, 200, 0.2);
   }
 
@@ -2277,7 +2281,7 @@ main {
   contain: layout;
 }
 
-.team-grid > li {
+.team-grid>li {
   min-width: 0;
   padding: 0.85rem 0.35rem;
 }
@@ -2630,23 +2634,36 @@ main {
   }
 }
 
-@media (max-width: 900px) {
+/* Stacked: phone, tablet, short landscape */
+@media (max-width: 899px),
+(max-height: 560px) {
   .about-track {
     height: auto;
   }
 
   .about-sheet {
-    position: relative;
-    top: auto;
-    height: auto;
-    max-height: none;
-    overflow: visible;
+    position: relative !important;
+    top: auto !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0;
+    overflow: hidden;
+    display: block;
   }
 
   .about-shell {
     grid-template-columns: 1fr;
     gap: 1.5rem;
-    padding-top: clamp(4.5rem, 10vh, 6rem);
+    width: 100%;
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 4.5rem clamp(1.1rem, 4vw, 1.75rem) 2.75rem;
+    align-items: stretch;
+    flex: none;
+  }
+
+  .about-pane {
+    gap: 0.85rem;
   }
 
   .about-pane-left,
@@ -2654,10 +2671,29 @@ main {
     padding: 0;
   }
 
+  .about-pane-left h2 {
+    font-size: clamp(1.55rem, 7vw, 2.25rem);
+    line-height: 1.12;
+  }
+
+  .about-pane-left h2 br {
+    display: none;
+  }
+
+  .about-mission-title {
+    font-size: clamp(1.15rem, 4.8vw, 1.45rem);
+  }
+
+  .about-copy {
+    max-width: none;
+    font-size: clamp(0.92rem, 2.8vw, 1.02rem);
+    line-height: 1.55;
+  }
+
   .about-divider {
     width: 100%;
     min-height: 0;
-    height: 2.5rem;
+    height: 2.25rem;
     align-self: auto;
   }
 
@@ -2668,11 +2704,48 @@ main {
   .about-divider-svg-horiz {
     display: block;
     width: 100%;
-    height: 2.5rem;
+    height: 2.25rem;
+  }
+
+  .about-orb {
+    inset: -8%;
+    opacity: 0.85;
+  }
+
+  .about-glow {
+    height: 55%;
+    opacity: 0.4;
+  }
+}
+
+/* Short desktop heights — keep sticky, tighten type */
+@media (max-height: 720px) and (min-width: 900px) {
+  .about-shell {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+    gap: 1rem;
+  }
+
+  .about-pane-left h2 {
+    font-size: clamp(1.55rem, 3.4vw, 2.4rem);
+  }
+
+  .about-mission-title {
+    font-size: clamp(1.1rem, 1.8vw, 1.45rem);
   }
 
   .about-copy {
-    max-width: none;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+    overflow: hidden;
+  }
+
+  .about-divider {
+    min-height: 14rem;
   }
 }
 
@@ -2823,20 +2896,25 @@ main {
   position: relative;
   z-index: 0;
   overflow: hidden;
-  height: clamp(3.5rem, 11vw, 8.5rem);
   width: 100%;
+  max-width: 100%;
   margin-top: clamp(1.25rem, 3vh, 2rem);
   padding: 0;
   pointer-events: none;
   user-select: none;
+  /* Font drives both size and crop depth — bottom half clipped */
+  font-size: clamp(2.75rem, 12.5vw, 14rem);
+  height: 0.72em;
 }
 
 .site-footer-mark-text {
   margin: 0;
+  display: block;
   width: 100%;
-  font-size: clamp(5.5rem, 22vw, 17rem);
+  max-width: 100%;
+  font-size: 1em;
   font-weight: 500;
-  line-height: 0.78;
+  line-height: 1;
   letter-spacing: -0.055em;
   text-align: center;
   white-space: nowrap;
@@ -2851,6 +2929,11 @@ main {
   .site-footer-brand {
     grid-column: 1 / -1;
   }
+
+  .site-footer-mark {
+    font-size: clamp(2.4rem, 11.8vw, 7rem);
+    height: 0.6em;
+  }
 }
 
 @media (max-width: 639px) {
@@ -2859,11 +2942,11 @@ main {
   }
 
   .site-footer-mark {
-    height: clamp(2.75rem, 16vw, 5rem);
+    font-size: 18.2vw;
+    height: 0.75em;
   }
 
   .site-footer-mark-text {
-    font-size: clamp(4.25rem, 28vw, 9rem);
-    letter-spacing: -0.055em;
+    letter-spacing: -0.05em;
   }
 }
