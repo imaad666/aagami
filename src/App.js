@@ -4,8 +4,8 @@ import * as THREE from 'three'
 
 /**
  * Aagami SEQ — nanopore sequencing scroll hero.
- * HeroSphere threads downward through a flat membrane nanopore as you scroll.
- * Brand reveals once the sphere passes through and emerges on the other side.
+ * HeroSphere threads downward through a flat membrane nanopore as you scroll,
+ * then falls away. Brand reveals after the sphere is gone.
  */
 
 // ── scratch vectors (reused, never leaked between frames) ──────────────────
@@ -39,31 +39,6 @@ function makeDiscTexture() {
   g.addColorStop(0, 'rgba(255,255,255,1)')
   g.addColorStop(0.35, 'rgba(255,255,255,0.9)')
   g.addColorStop(0.7, 'rgba(255,255,255,0.25)')
-  g.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, size, size)
-  const tex = new THREE.CanvasTexture(canvas)
-  tex.needsUpdate = true
-  tex.colorSpace = THREE.SRGBColorSpace
-  return tex
-}
-
-/** Extra-soft radial glow for the Q blast (no hard sphere edge) */
-function makeGlowTexture() {
-  const size = 512
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
-  const c = size / 2
-  const g = ctx.createRadialGradient(c, c, 0, c, c, c)
-  // Very soft falloff — no visible disc rim
-  g.addColorStop(0, 'rgba(255,255,255,0.55)')
-  g.addColorStop(0.08, 'rgba(255,255,255,0.28)')
-  g.addColorStop(0.2, 'rgba(255,255,255,0.1)')
-  g.addColorStop(0.38, 'rgba(255,255,255,0.035)')
-  g.addColorStop(0.58, 'rgba(255,255,255,0.012)')
-  g.addColorStop(0.78, 'rgba(255,255,255,0.003)')
   g.addColorStop(1, 'rgba(255,255,255,0)')
   ctx.fillStyle = g
   ctx.fillRect(0, 0, size, size)
@@ -114,7 +89,7 @@ function bondQuat(dir) {
 }
 
 // ── scroll timeline ────────────────────────────────────────────────────────
-// idle → descend → pore → thread → dive off-screen → reenter BR → settle in Q
+// idle → descend → pore → thread → dive off-screen (no return to brand)
 const BEATS = {
   focusStart: 0.04,
   focusEnd: 0.26,
@@ -132,13 +107,8 @@ const BEATS = {
   // Title only after lattice is gone
   brandRevealStart: 0.7,
   brandRevealEnd: 0.8,
-  reenterStart: 0.72,
-  reenterEnd: 0.88,
   brandStart: 0.82,
   brandEnd: 0.93,
-  // Blast only after hero has fully arrived at the Q
-  dissolveStart: 0.945,
-  dissolveEnd: 1.0,
   // Manifesto visible (dim) from the start; fill on scroll; out by the drop
   manifestoFillStart: 0.04,
   manifestoFillEnd: 0.44,
@@ -206,48 +176,49 @@ const MAT_PRESETS = [
 
 // ── App ────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [ui, setUi] = useState({ brand: 0, blast: 0, manifesto: 0, fill: 0 })
+  const [ui, setUi] = useState({ brand: 0, manifesto: 0, fill: 0 })
 
   useEffect(() => {
     const onScroll = () => {
-      const shell = document.querySelector('.experience-shell')
-      const total = shell
-        ? Math.max(1, shell.offsetHeight - window.innerHeight)
-        : Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
-      // Complete the full nanopore → AAGAMISEQ animation before the end hold.
-      // Ecosystem only begins after the shell (incl. hold) is fully scrolled past.
-      const hold = Math.min(total * 0.22, window.innerHeight * 1.25)
-      const animScroll = Math.max(1, total - hold)
-      progressApi.target = clamp(window.scrollY / animScroll)
+      const track = document.querySelector('.experience-track') || document.querySelector('.experience-shell')
+      if (!track) return
+      // Rect-based progress stays locked to the sticky hero track across
+      // mobile chrome / aspect changes (scrollY + innerHeight jumps break it).
+      const vh = window.innerHeight || 1
+      const span = Math.max(1, track.offsetHeight - vh)
+      const raw = clamp(-track.getBoundingClientRect().top / span)
+      // Finish disk → transit → name before the end hold (same feel as desktop).
+      const holdFrac = 0.2
+      progressApi.target = clamp(raw / (1 - holdFrac))
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     window.addEventListener('resize', onScroll)
+    window.visualViewport?.addEventListener('resize', onScroll)
 
     let raf = 0
     let lastKey = -1
     const tick = () => {
-      progressApi.current = lerp(progressApi.current, progressApi.target, 0.065)
+      // Keep the 3D beat tight to scroll — lag feels broken on touch / short screens
+      const d = Math.abs(progressApi.target - progressApi.current)
+      const ease = d > 0.12 ? 0.32 : d > 0.04 ? 0.16 : 0.1
+      progressApi.current = lerp(progressApi.current, progressApi.target, ease)
       const p = progressApi.current
       const clear = smooth(BEATS.clearStart, BEATS.clearEnd, p)
       const poreOut = smooth(BEATS.poreOutStart, BEATS.poreOutEnd, p)
       const reveal = smooth(BEATS.brandRevealStart, BEATS.brandRevealEnd, p)
       // Never show title while field/nanopore lattice is still up
       const brand = reveal * clear * poreOut
-      const dissolve = smooth(BEATS.dissolveStart, BEATS.dissolveEnd, p)
-      // CSS Q glow is residual only — late, after the hero blast has peaked
-      const blast = dissolve > 0.55 ? clamp((dissolve - 0.55) / 0.45) * 0.85 : 0
       const manifestoOut = smooth(BEATS.manifestoOutStart, BEATS.manifestoOutEnd, p)
       const manifesto = 1 - manifestoOut
       const fill = smooth(BEATS.manifestoFillStart, BEATS.manifestoFillEnd, p)
       const key =
-        Math.round(brand * 100) * 1e6 +
-        Math.round(blast * 100) * 1e4 +
+        Math.round(brand * 100) * 1e4 +
         Math.round(manifesto * 100) * 100 +
         Math.round(fill * 2000)
       if (key !== lastKey) {
         lastKey = key
-        setUi({ brand, blast: brand > 0.5 ? blast : 0, manifesto, fill })
+        setUi({ brand, manifesto, fill })
       }
       raf = requestAnimationFrame(tick)
     }
@@ -255,6 +226,7 @@ export default function App() {
     return () => {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
+      window.visualViewport?.removeEventListener('resize', onScroll)
       cancelAnimationFrame(raf)
     }
   }, [])
@@ -263,71 +235,68 @@ export default function App() {
     <main>
       <SiteNav />
 
-      <div className="experience-shell">
+      <div id="hero" className="experience-shell">
         <div className="gradient-wash" aria-hidden />
         <div className="shade-vignette" aria-hidden />
         <div className="grain-coarse" aria-hidden />
         <div className="grain-overlay" aria-hidden />
 
-        <div className="canvas-stage">
-          <div className="canvas-grain" aria-hidden />
-          <Canvas
-            frameloop="never"
-            dpr={[1, 1.5]}
-            camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
-            gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
-            onCreated={({ gl, scene, camera }) => {
-              gl.setClearColor(new THREE.Color('#12383c'), 1)
-              gl.toneMapping = THREE.ACESFilmicToneMapping
-              gl.toneMappingExposure = 0.98
-              window.__aagami = { gl, scene, camera }
-            }}>
-            <color attach="background" args={['#12383c']} />
-            <Atmosphere />
-            <ambientLight intensity={0.45} color="#6a9088" />
-            <directionalLight position={[5, 9, 4]} intensity={1.1} color="#c8ddd4" />
-            <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#3a6870" />
-            <pointLight position={[0, 2, 5]} intensity={0.45} color="#4a8a80" distance={28} />
-            <CursorGlow />
+        <div className="experience-track">
+          <div className="canvas-stage">
+            <div className="canvas-grain" aria-hidden />
+            <Canvas
+              frameloop="never"
+              dpr={[1, 1.5]}
+              camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
+              gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+              onCreated={({ gl, scene, camera }) => {
+                gl.setClearColor(new THREE.Color('#12383c'), 1)
+                gl.toneMapping = THREE.ACESFilmicToneMapping
+                gl.toneMappingExposure = 0.98
+                window.__aagami = { gl, scene, camera }
+              }}>
+              <color attach="background" args={['#12383c']} />
+              <Atmosphere />
+              <ambientLight intensity={0.45} color="#6a9088" />
+              <directionalLight position={[5, 9, 4]} intensity={1.1} color="#c8ddd4" />
+              <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#3a6870" />
+              <pointLight position={[0, 2, 5]} intensity={0.45} color="#4a8a80" distance={28} />
+              <CursorGlow />
 
-            <CameraRig />
-            <FrameLoopGuard />
-            <Starfield />
-            <FieldMolecules />
-            <HeroSphere />
-            <Nanopore />
-          </Canvas>
+              <CameraRig />
+              <CanvasSizeSync />
+              <FrameLoopGuard />
+              <Starfield />
+              <FieldMolecules />
+              <HeroSphere />
+              <Nanopore />
+            </Canvas>
 
-          <ManifestoFill fill={ui.fill} opacity={ui.manifesto} />
+            <ManifestoFill fill={ui.fill} opacity={ui.manifesto} />
 
-          <div className="brand-reveal" style={{ opacity: ui.brand }}>
-            <div className="brand-name">
-              AAGAMI
-              <span>
-                SE
-                <span className="brand-q">
-                  Q
-                  <i
-                    className="brand-q-glow"
-                    style={{
-                      opacity: ui.blast * 0.7,
-                      transform: `translate(-50%, -50%) scale(${0.85 + ui.blast * 0.4})`,
-                    }}
-                    aria-hidden
-                  />
-                  <i className="brand-q-dot" style={{ opacity: ui.blast }} aria-hidden />
+            <div className="brand-reveal" style={{ opacity: ui.brand }}>
+              <div className="brand-name">
+                AAGAMI
+                <span>
+                  SE
+                  <span className="brand-q">Q</span>
                 </span>
-              </span>
+              </div>
+              <p className="brand-tagline">Nanopore Diagnostics</p>
             </div>
-            <p className="brand-tagline">Nanopore Diagnostics</p>
           </div>
         </div>
-        <div className="scroll-space" aria-hidden />
-        <div className="experience-end-hold" aria-hidden />
       </div>
 
       <EcosystemSection />
+      <SensingSection />
       <ImpactSection />
+      <AboutSection />
+      <div className="closing-band">
+        <TrustSection />
+        <TeamSection />
+      </div>
+      <SiteFooter />
     </main>
   )
 }
@@ -380,40 +349,38 @@ const ECOSYSTEM_ITEMS = [
     title: 'Core Readout Device',
     body: 'Ultra-low-noise sensing hardware for high-precision current measurement and consistent signal readout from nanopore chips.',
     points: ['Pico-ampere sensitivity', 'Multi-channel I/O', 'Compact benchtop form factor'],
-    cta: 'Coming Soon',
-    ctaActive: false,
   },
   {
     kicker: 'Custom-Engineered Precision',
     title: 'Solid-State Nanopore Chips',
     body: 'Silicon-nitride membranes with atomically precise pores, tuned to specific biomarker sizes for reliable, high-fidelity sensing.',
     points: ['Custom pore diameters', 'High durability', 'Sub-nanometer precision'],
-    cta: 'Contact Sales',
-    ctaActive: true,
   },
   {
     kicker: 'Intelligent Signal Processing',
     title: 'AI Analysis Software',
     body: 'A cloud-native suite using deep learning to classify molecular signatures and identify cancer markers with real-time analysis.',
     points: ['Real-time functionality', 'Automated anomaly detection', 'Clinical reporting dashboard'],
-    cta: 'Coming Soon',
-    ctaActive: false,
   },
   {
     kicker: 'Standardized Workflow',
     title: 'Consumables & Kits',
     body: 'Ready-to-use sample prep kits and buffer solutions, optimized for high signal-to-noise and consistent, repeatable assay workflows.',
     points: ['Fast sample prep', 'High stability reagents', 'Lot-to-lot consistency'],
-    cta: 'Coming Soon',
-    ctaActive: false,
   },
 ]
 
 function EcosystemSection() {
   const sectionRef = useRef(null)
   const [opens, setOpens] = useState(() => ECOSYSTEM_ITEMS.map(() => 0))
+  const [stacked, setStacked] = useState(false)
 
   useEffect(() => {
+    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
+    const sync = () => setStacked(mq.matches)
+    sync()
+    mq.addEventListener?.('change', sync)
+
     let raf = 0
     let running = true
     const update = () => {
@@ -423,19 +390,12 @@ function EcosystemSection() {
         const vh = window.innerHeight
         const start = el.offsetTop
         const span = Math.max(1, el.offsetHeight - vh)
-        const stacked = window.matchMedia('(max-width: 639px), (max-height: 500px)').matches
+        const isStacked = mq.matches
 
         let next
-        if (stacked) {
-          // One card after another as each enters the viewport
-          const cols = el.querySelectorAll('.ecosystem-col')
-          next = ECOSYSTEM_ITEMS.map((_, i) => {
-            const col = cols[i]
-            if (!col) return 0
-            const rect = col.getBoundingClientRect()
-            const visible = clamp((vh * 0.82 - rect.top) / (vh * 0.35))
-            return smoother(0, 1, visible)
-          })
+        if (isStacked) {
+          // Stacked: always show full copy — no opacity crop mid-card
+          next = ECOSYSTEM_ITEMS.map(() => 1)
         } else {
           const revealT = clamp((window.scrollY - start) / span)
           const slot = 1 / ECOSYSTEM_ITEMS.length
@@ -444,7 +404,7 @@ function EcosystemSection() {
             return smoother(a, a + slot * 0.55, revealT)
           })
         }
-        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], 0.28)))
+        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], isStacked ? 1 : 0.28)))
       }
       raf = requestAnimationFrame(update)
     }
@@ -452,11 +412,15 @@ function EcosystemSection() {
     return () => {
       running = false
       cancelAnimationFrame(raf)
+      mq.removeEventListener?.('change', sync)
     }
   }, [])
 
   return (
-    <section id="ecosystem" className="ecosystem" ref={sectionRef}>
+    <section
+      id="ecosystem"
+      className={`ecosystem${stacked ? ' is-stacked' : ''}`}
+      ref={sectionRef}>
       <div className="ecosystem-track">
         <div className="ecosystem-sheet">
           <div className="ecosystem-intro">
@@ -469,7 +433,7 @@ function EcosystemSection() {
 
           <div className="ecosystem-grid">
             {ECOSYSTEM_ITEMS.map((item, i) => {
-              const open = opens[i]
+              const open = stacked ? 1 : opens[i]
               return (
                 <article
                   key={item.title}
@@ -477,21 +441,332 @@ function EcosystemSection() {
                   style={{ '--open': open }}>
                   <div
                     className="ecosystem-col-reveal"
-                    style={{
-                      opacity: open,
-                      transform: `translate3d(0, ${(1 - open) * 14}px, 0)`,
-                    }}>
+                    style={
+                      stacked
+                        ? undefined
+                        : {
+                          opacity: open,
+                          transform: `translate3d(0, ${(1 - open) * 14}px, 0)`,
+                        }
+                    }>
                     <p className="ecosystem-col-body">{item.body}</p>
                     <ul className="ecosystem-col-points">
                       {item.points.map((point) => (
                         <li key={point}>{point}</li>
                       ))}
                     </ul>
-                    <span className={`ecosystem-col-cta${item.ctaActive ? ' is-active' : ''}`}>{item.cta}</span>
                   </div>
                   <div className="ecosystem-col-foot">
                     <p className="ecosystem-col-kicker">{item.kicker}</p>
                     <h3 className="ecosystem-col-title">{item.title}</h3>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const SENSING_STEPS = [
+  {
+    num: '01',
+    title: 'Molecular Translocation',
+    body: 'Bio-molecules (DNA, RNA, Proteins) are driven by an electric field through a nanometer-sized aperture.',
+    place: 'l1',
+  },
+  {
+    num: '02',
+    title: 'Ionic Current Blockade',
+    body: 'As molecules pass through, they partially block the flow of ions, creating a unique current signature.',
+    place: 'l2',
+  },
+  {
+    num: '03',
+    title: 'Signature Analysis',
+    body: "The magnitude and duration of current changes reveal the molecule's physical and chemical properties.",
+    place: 'r1',
+  },
+  {
+    num: '04',
+    title: 'Clinical Diagnosis',
+    body: "Our AI identifies 'cancerous' patterns early, allowing for intervention before symptoms even appear.",
+    place: 'r2',
+  },
+]
+
+function DNAHelix() {
+  const group = useRef()
+  const { strandA, strandB, pairs, sugarsA, sugarsB } = useMemo(() => {
+    // B-DNA-ish proportions: ~10.5 bp/turn, soft major/minor groove
+    const count = 42
+    const height = 9.6
+    const radius = 1.05
+    const turns = count / 10.5
+    const pointsA = []
+    const pointsB = []
+    const sugarsA = []
+    const sugarsB = []
+    const pairData = []
+
+    for (let i = 0; i < count; i++) {
+      const u = i / (count - 1)
+      const t = u * turns * Math.PI * 2
+      const y = (u - 0.5) * height
+      const rx = radius * (1 + 0.04 * Math.sin(t * 2))
+      const rz = radius * (1 - 0.03 * Math.sin(t * 2))
+      const ax = Math.cos(t) * rx
+      const az = Math.sin(t) * rz
+      const bx = Math.cos(t + Math.PI) * rx
+      const bz = Math.sin(t + Math.PI) * rz
+      pointsA.push(new THREE.Vector3(ax, y, az))
+      pointsB.push(new THREE.Vector3(bx, y, bz))
+      sugarsA.push([ax * 0.92, y, az * 0.92])
+      sugarsB.push([bx * 0.92, y, bz * 0.92])
+
+      const mx = (ax + bx) * 0.5
+      const mz = (az + bz) * 0.5
+      const dx = bx - ax
+      const dz = bz - az
+      const len = Math.hypot(dx, dz)
+      const angle = Math.atan2(dz, dx)
+      const thick = i % 2 === 0 ? 0.038 : 0.048
+      pairData.push({ mx, y, mz, len, angle, thick })
+    }
+
+    return {
+      strandA: new THREE.CatmullRomCurve3(pointsA),
+      strandB: new THREE.CatmullRomCurve3(pointsB),
+      pairs: pairData,
+      sugarsA,
+      sugarsB,
+    }
+  }, [])
+
+  useFrame((_, delta) => {
+    if (!group.current) return
+    group.current.rotation.y += delta * 0.22
+  })
+
+  const backboneMat = {
+    color: '#9eb4ae',
+    metalness: 0.08,
+    roughness: 0.22,
+    transmission: 0.42,
+    thickness: 0.55,
+    ior: 1.42,
+    transparent: true,
+    opacity: 0.62,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.28,
+    depthWrite: false,
+  }
+
+  const baseMat = {
+    color: '#7f9892',
+    metalness: 0.05,
+    roughness: 0.28,
+    transmission: 0.5,
+    thickness: 0.35,
+    ior: 1.4,
+    transparent: true,
+    opacity: 0.55,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.35,
+    depthWrite: false,
+  }
+
+  return (
+    <group ref={group} rotation={[0.2, 0.35, 0.05]} position={[0.1, -0.1, 0]} scale={0.95}>
+      <mesh>
+        <tubeGeometry args={[strandA, 220, 0.078, 12, false]} />
+        <meshPhysicalMaterial {...backboneMat} />
+      </mesh>
+      <mesh>
+        <tubeGeometry args={[strandB, 220, 0.078, 12, false]} />
+        <meshPhysicalMaterial {...backboneMat} color="#8fa7a0" />
+      </mesh>
+
+      {sugarsA.map((pos, i) => (
+        <mesh key={`sa-${i}`} position={pos}>
+          <sphereGeometry args={[0.095, 14, 14]} />
+          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#8aa09a" />
+        </mesh>
+      ))}
+      {sugarsB.map((pos, i) => (
+        <mesh key={`sb-${i}`} position={pos}>
+          <sphereGeometry args={[0.095, 14, 14]} />
+          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#7f9690" />
+        </mesh>
+      ))}
+
+      {pairs.map((p, i) => (
+        <group key={i} position={[p.mx, p.y, p.mz]} rotation={[0, -p.angle, 0]}>
+          <mesh position={[-p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <capsuleGeometry args={[0.07, p.len * 0.28, 6, 10]} />
+            <meshPhysicalMaterial {...baseMat} />
+          </mesh>
+          <mesh position={[p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <capsuleGeometry args={[0.07, p.len * 0.28, 6, 10]} />
+            <meshPhysicalMaterial {...baseMat} color="#748e88" />
+          </mesh>
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[p.thick * 0.55, p.thick * 0.55, p.len * 0.22, 8]} />
+            <meshPhysicalMaterial
+              color="#b8d0c8"
+              metalness={0}
+              roughness={0.15}
+              transmission={0.7}
+              thickness={0.2}
+              transparent
+              opacity={0.35}
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+function SensingDNAStage({ fill = false }) {
+  return (
+    <div className="sensing-dna" aria-hidden>
+      <Canvas
+        dpr={[1, 1.6]}
+        camera={{
+          position: fill ? [0, 0.15, 6.2] : [0, 0.35, 8.4],
+          fov: fill ? 46 : 38,
+          near: 0.1,
+          far: 40,
+        }}
+        gl={{
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance',
+        }}
+        onCreated={({ gl }) => {
+          gl.setClearColor(0x000000, 0)
+          gl.toneMapping = THREE.ACESFilmicToneMapping
+          gl.toneMappingExposure = 1.12
+        }}>
+        <ambientLight intensity={0.42} color="#a8c4be" />
+        <directionalLight position={[5, 7, 4]} intensity={1.05} color="#f4fffb" />
+        <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#3d7a78" />
+        <pointLight position={[1.2, 0.5, 3.5]} intensity={0.7} color="#8fd4c8" distance={14} />
+        <pointLight position={[-2, -1.5, -2]} intensity={0.3} color="#5a9088" distance={12} />
+        <group scale={fill ? 1.35 : 1}>
+          <DNAHelix />
+        </group>
+        <fog attach="fog" args={['#07191c', fill ? 7 : 9, fill ? 16 : 20]} />
+      </Canvas>
+    </div>
+  )
+}
+
+function SensingSection() {
+  const sectionRef = useRef(null)
+  const [progress, setProgress] = useState(0)
+  const [intro, setIntro] = useState(0)
+  const [stacked, setStacked] = useState(false)
+
+  useEffect(() => {
+    let raf = 0
+    let running = true
+    let smoothed = 0
+    let introSmoothed = 0
+    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
+    const sync = () => setStacked(mq.matches)
+    sync()
+    mq.addEventListener?.('change', sync)
+    const update = () => {
+      if (!running) return
+      const el = sectionRef.current
+      if (el) {
+        if (mq.matches) {
+          setProgress(1)
+          setIntro(1)
+        } else {
+          const vh = window.innerHeight || 1
+          const span = Math.max(1, el.offsetHeight - vh)
+          const raw = clamp(-el.getBoundingClientRect().top / span)
+          smoothed = lerp(smoothed, raw, 0.12)
+          setProgress(smoothed)
+
+          const rect = el.getBoundingClientRect()
+          const introRaw = clamp((vh * 0.72 - rect.top) / (vh * 0.45))
+          introSmoothed = lerp(introSmoothed, introRaw, 0.1)
+          setIntro(introSmoothed)
+        }
+      }
+      raf = requestAnimationFrame(update)
+    }
+    raf = requestAnimationFrame(update)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+      mq.removeEventListener?.('change', sync)
+    }
+  }, [])
+
+  return (
+    <section
+      id="how-it-works"
+      className={`sensing${stacked ? ' is-stacked' : ''}`}
+      ref={sectionRef}
+      aria-labelledby="sensing-heading">
+      <div className="sensing-track">
+        <div className="sensing-sheet">
+          <SensingDNAStage fill={stacked} />
+
+          <div
+            className="sensing-intro"
+            style={
+              stacked
+                ? undefined
+                : {
+                    opacity: clamp(intro),
+                    transform: `translate3d(0, ${(1 - intro) * 28}px, 0)`,
+                  }
+            }>
+            <p className="sensing-eyebrow">How Nanopore Sensing Works</p>
+            <h2 id="sensing-heading" className="sensing-heading">
+              Solid-state nanopores act as high-resolution &ldquo;smart&rdquo; filters.
+            </h2>
+            <p className="sensing-lede">
+              Unlike traditional chemical assays, our technology measures individual molecules physically,
+              providing unparalleled sensitivity for detecting trace amounts of cancer biomarkers in blood or
+              urine.
+            </p>
+          </div>
+
+          <div className="sensing-cards">
+            {SENSING_STEPS.map((step, i) => {
+              const start = 0.12 + i * 0.18
+              const show = stacked ? 1 : smoother(start, start + 0.14, progress)
+              return (
+                <article
+                  key={step.num}
+                  className={`sensing-card sensing-card-${step.place}${show > 0.55 ? ' is-shown' : ''}`}
+                  style={
+                    stacked
+                      ? undefined
+                      : {
+                          opacity: show,
+                          '--reveal-y': `${(1 - show) * 28}px`,
+                          filter: `blur(${(1 - show) * 8}px)`,
+                          visibility: show < 0.02 ? 'hidden' : 'visible',
+                        }
+                  }>
+                  <span className="sensing-card-index" aria-hidden>
+                    {step.num}
+                  </span>
+                  <div className="sensing-card-copy">
+                    <p className="sensing-card-num">{step.num}</p>
+                    <h3 className="sensing-card-title">{step.title}</h3>
+                    <p className="sensing-card-body">{step.body}</p>
                   </div>
                 </article>
               )
@@ -510,8 +785,6 @@ const IMPACT_STEPS = [
     title: 'Point-of-Care Diagnosis',
     body: 'Our compact readout device allows small clinics to perform liquid biopsy tests without sending samples to centralized labs, reducing wait times from weeks to hours.',
     metric: '90% Faster Results',
-    x: 38,
-    y: 34,
   },
   {
     num: '02',
@@ -519,8 +792,6 @@ const IMPACT_STEPS = [
     title: 'Single Molecule Precision',
     body: 'Empowering biophysicists and oncologists with the tools to study molecular dynamics, epigenetics, and protein folding in real-time at unprecedented resolution.',
     metric: 'Sub-nm Resolution',
-    x: 72,
-    y: 28,
   },
   {
     num: '03',
@@ -528,60 +799,6 @@ const IMPACT_STEPS = [
     title: 'Large-Scale Screening',
     body: 'Standardized chips and AI software enable high-throughput screening of entire populations, making early detection a routine part of annual health checkups.',
     metric: 'Cost Reduction: 60%',
-    x: 70,
-    y: 72,
-  },
-]
-
-const IMPACT_RING = 2 * Math.PI * 22
-
-// One continuous curve through nodes 01 → 02 → 03 (viewBox 0–100 matches % stage coords)
-const IMPACT_LINK_PATH = `M${IMPACT_STEPS[0].x} ${IMPACT_STEPS[0].y}C52 16 64 14 ${IMPACT_STEPS[1].x} ${IMPACT_STEPS[1].y}C86 40 84 56 ${IMPACT_STEPS[2].x} ${IMPACT_STEPS[2].y}`
-
-// Amaterasu .nature-svg circles — settle at (cx,cy); scatter offsets from live transforms
-const NATURE_CIRCLES = [
-  { cls: 'c-1', cx: 889.27, cy: 2617.27, r: 35.77, ox: 308, oy: 501 },
-  { cls: 'c-2', cx: 852.65, cy: 2642.65, r: 97.15, ox: 508, oy: -106 },
-  { cls: 'c-3', cx: 888.5, cy: 2642.5, r: 61, ox: -206, oy: -62 },
-  { cls: 'c-4', cx: 854.215, cy: 2577.22, r: 162.715, ox: -194, oy: 645 },
-  { cls: 'c-5', cx: 960.235, cy: 2577.24, r: 268.735, ox: 203, oy: 187 },
-  { cls: 'c-6', cx: 960.5, cy: 2742.5, r: 434, ox: -879, oy: 164 },
-  { cls: 'c-7', cx: 697.5, cy: 2742.5, r: 697, ox: -251, oy: -399 },
-  { cls: 'c-8', cx: 1350, cy: 1116, r: 1115.5, ox: 446, oy: 1389 },
-]
-
-const NATURE_PATHS = [
-  {
-    cls: 'p-1',
-    d: 'M1196 3119C1318.33 2997.33 1523.35 2680.53 1303 2419C1094.06 2171 836.494 2367.58 789.001 2469C711.5 2634.5 931.501 2756.5 889.001 2617',
-  },
-  {
-    cls: 'p-2',
-    d: 'M1360.4 2537C1353.4 2441.67 1283.15 2261.55 1057.91 2276.92C808.915 2293.92 805.402 2529 852.402 2643',
-  },
-  {
-    cls: 'p-3',
-    d: 'M683 2580C667.667 2630.67 661.2 2743.6 754 2778C920 2839.53 1006 2656 889 2642',
-  },
-  {
-    cls: 'p-4',
-    d: 'M659 3221C840.5 3345 1239 3471.8 1381 2975C1459.46 2700.5 1043 2404 854 2577',
-  },
-  {
-    cls: 'p-5',
-    d: 'M1163 2764.78C1206 2724.78 1251 2620.78 1175 2555.78C1093.69 2486.24 1003 2531.78 961 2576.78',
-  },
-  {
-    cls: 'p-6',
-    d: 'M81.921 2905C67.9211 3007.5 122.584 3329.5 509.922 3329.5C732.922 3329.5 914.421 2980 960.921 2743',
-  },
-  {
-    cls: 'p-7',
-    d: 'M447.688 2343C320.688 2385.5 153.182 2553 287.688 2735C427.366 2924 632.687 2837 697.687 2743',
-  },
-  {
-    cls: 'p-8',
-    d: 'M1794 2504.88C2144 2452.88 2500 2114.88 2326 1572.88C2152 1030.88 1677 1037.5 1350 1114.88',
   },
 ]
 
@@ -597,15 +814,91 @@ const MANDALA_PETALS = [
   [214, 209],
 ]
 const MANDALA_CORE = [336, 328]
+const MANDALA_R = 122
+
+// Amaterasu .nature-svg circles — settle at (cx,cy); scatter offsets from live transforms
+const NATURE_CIRCLES = [
+  { cls: 'c-1', cx: 889.27, cy: 2617.27, r: 35.77, ox: 308, oy: 501 },
+  { cls: 'c-2', cx: 852.65, cy: 2642.65, r: 97.15, ox: 508, oy: -106 },
+  { cls: 'c-3', cx: 888.5, cy: 2642.5, r: 61, ox: -206, oy: -62 },
+  { cls: 'c-4', cx: 854.215, cy: 2577.22, r: 162.715, ox: -194, oy: 645 },
+  { cls: 'c-5', cx: 960.235, cy: 2577.24, r: 268.735, ox: 203, oy: 187 },
+  { cls: 'c-6', cx: 960.5, cy: 2742.5, r: 434, ox: -879, oy: 164 },
+  { cls: 'c-7', cx: 697.5, cy: 2742.5, r: 697, ox: -251, oy: -399 },
+  { cls: 'c-8', cx: 1350, cy: 1116, r: 1115.5, ox: 446, oy: 1389 },
+]
+
+// Morph settled nature circles into flower-of-life in the same SVG space
+const NATURE_CLUSTER = (() => {
+  const small = NATURE_CIRCLES.slice(0, 5)
+  const w = small.reduce((s, c) => s + 1 / c.r, 0)
+  return [
+    small.reduce((s, c) => s + (c.cx / c.r), 0) / w,
+    small.reduce((s, c) => s + (c.cy / c.r), 0) / w,
+  ]
+})()
+const NATURE_MANDALA_SCALE = 1.55
+const NATURE_MANDALA_R = MANDALA_R * NATURE_MANDALA_SCALE
+
+const NATURE_PETAL_TARGETS = MANDALA_PETALS.map(([x, y]) => [
+  NATURE_CLUSTER[0] + (x - MANDALA_CORE[0]) * NATURE_MANDALA_SCALE,
+  NATURE_CLUSTER[1] + (y - MANDALA_CORE[1]) * NATURE_MANDALA_SCALE,
+])
+
+// Pair each nature circle to a petal by angle so the regroup travels cleanly
+const NATURE_MORPH = (() => {
+  const ang = (x, y) => Math.atan2(y - NATURE_CLUSTER[1], x - NATURE_CLUSTER[0])
+  const petalOrder = [...NATURE_PETAL_TARGETS.keys()].sort(
+    (a, b) => ang(...NATURE_PETAL_TARGETS[a]) - ang(...NATURE_PETAL_TARGETS[b]),
+  )
+  const natOrder = [...NATURE_CIRCLES.keys()].sort(
+    (a, b) => ang(NATURE_CIRCLES[a].cx, NATURE_CIRCLES[a].cy) - ang(NATURE_CIRCLES[b].cx, NATURE_CIRCLES[b].cy),
+  )
+  const petalOf = Array(NATURE_CIRCLES.length)
+  natOrder.forEach((ni, i) => {
+    petalOf[ni] = petalOrder[i]
+  })
+  return NATURE_CIRCLES.map((c, i) => {
+    const [tx, ty] = NATURE_PETAL_TARGETS[petalOf[i]]
+    return { ...c, tx, ty, tr: NATURE_MANDALA_R }
+  })
+})()
+
+const NATURE_NODES = [-90, 30, 150].map((deg, i) => {
+  const a = (deg * Math.PI) / 180
+  return {
+    ...IMPACT_STEPS[i],
+    x: NATURE_CLUSTER[0] + NATURE_MANDALA_R * Math.cos(a),
+    y: NATURE_CLUSTER[1] + NATURE_MANDALA_R * Math.sin(a),
+  }
+})
+
+const NATURE_LINK_PATH = [
+  `M${NATURE_NODES[0].x.toFixed(2)} ${NATURE_NODES[0].y.toFixed(2)}`,
+  `A${NATURE_MANDALA_R} ${NATURE_MANDALA_R} 0 0 1 ${NATURE_NODES[1].x.toFixed(2)} ${NATURE_NODES[1].y.toFixed(2)}`,
+  `A${NATURE_MANDALA_R} ${NATURE_MANDALA_R} 0 0 1 ${NATURE_NODES[2].x.toFixed(2)} ${NATURE_NODES[2].y.toFixed(2)}`,
+  `A${NATURE_MANDALA_R} ${NATURE_MANDALA_R} 0 0 1 ${NATURE_NODES[0].x.toFixed(2)} ${NATURE_NODES[0].y.toFixed(2)}`,
+].join('')
+
+// Tight crop around the formed mandala for mobile full-bleed
+const MANDALA_MOBILE_VIEW = (() => {
+  const pad = NATURE_MANDALA_R * 2.55
+  return [
+    (NATURE_CLUSTER[0] - pad).toFixed(1),
+    (NATURE_CLUSTER[1] - pad).toFixed(1),
+    (pad * 2).toFixed(1),
+    (pad * 2).toFixed(1),
+  ].join(' ')
+})()
 
 function impactBeat(progress, a, b) {
   return smoother(a, b, progress)
 }
 
 function impactPhase(progress) {
-  // Longer overlaps so nature → mandala never hard-cuts
+  // Nature settles, then the same circles morph into the mandala (no crossfade)
   const natureEnd = 0.34
-  const formEnd = 0.52
+  const formEnd = 0.56
   if (progress < natureEnd) {
     return { phase: 'nature', step: progress > 0.18 ? 0 : -1, local: clamp((progress - 0.18) / 0.14), form: 0 }
   }
@@ -623,22 +916,16 @@ function impactPhase(progress) {
   return { phase: 'traverse', step, local: clamp(f - step), form: 1 }
 }
 
-function ImpactVisionStage({ progress, phase }) {
-  const linkPathRef = useRef(null)
+function ImpactVisionStage({ progress, phase, stacked = false }) {
   const vizRef = useRef({
-    settles: NATURE_CIRCLES.map(() => 0),
-    pathDraws: NATURE_PATHS.map(() => 0),
-    petals: MANDALA_PETALS.map(() => 0),
+    settles: NATURE_MORPH.map(() => 0),
+    morph: 0,
     natureOp: 0,
-    pathsOp: 0,
-    form: 0,
     sphere: 0,
     linkDraw: 0,
-    travelerX: IMPACT_STEPS[0].x,
-    travelerY: IMPACT_STEPS[0].y,
-    travelerOn: 0,
-    nodes: IMPACT_STEPS.map(() => 0),
-    fills: IMPACT_STEPS.map(() => 0),
+    nodes: NATURE_NODES.map(() => 0),
+    fills: NATURE_NODES.map(() => 0),
+    core: 0,
   })
   const targetsRef = useRef(null)
   const [, bump] = useState(0)
@@ -648,33 +935,23 @@ function ImpactVisionStage({ progress, phase }) {
 
   const sphereTarget = impactBeat(progress, 0, 0.22)
   const circleBase = impactBeat(progress, 0.04, 0.32)
-  const pathBase = impactBeat(progress, 0.14, 0.34)
-  const natureHold = 1 - impactBeat(progress, 0.3, 0.55)
-  const natureOpTarget = (0.4 + impactBeat(progress, 0.03, 0.2) * 0.55) * natureHold
-  const pathsOpTarget = pathBase * natureHold * 0.7
-  const formTarget = phase.form
+  const morphTarget = phase.form
+  const natureOpTarget = 0.42 + impactBeat(progress, 0.03, 0.2) * 0.58
 
-  // Continuous draw 0→1 along the full 01→02→03 path
   let linkDrawTarget = 0
-  if (phase.phase === 'form') linkDrawTarget = formTarget * 0.02
+  if (phase.phase === 'form') linkDrawTarget = morphTarget > 0.72 ? (morphTarget - 0.72) / 0.28 * 0.02 : 0
   else if (phase.phase === 'traverse') {
-    linkDrawTarget = clamp((step + local) / IMPACT_STEPS.length)
+    linkDrawTarget = clamp((step + local) / NATURE_NODES.length)
   }
 
-  const settleTargets = NATURE_CIRCLES.map((_, i) => {
-    const start = (i / NATURE_CIRCLES.length) * 0.55
+  const settleTargets = NATURE_MORPH.map((_, i) => {
+    const start = (i / NATURE_MORPH.length) * 0.55
     return smoother(start, start + 0.62, circleBase)
   })
-  const pathTargets = NATURE_PATHS.map((_, i) => {
-    const start = (i / NATURE_PATHS.length) * 0.45
-    return smoother(start, start + 0.6, pathBase)
-  })
-  const petalTargets = MANDALA_PETALS.map((_, i) => smoother(i * 0.06, 0.45 + i * 0.07, formTarget))
-  const nodeTargets = IMPACT_STEPS.map((_, i) => smoother(0.2 + i * 0.1, 0.5 + i * 0.08, formTarget))
+  const nodeTargets = NATURE_NODES.map((_, i) => smoother(0.55 + i * 0.06, 0.82 + i * 0.05, morphTarget))
+  const coreTarget = smoother(0.15, 0.65, morphTarget)
 
-  const travelerOnT = formTarget > 0.35 ? clamp((formTarget - 0.35) / 0.35) : 0
-
-  const fillTargets = IMPACT_STEPS.map((_, i) => {
+  const fillTargets = NATURE_NODES.map((_, i) => {
     const done = phase.phase === 'traverse' && step > i
     const isActive = phase.phase !== 'nature' && step === i
     return done ? 1 : isActive ? Math.max(local, 0.08) : 0
@@ -682,16 +959,13 @@ function ImpactVisionStage({ progress, phase }) {
 
   targetsRef.current = {
     settleTargets,
-    pathTargets,
-    petalTargets,
+    morphTarget,
     natureOpTarget,
-    pathsOpTarget,
-    formTarget,
     sphereTarget,
     linkDrawTarget,
-    travelerOnT,
     nodeTargets,
     fillTargets,
+    coreTarget,
   }
 
   useEffect(() => {
@@ -707,39 +981,31 @@ function ImpactVisionStage({ progress, phase }) {
       const v = vizRef.current
       const ease = 0.11
       const easeSlow = 0.08
-      const linkDraw = lerp(v.linkDraw, t.linkDrawTarget, 0.14)
-
-      let travelerX = v.travelerX
-      let travelerY = v.travelerY
-      const pathEl = linkPathRef.current
-      if (pathEl && linkDraw > 0.001) {
-        try {
-          const len = pathEl.getTotalLength()
-          const pt = pathEl.getPointAtLength(len * clamp(linkDraw))
-          travelerX = lerp(v.travelerX, pt.x, 0.18)
-          travelerY = lerp(v.travelerY, pt.y, 0.18)
-        } catch {
-          /* path not ready */
-        }
-      } else {
-        travelerX = lerp(v.travelerX, IMPACT_STEPS[0].x, 0.12)
-        travelerY = lerp(v.travelerY, IMPACT_STEPS[0].y, 0.12)
+      const safeLerp = (a, b, t) => {
+        const from = Number.isFinite(a) ? a : 0
+        const to = Number.isFinite(b) ? b : from
+        return lerp(from, to, t)
       }
 
+      const settles = (v.settles || NATURE_MORPH.map(() => 0)).map((s, i) =>
+        safeLerp(s, t.settleTargets[i], easeSlow),
+      )
+      const nodes = (v.nodes || NATURE_NODES.map(() => 0)).map((s, i) =>
+        safeLerp(s, t.nodeTargets[i], easeSlow),
+      )
+      const fills = (v.fills || NATURE_NODES.map(() => 0)).map((s, i) =>
+        safeLerp(s, t.fillTargets[i], 0.15),
+      )
+
       vizRef.current = {
-        settles: v.settles.map((s, i) => lerp(s, t.settleTargets[i], easeSlow)),
-        pathDraws: v.pathDraws.map((s, i) => lerp(s, t.pathTargets[i], ease)),
-        petals: v.petals.map((s, i) => lerp(s, t.petalTargets[i], easeSlow)),
-        natureOp: lerp(v.natureOp, t.natureOpTarget, easeSlow),
-        pathsOp: lerp(v.pathsOp, t.pathsOpTarget, ease),
-        form: lerp(v.form, t.formTarget, easeSlow),
-        sphere: lerp(v.sphere, t.sphereTarget, easeSlow),
-        linkDraw,
-        travelerX,
-        travelerY,
-        travelerOn: lerp(v.travelerOn, t.travelerOnT, ease),
-        nodes: v.nodes.map((s, i) => lerp(s, t.nodeTargets[i], easeSlow)),
-        fills: v.fills.map((s, i) => lerp(s, t.fillTargets[i], 0.15)),
+        settles,
+        morph: safeLerp(v.morph, t.morphTarget, easeSlow),
+        natureOp: safeLerp(v.natureOp, t.natureOpTarget, easeSlow),
+        sphere: safeLerp(v.sphere, t.sphereTarget, easeSlow),
+        linkDraw: safeLerp(v.linkDraw, t.linkDrawTarget, 0.14),
+        nodes,
+        fills,
+        core: safeLerp(v.core, t.coreTarget, easeSlow),
       }
       bump((n) => (n + 1) % 100000)
       raf = requestAnimationFrame(tick)
@@ -754,6 +1020,8 @@ function ImpactVisionStage({ progress, phase }) {
   const v = vizRef.current
   const maskRadius = `${16 + v.sphere * 110}vmax`
   const maskY = `${122 - v.sphere * 78}%`
+  const morph = Number.isFinite(v.morph) ? v.morph : 0
+  const overlayIn = clamp((morph - 0.55) / 0.35)
 
   return (
     <div className="impact-stage" aria-hidden>
@@ -769,123 +1037,83 @@ function ImpactVisionStage({ progress, phase }) {
       <div className="impact-graphics">
         <svg
           className="impact-nature-svg"
-          viewBox="150 1900 1700 1400"
+          viewBox={stacked ? MANDALA_MOBILE_VIEW : '150 1900 1700 1400'}
           fill="none"
           preserveAspectRatio="xMidYMid meet"
           style={{ opacity: v.natureOp }}>
-          {NATURE_CIRCLES.map((c, i) => {
-            const t = v.settles[i]
-            const tx = c.ox * (1 - t)
-            const ty = c.oy * (1 - t)
+          {NATURE_MORPH.map((c, i) => {
+            const settle = v.settles[i]
+            const fromX = c.cx + c.ox * (1 - settle)
+            const fromY = c.cy + c.oy * (1 - settle)
+            const cx = fromX + (c.tx - fromX) * morph
+            const cy = fromY + (c.ty - fromY) * morph
+            const r = c.r + (c.tr - c.r) * morph
+            const lit =
+              step >= 0 &&
+              phase.phase !== 'nature' &&
+              morph > 0.55 &&
+              i === (step * 3) % NATURE_MORPH.length
             return (
-              <g key={c.cls} transform={`translate(${tx} ${ty})`} opacity={0.2 + t * 0.8}>
-                <circle className={`impact-nature-circle ${c.cls}`} cx={c.cx} cy={c.cy} r={c.r} />
-              </g>
+              <circle
+                key={c.cls}
+                className={`impact-nature-circle ${c.cls}${lit ? ' is-lit' : ''}`}
+                cx={cx}
+                cy={cy}
+                r={r}
+                opacity={0.22 + settle * 0.78}
+                style={{ strokeWidth: stacked ? 3.2 - morph * 0.9 : 2.2 - morph * 0.85 }}
+              />
             )
           })}
-          <g className="impact-nature-paths" style={{ opacity: v.pathsOp }}>
-            {NATURE_PATHS.map((p, i) => (
-              <path
-                key={p.cls}
-                className={`impact-nature-path ${p.cls}`}
-                d={p.d}
-                pathLength="1"
-                style={{ strokeDashoffset: 1 - v.pathDraws[i] }}
-              />
-            ))}
-          </g>
-        </svg>
 
-        <div
-          className="impact-mandala-wrap"
-          style={{
-            opacity: v.form,
-            transform: `translate(-50%, -50%) scale(${0.78 + v.form * 0.22})`,
-          }}>
-          <svg className="impact-mandala-svg" viewBox="0 0 672 655" fill="none">
-            {MANDALA_PETALS.map(([x, y], i) => {
-              const petalT = v.petals[i]
-              const lit = step >= 0 && phase.phase !== 'nature' && i === (step * 3) % MANDALA_PETALS.length
+          <circle
+            className="impact-mandala-core"
+            cx={NATURE_CLUSTER[0]}
+            cy={NATURE_CLUSTER[1]}
+            r={NATURE_MANDALA_R}
+            opacity={0.08 + v.core * 0.42}
+          />
+
+          <g className="impact-mandala-overlay" opacity={overlayIn}>
+            <path className="impact-link-track" d={NATURE_LINK_PATH} />
+            <path
+              className="impact-link-progress"
+              d={NATURE_LINK_PATH}
+              pathLength="1"
+              style={{ strokeDasharray: 1, strokeDashoffset: 1 - v.linkDraw }}
+            />
+
+            {NATURE_NODES.map((item, i) => {
+              const nodeIn = v.nodes[i]
+              const isActive = phase.phase !== 'nature' && step === i
+              const done = phase.phase === 'traverse' && step > i
+              const fill = v.fills[i]
+              const scale = 0.82 + nodeIn * 0.18 + (isActive ? 0.08 : 0)
               return (
-                <circle
-                  key={`petal-${i}`}
-                  className={`impact-mandala-petal${lit ? ' is-lit' : ''}`}
-                  cx={x}
-                  cy={y}
-                  r="122"
-                  style={{ opacity: 0.08 + petalT * (lit ? 0.58 : 0.34) }}
-                />
+                <g
+                  key={item.num}
+                  className={`impact-node-svg${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}`}
+                  transform={`translate(${item.x} ${item.y}) scale(${scale})`}
+                  opacity={nodeIn}>
+                  <circle className="impact-node-halo-svg" r="46" />
+                  <circle className="impact-node-disc" r="34" />
+                  <circle className="impact-node-ring-track" r="34" />
+                  <circle
+                    className="impact-node-ring-fill"
+                    r="34"
+                    pathLength="1"
+                    style={{ strokeDasharray: 1, strokeDashoffset: 1 - fill }}
+                    transform="rotate(-90)"
+                  />
+                  <text className="impact-node-label" textAnchor="middle" dominantBaseline="central">
+                    {item.num}
+                  </text>
+                </g>
               )
             })}
-            <circle
-              className="impact-mandala-core"
-              cx={MANDALA_CORE[0]}
-              cy={MANDALA_CORE[1]}
-              r="122"
-              style={{ opacity: 0.1 + v.form * 0.42 }}
-            />
-          </svg>
-        </div>
+          </g>
+        </svg>
       </div>
-
-      {/* Continuous 01 → 02 → 03 connector in stage % space */}
-      <svg
-        className="impact-link-svg"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        style={{ opacity: v.form }}>
-        <path className="impact-link-track" d={IMPACT_LINK_PATH} pathLength="1" />
-        <path
-          ref={linkPathRef}
-          className="impact-link-progress"
-          d={IMPACT_LINK_PATH}
-          pathLength="1"
-          style={{ strokeDashoffset: 1 - v.linkDraw }}
-        />
-      </svg>
-
-      {IMPACT_STEPS.map((item, i) => {
-        const nodeIn = v.nodes[i]
-        const isActive = phase.phase !== 'nature' && step === i
-        const done = phase.phase === 'traverse' && step > i
-        const fill = v.fills[i]
-        return (
-          <div
-            key={item.num}
-            className={`impact-node${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}`}
-            style={{
-              left: `${item.x}%`,
-              top: `${item.y}%`,
-              opacity: nodeIn,
-              transform: `translate(-50%, -50%) scale(${0.82 + nodeIn * 0.18 + (isActive ? 0.06 : 0)})`,
-            }}>
-            <span className="impact-node-halo" aria-hidden />
-            <svg className="impact-node-ring" viewBox="0 0 56 56" aria-hidden>
-              <circle className="impact-node-track" cx="28" cy="28" r="22" />
-              <circle
-                className="impact-node-progress"
-                cx="28"
-                cy="28"
-                r="22"
-                style={{
-                  strokeDasharray: IMPACT_RING,
-                  strokeDashoffset: IMPACT_RING * (1 - fill * nodeIn),
-                }}
-              />
-            </svg>
-            <span className="impact-node-num">{item.num}</span>
-          </div>
-        )
-      })}
-
-      <span
-        className="impact-traveler"
-        style={{
-          left: `${v.travelerX}%`,
-          top: `${v.travelerY}%`,
-          opacity: v.travelerOn,
-        }}
-      />
     </div>
   )
 }
@@ -899,7 +1127,7 @@ function ImpactSection() {
     let raf = 0
     let running = true
     let smoothed = 0
-    const mq = window.matchMedia('(max-width: 639px), (max-height: 500px)')
+    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
     const syncStack = () => setStacked(mq.matches)
     syncStack()
     mq.addEventListener?.('change', syncStack)
@@ -907,10 +1135,18 @@ function ImpactSection() {
       if (!running) return
       const el = sectionRef.current
       if (el) {
+        const vh = window.innerHeight || 1
         if (mq.matches) {
-          setProgress(0.72)
+          // Mobile: scroll through the section drives morph → node traverse
+          const rect = el.getBoundingClientRect()
+          const start = vh * 0.88
+          const end = -(el.offsetHeight - vh * 0.4)
+          const raw = clamp((start - rect.top) / Math.max(1, start - end))
+          // Skip scatter; start mid-form so the mandala is the focus
+          const mapped = 0.42 + raw * 0.58
+          smoothed = lerp(smoothed, mapped, 0.22)
+          setProgress(smoothed)
         } else {
-          const vh = window.innerHeight
           const span = Math.max(1, el.offsetHeight - vh)
           const raw = clamp(-el.getBoundingClientRect().top / span)
           const catchUp = Math.abs(raw - smoothed) > 0.12 ? 0.4 : 0.16
@@ -928,13 +1164,15 @@ function ImpactSection() {
     }
   }, [])
 
-  const phase = stacked
-    ? { phase: 'traverse', step: 1, local: 1, form: 1 }
-    : impactPhase(progress)
+  const phase = impactPhase(progress)
 
-  const introAmt = stacked ? 0 : phase.phase === 'nature' && phase.step < 0
-    ? clamp(1 - impactBeat(progress, 0.12, 0.22) * 1.1)
-    : 0
+  // Step copy waits until node 01 is actually on the mandala
+  const nodesReady = phase.phase === 'traverse' || (phase.phase === 'form' && phase.form >= 0.78)
+
+  // Intro starts huge/centered, then docks top-left when node 01 arrives
+  const introAmt = stacked ? 1 : clamp(impactBeat(progress, 0.02, 0.1))
+  const introDocked = stacked || nodesReady
+  const STEP_CORNERS = ['tr', 'br', 'bl']
 
   return (
     <section
@@ -946,36 +1184,46 @@ function ImpactSection() {
       data-phase={phase.phase}>
       <div className="impact-track">
         <div className="impact-sheet">
-          <ImpactVisionStage progress={stacked ? 0.72 : progress} phase={phase} />
+          <ImpactVisionStage progress={progress} phase={phase} stacked={stacked} />
 
           <div className="impact-copy">
-            <p className="impact-eyebrow" id="impact-heading">
-              Driving Global Impact
-            </p>
-
             <div
-              className="impact-intro"
-              style={{
-                opacity: introAmt,
-                filter: `blur(${(1 - introAmt) * 10}px)`,
-                visibility: introAmt < 0.02 ? 'hidden' : 'visible',
-              }}>
+              className={`impact-intro${introDocked ? ' is-docked' : ' is-hero'}`}
+              style={
+                stacked
+                  ? undefined
+                  : {
+                      opacity: introAmt,
+                      filter: `blur(${(1 - introAmt) * 10}px)`,
+                      visibility: introAmt < 0.02 ? 'hidden' : 'visible',
+                    }
+              }>
+              <p className="impact-eyebrow" id="impact-heading">
+                Driving Global Impact
+              </p>
               <h2>We are bridging the gap between cutting-edge biophysics and everyday medical practice.</h2>
             </div>
 
             <div className="impact-copy-stack" aria-live="polite">
               {IMPACT_STEPS.map((item, i) => {
-                const show = stacked ? 1 : phase.step === i ? 1 : 0
+                const unlocked = stacked || (nodesReady && phase.step >= i)
+                const active = phase.step === i
+                const settled = unlocked && !active && (stacked || phase.step > i)
+                const show = unlocked ? 1 : 0
                 return (
                   <article
                     key={item.num}
-                    className={`impact-step${phase.step === i || stacked ? ' is-active' : ''}`}
-                    style={{
-                      opacity: show,
-                      filter: show ? 'none' : 'blur(12px)',
-                      transform: `translate3d(0, ${show ? 0 : 22}px, 0)`,
-                      visibility: show ? 'visible' : 'hidden',
-                    }}>
+                    className={`impact-step impact-step-corner-${STEP_CORNERS[i]}${active ? ' is-active' : ''}${settled ? ' is-settled' : ''}`}
+                    style={
+                      stacked
+                        ? undefined
+                        : {
+                            opacity: show,
+                            filter: show ? 'none' : 'blur(12px)',
+                            transform: `translate3d(0, ${show ? 0 : 18}px, 0)`,
+                            visibility: show ? 'visible' : 'hidden',
+                          }
+                    }>
                     <p className="impact-kicker">
                       <span className="impact-kicker-dot" aria-hidden />
                       {item.kicker}
@@ -994,14 +1242,292 @@ function ImpactSection() {
   )
 }
 
+const TRUST_PARTNERS = [
+  {
+    name: 'C-CAMP',
+    role: 'Life Sciences Innovation Hub',
+    src: '/partners/ccamp.jpg',
+  },
+  {
+    name: 'MeitY Startup Hub',
+    role: 'Government Innovation Support',
+    src: '/partners/meity.png',
+  },
+  {
+    name: 'SID-IISc',
+    role: 'Technology Transfer & Incubation',
+    src: '/partners/sid-iisc.jpg',
+  },
+  {
+    name: 'INCENSE',
+    role: 'Deep Tech Incubator',
+    src: '/partners/incense.png',
+  },
+]
+
+function TrustSection() {
+  return (
+    <section id="trust" className="trust" aria-labelledby="trust-heading">
+      <div className="trust-inner">
+        <header className="trust-header">
+          <p className="trust-eyebrow">Network of Trust</p>
+          <h2 id="trust-heading">Backed by leading research institutions and innovation hubs</h2>
+        </header>
+
+        <ul className="trust-grid">
+          {TRUST_PARTNERS.map((partner) => (
+            <li key={partner.name} className="trust-item">
+              <div className="trust-logo">
+                <img src={partner.src} alt={partner.name} loading="lazy" decoding="async" />
+              </div>
+              <p className="trust-name">{partner.name}</p>
+              <p className="trust-role">{partner.role}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+function AboutSection() {
+  const sectionRef = useRef(null)
+  const sheetRef = useRef(null)
+
+  useEffect(() => {
+    let raf = 0
+    let running = true
+    const tick = () => {
+      if (!running) return
+      const el = sectionRef.current
+      const sheet = sheetRef.current
+      if (el && sheet) {
+        const vh = window.innerHeight || 1
+        const span = Math.max(1, el.offsetHeight - vh)
+        const raw = clamp(-el.getBoundingClientRect().top / span)
+        const t = smoother(0, 1, raw)
+        sheet.style.setProperty('--about-orb-x', `${50 + Math.sin(t * Math.PI) * 10}%`)
+        sheet.style.setProperty('--about-orb-y', `${90 - t * 62}%`)
+        sheet.style.setProperty('--about-orb-s', `${34 + t * 52}%`)
+        sheet.style.setProperty('--about-orb-o', String(0.2 + t * 0.42))
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => {
+      running = false
+      cancelAnimationFrame(raf)
+    }
+  }, [])
+
+  return (
+    <section id="about" className="about" ref={sectionRef} aria-labelledby="about-heading">
+      <div className="about-track">
+        <div className="about-sheet" ref={sheetRef}>
+          <div className="about-orb" aria-hidden />
+          <div className="about-glow" aria-hidden />
+          <div className="about-grain" aria-hidden />
+
+          <div className="about-shell">
+            <div className="about-pane about-pane-left">
+              <p className="about-eyebrow">About Us</p>
+              <h2 id="about-heading">
+                Pioneering the next
+                <br />
+                generation of
+                <br />
+                <span>genetic diagnostics.</span>
+              </h2>
+              <p className="about-copy">
+                AAGAMISEQ is pioneering the next generation of genetic diagnostics by leveraging advanced
+                Solid-State Nanopore Technology (SSNT). We provide a fully integrated, end-to-end platform
+                designed to deliver rapid, cost-effective, and highly accurate single-molecule analysis of
+                nucleic acids and proteins. By moving beyond conventional sequencing limitations, AAGAMISEQ
+                enables earlier detection, personalized medicine, and superior research outcomes.
+              </p>
+            </div>
+
+            <div className="about-divider" aria-hidden>
+              <svg className="about-divider-svg about-divider-svg-vert" viewBox="0 0 40 1000" preserveAspectRatio="none">
+                <path
+                  className="about-divider-path"
+                  d="M20 0 C20 220, 20 280, 20 360 C20 430, 4 470, 4 500 C4 530, 20 570, 20 640 C20 720, 20 780, 20 1000"
+                />
+                <path
+                  className="about-divider-glow"
+                  d="M20 0 C20 220, 20 280, 20 360 C20 430, 4 470, 4 500 C4 530, 20 570, 20 640 C20 720, 20 780, 20 1000"
+                  pathLength="1"
+                  strokeDasharray="0.04 0.96"
+                />
+              </svg>
+              <svg className="about-divider-svg about-divider-svg-horiz" viewBox="0 0 1000 40" preserveAspectRatio="none">
+                <path
+                  className="about-divider-path"
+                  d="M0 20 C220 20, 280 20, 360 20 C430 20, 470 4, 500 4 C530 4, 570 20, 640 20 C720 20, 780 20, 1000 20"
+                />
+                <path
+                  className="about-divider-glow"
+                  d="M0 20 C220 20, 280 20, 360 20 C430 20, 470 4, 500 4 C530 4, 570 20, 640 20 C720 20, 780 20, 1000 20"
+                  pathLength="1"
+                  strokeDasharray="0.04 0.96"
+                />
+              </svg>
+            </div>
+
+            <div className="about-pane about-pane-right">
+              <p className="about-eyebrow">Mission</p>
+              <h3 className="about-mission-title">To democratize genetic insights for a healthier world.</h3>
+              <p className="about-copy">
+                The future of medicine is personal, and at its core lies rapid, accurate, and accessible genetic
+                information. However, current sequencing technologies face limitations in speed, cost, and
+                complexity—creating a bottleneck for widespread clinical adoption. AAGAMISEQ was founded to
+                break this barrier. Our mission is to democratize genetic diagnostics by pioneering a fully
+                integrated solid-state nanopore sequencing platform, delivering actionable insights from sample
+                to result with unprecedented efficiency.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const TEAM_MEMBERS = [
+  {
+    name: 'Prof. Manoj Varma',
+    role: 'Founder | R&D Advisor',
+    bio: 'Leading research and development initiatives, bringing decades of expertise in nanoscale engineering and semiconductor physics to drive innovation at AAGAMISEQ.',
+    src: '/team/manoj.jpg',
+  },
+  {
+    name: 'Divya Mohan Yadav, PhD',
+    role: 'Founder | CEO',
+    bio: "Spearheading the company's vision and strategic direction, combining deep scientific expertise with entrepreneurial leadership to revolutionize cancer diagnostics.",
+    src: '/team/divya.jpg',
+  },
+  {
+    name: 'Muddukrishna P',
+    role: 'Founder | CPO',
+    bio: 'Driving product development and engineering excellence, translating cutting-edge research into practical, scalable diagnostic solutions.',
+    src: '/team/muddu.jpeg',
+  },
+  {
+    name: 'Anumol Dominic, PhD',
+    role: 'Lead Fabrication Engg',
+    bio: 'Driving nanopore chip development and process optimization end-to-end, ensuring reliable fabrication, reproducibility, and scalable, production-ready performance.',
+    src: '/team/anumol.jpeg',
+  },
+]
+
+function TeamSection() {
+  const [active, setActive] = useState(-1)
+
+  return (
+    <section id="team" className="team" aria-labelledby="team-heading">
+      <div className="team-inner">
+        <header className="team-header">
+          <div className="team-header-copy">
+            <p className="team-eyebrow">The Team</p>
+            <h2 id="team-heading">
+              The Minds
+              <br />
+              Behind
+              <br />
+              <span>the Innovation.</span>
+            </h2>
+          </div>
+          <p className="team-lede">
+            Our interdisciplinary team combines expertise in quantum physics, semiconductor engineering, and
+            clinical oncology to redefine the future of diagnostics.
+          </p>
+        </header>
+
+        <ul className={`team-grid${active >= 0 ? ' is-active' : ''}`}>
+          {TEAM_MEMBERS.map((member, i) => (
+            <li key={member.name}>
+              <article
+                className={`team-card${active === i ? ' is-hot' : ''}${active >= 0 && active !== i ? ' is-dim' : ''}`}
+                tabIndex={0}
+                onMouseEnter={() => setActive(i)}
+                onMouseLeave={() => setActive(-1)}
+                onFocus={() => setActive(i)}
+                onBlur={() => setActive(-1)}>
+                <div className="team-card-photo">
+                  <img src={member.src} alt={member.name} loading="lazy" decoding="async" />
+                </div>
+                <p className="team-card-name">{member.name}</p>
+                <p className="team-card-role">{member.role}</p>
+                <p className="team-card-bio">{member.bio}</p>
+              </article>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
 const NAV_LINKS = [
   { id: 'hero', label: 'Home' },
   { id: 'ecosystem', label: 'Ecosystem' },
-  { id: 'how-it-works', label: 'How It Works' },
+  { id: 'how-it-works', label: 'Sensing' },
   { id: 'impact', label: 'Impact' },
   { id: 'about', label: 'About' },
+  { id: 'trust', label: 'Network' },
   { id: 'team', label: 'Team' },
 ]
+
+function SiteFooter() {
+  return (
+    <footer id="contact" className="site-footer">
+      <div className="site-footer-inner">
+        <div className="site-footer-cta">
+          <h2 className="site-footer-title">
+            Let&apos;s solve
+            <br />
+            <span>Cancer together.</span>
+          </h2>
+          <p className="site-footer-lede">
+            Interested in learning more about our technology or exploring partnership opportunities? We&apos;d
+            love to hear from you.
+          </p>
+        </div>
+
+        <div className="site-footer-grid">
+          <div className="site-footer-block">
+            <p className="site-footer-label">Email Us</p>
+            <a className="site-footer-link" href="mailto:contact@aagmiseq.com">
+              contact@aagmiseq.com
+            </a>
+          </div>
+          <div className="site-footer-block">
+            <p className="site-footer-label">Our Headquarters</p>
+            <p className="site-footer-address">
+              INCeNSE Office, CeNSE, IISc,
+              <br />
+              Bengaluru, Karnataka 560012
+            </p>
+          </div>
+          <div className="site-footer-block site-footer-brand">
+            <p className="site-footer-brand-name">AAGAMISEQ</p>
+            <p className="site-footer-brand-copy">
+              Pioneering early cancer detection through advanced nanopore DNA sequencing technology.
+            </p>
+          </div>
+        </div>
+
+        <div className="site-footer-bottom">
+          <p className="site-footer-legal">© 2026 AagamiSEQ Technologies. All rights reserved.</p>
+        </div>
+      </div>
+
+      <div className="site-footer-mark" aria-hidden="true">
+        <p className="site-footer-mark-text">AAGAMISEQ</p>
+      </div>
+    </footer>
+  )
+}
 
 function SiteNav() {
   const [open, setOpen] = useState(false)
@@ -1107,6 +1633,38 @@ function Atmosphere() {
   return <fog ref={fogRef} attach="fog" args={['#12383c', 18, 52]} />
 }
 
+/** Keep WebGL buffer matched to the sticky stage — critical on mobile resize / device mode */
+function CanvasSizeSync() {
+  const gl = useThree((s) => s.gl)
+  const setSize = useThree((s) => s.setSize)
+  const size = useThree((s) => s.size)
+
+  useEffect(() => {
+    const el = gl.domElement?.parentElement
+    if (!el) return undefined
+    const sync = () => {
+      const w = el.clientWidth
+      const h = el.clientHeight
+      if (w < 2 || h < 2) return
+      if (Math.abs(w - size.width) > 1 || Math.abs(h - size.height) > 1) {
+        setSize(w, h)
+      }
+    }
+    sync()
+    const ro = new ResizeObserver(sync)
+    ro.observe(el)
+    window.addEventListener('resize', sync)
+    window.visualViewport?.addEventListener('resize', sync)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', sync)
+      window.visualViewport?.removeEventListener('resize', sync)
+    }
+  }, [gl, setSize, size.width, size.height])
+
+  return null
+}
+
 /** Own rAF loop — avoids blank canvas when the host stalls r3f's internal frameloop */
 function FrameLoopGuard() {
   const gl = useThree((s) => s.gl)
@@ -1144,38 +1702,48 @@ function FrameLoopGuard() {
 
 // ── CameraRig — elevated side view; tracks hero descending from top ────────
 function CameraRig() {
-  const { camera } = useThree()
+  const { camera, size } = useThree()
 
   useFrame((_, delta) => {
     const p = progressApi.current
     const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
     const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
     const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
-    const reenter = smooth(BEATS.reenterStart, BEATS.reenterEnd, p)
     const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
 
-    const camX =
-      lerp(0.15, 2.4, focus) * (1 - brand * 0.7) + reenter * 0.35 + brand * 0.55
+    // Keep the disk filling the sticky frame across portrait / wide ratios
+    const aspect = size.width / Math.max(1, size.height)
+    let zMul = 1
+    let fovExtra = 0
+    if (aspect < 0.75) {
+      // Only pull back on very tall phones so the disk still fills width
+      const t = clamp((aspect - 0.42) / 0.33)
+      zMul = lerp(1.12, 1.02, t)
+      fovExtra = lerp(4, 1, t)
+    } else if (aspect > 1.65) {
+      const t = clamp((aspect - 1.65) / 0.55)
+      zMul = lerp(1, 0.88, t)
+    }
+
+    const camX = lerp(0.15, 2.4, focus) * (1 - brand * 0.7) + brand * 0.55
     const camY =
       lerp(3.15, 1.45, focus) * lerp(1, 0.62, transit) * lerp(1, 0.48, dive) * (1 - brand * 0.35) +
-      brand * 0.4 +
-      reenter * 0.15
-    const camZ = lerp(11.6, 9.0, focus) * lerp(1, 1.06, brand)
+      brand * 0.4
+    const camZ = lerp(11.6, 9.0, focus) * lerp(1, 1.06, brand) * zMul
 
     cameraTarget.set(camX, camY, camZ)
     // Look a touch lower early so the hero reads as emerging under the nav band
     const lookY =
       lerp(1.85, 1.2, focus) * (1 - transit) +
       lerp(1.2, -0.8, transit) * (1 - dive) * (1 - brand) +
-      lerp(-0.8, -1.85, dive) * (1 - reenter) * (1 - brand) +
-      reenter * 0.15 * (1 - brand) +
+      lerp(-0.8, -1.85, dive) * (1 - brand) +
       brand * 0.35
-    const lookX = brand * 0.55 + reenter * 0.25
+    const lookX = brand * 0.55
     lookAtTarget.set(lookX, lookY, 0)
 
     camera.position.lerp(cameraTarget, 1 - Math.exp(-delta * 2.8))
     camera.lookAt(lookAtTarget)
-    camera.fov = lerp(34, 30, focus)
+    camera.fov = lerp(34, 30, focus) + fovExtra
     camera.updateProjectionMatrix()
   })
 
@@ -1284,7 +1852,7 @@ function StructureMesh({ structureIndex, matPreset }) {
 }
 
 // ── FieldMolecules ─────────────────────────────────────────────────────────
-const COUNT = 48
+const COUNT = 78
 
 function FieldMolecules() {
   const fadeRef = useRef(1)
@@ -1305,10 +1873,10 @@ function FieldMolecules() {
       const boundR = (coreR + 0.45) * scale
       items.push({
         base: [
-          (seededRandom(i + 2) - 0.5) * 13,
+          (seededRandom(i + 2) - 0.5) * 16,
           // Keep field molecules above the membrane — only the hero threads the pore
-          1.15 + seededRandom(i + 19) * 4.2,
-          -1 + (seededRandom(i + 37) - 0.5) * 8,
+          0.95 + seededRandom(i + 19) * 4.8,
+          -1 + (seededRandom(i + 37) - 0.5) * 10,
         ],
         scale,
         drift: 0.18 + seededRandom(i + 67) * 0.44,
@@ -1539,62 +2107,37 @@ function HoverMolecule({ item, fadeRef, posXZ, posY }) {
   )
 }
 
-// ── HeroSphere — pore → dive off → reenter BR → Q → dissolve + glow blast ──
+// ── HeroSphere — pore → dive off-screen (stays gone; never returns to brand)
 const heroTarget = new THREE.Vector3()
 
-function heroSizeAt(p, focus, transit, dive, settle, dissolve) {
+function heroSizeAt(p, focus, transit, dive) {
   const sIdle = 0.34
   const sFocus = 0.5
   const sPost = 0.44
   const sOff = 0.4
-  const sQ = 0.14
-  let base
-  if (p <= BEATS.focusEnd) base = lerp(sIdle, sFocus, focus)
-  else if (p <= BEATS.transitEnd) base = lerp(sFocus, sPost, transit)
-  else if (p <= BEATS.diveEnd) base = lerp(sPost, sOff, dive)
-  else if (p < BEATS.reenterStart) base = sOff
-  else base = lerp(sOff, sQ, settle)
-  // Expand gently into bloom — keep soft, avoid reading as a hard ball
-  return base * lerp(1, 1.55, dissolve)
+  if (p <= BEATS.focusEnd) return lerp(sIdle, sFocus, focus)
+  if (p <= BEATS.transitEnd) return lerp(sFocus, sPost, transit)
+  if (p <= BEATS.diveEnd) return lerp(sPost, sOff, dive)
+  return sOff
 }
 
 function HeroSphere() {
   const mesh = useRef()
   const mat = useRef()
-  const blastGroup = useRef()
-  const blastCore = useRef()
-  const blastMid = useRef()
-  const blastHalo = useRef()
-  const blastLight = useRef()
-  const prevP = useRef(0)
   const scaleRef = useRef(0.34)
-  const glowMap = useMemo(() => makeGlowTexture(), [])
 
   useFrame((state, delta) => {
     if (!mesh.current || !mat.current) return
     const p = progressApi.current
-    const prev = prevP.current
     const t = state.clock.elapsedTime
     const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
     const poreReady = smooth(BEATS.poreInStart, BEATS.poreInEnd, p)
     const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
     const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
     const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
-    // Arrive at Q fully before any dissolve/blast
-    const settle = smooth(BEATS.reenterStart, BEATS.dissolveStart, p)
-    const dissolve = smooth(BEATS.dissolveStart, BEATS.dissolveEnd, p)
-
-    const qX = 2.42
-    const qY = 0.1
-    const qZ = 0.22
-    const offBR = { x: 4.6, y: -7.2, z: 0.3 }
     const offDown = { x: 0, y: -7.8, z: 0.04 }
-
-    if (prev < BEATS.diveEnd && p >= BEATS.diveEnd) {
-      mesh.current.position.set(offBR.x, offBR.y, offBR.z)
-    } else if (prev >= BEATS.diveEnd && p < BEATS.diveEnd) {
-      mesh.current.position.set(offDown.x, offDown.y, offDown.z)
-    }
+    // Soft exit once the dive finishes — never reappear at the title
+    const exitFade = p <= BEATS.diveEnd ? 0 : clamp((p - BEATS.diveEnd) / 0.06)
 
     if (p < BEATS.transitStart) {
       // Fully into the field by half of the manifesto's first "D"
@@ -1615,29 +2158,24 @@ function HeroSphere() {
       const yThrough = lerp(1.45, -1.55, through)
       const yOff = lerp(-1.55, offDown.y, down)
       heroTarget.set(Math.sin(t * 0.1) * 0.015 * (1 - down), lerp(yThrough, yOff, down), 0.04)
-    } else if (p < BEATS.reenterStart) {
-      heroTarget.set(offBR.x, offBR.y, offBR.z)
     } else {
-      // Hold at Q once settled — blast originates here from the hero
-      const ease = settle * settle * (3 - 2 * settle)
-      heroTarget.set(lerp(offBR.x, qX, ease), lerp(-5.2, qY, ease), lerp(offBR.z, qZ, ease))
+      heroTarget.set(offDown.x, offDown.y, offDown.z)
     }
 
-    const parked = p >= BEATS.diveEnd && p < BEATS.reenterStart
-    const follow = parked ? 1 : 1 - Math.exp(-delta * (settle > 0.95 ? 8 : 5))
+    const follow = 1 - Math.exp(-delta * 5)
     mesh.current.position.lerp(heroTarget, follow)
 
     mesh.current.rotation.x += delta * 0.55
     mesh.current.rotation.y += delta * 0.85
     mesh.current.rotation.z += delta * 0.28
 
-    const sizeTarget = heroSizeAt(p, focus, transit, dive, settle, dissolve)
+    const sizeTarget = heroSizeAt(p, focus, transit, dive)
     scaleRef.current = lerp(scaleRef.current, sizeTarget, 1 - Math.exp(-delta * 8))
     mesh.current.scale.setScalar(scaleRef.current)
 
     mat.current.transparent = true
-    mat.current.opacity = 1 - dissolve
-    mat.current.depthWrite = dissolve < 0.85
+    mat.current.opacity = 1 - exitFade
+    mat.current.depthWrite = exitFade < 0.85
 
     // Soft teal pulse — same family, never a hard color swap
     const pulse = (Math.sin(t * 1.6) + 1) * 0.5
@@ -1645,98 +2183,28 @@ function HeroSphere() {
     _heroEmissive.copy(HERO_EMISSIVE).lerp(HERO_EMISSIVE_PULSE, pulse * 0.65)
     mat.current.color.copy(_heroColor)
     mat.current.emissive.copy(_heroEmissive)
+    mat.current.emissiveIntensity = 0.14 + pulse * 0.1 + focus * 0.12 + brand * 0.08
+    mesh.current.visible = exitFade < 0.98
 
-    const flash = dissolve * (1 - dissolve) * 4
-    mat.current.emissiveIntensity =
-      0.14 + pulse * 0.1 + focus * 0.12 + brand * 0.08 + flash * 1.4
-    mesh.current.visible = dissolve < 0.98
-
-    // Blast rides on the hero — same world position as the sphere
-    const hx = mesh.current.position.x
-    const hy = mesh.current.position.y
-    const hz = mesh.current.position.z
-    if (blastGroup.current) {
-      blastGroup.current.position.set(hx, hy, hz)
-      const grow = dissolve * dissolve * (3 - 2 * dissolve)
-      const show = dissolve > 0.01
-      blastGroup.current.visible = show
-
-      // Soft bloom layers — wide, low opacity, no hard rim
-      if (blastCore.current) {
-        blastCore.current.scale.setScalar(Math.max(0.001, grow * 2.2))
-        blastCore.current.material.opacity = flash * 0.45
-      }
-      if (blastMid.current) {
-        blastMid.current.scale.setScalar(Math.max(0.001, grow * 4.2))
-        blastMid.current.material.opacity = flash * 0.22
-      }
-      if (blastHalo.current) {
-        blastHalo.current.scale.setScalar(Math.max(0.001, grow * 7.2))
-        blastHalo.current.material.opacity = flash * 0.1
-      }
-    }
-    if (blastLight.current) {
-      blastLight.current.position.set(hx, hy, hz + 0.2)
-      blastLight.current.intensity = flash * 8
-      blastLight.current.visible = dissolve > 0.01
-    }
-
-    heroApi.x = hx
-    heroApi.y = hy
-    heroApi.z = hz
-    heroApi.r = scaleRef.current * (1 - dissolve)
-    prevP.current = p
+    heroApi.x = mesh.current.position.x
+    heroApi.y = mesh.current.position.y
+    heroApi.z = mesh.current.position.z
+    heroApi.r = scaleRef.current * (1 - exitFade)
   })
 
   return (
-    <group>
-      <mesh ref={mesh} position={[0, 7.35, -1.35]}>
-        <sphereGeometry args={[1, 48, 48]} />
-        <meshStandardMaterial
-          ref={mat}
-          color="#2f5c58"
-          emissive="#143430"
-          emissiveIntensity={0.14}
-          metalness={0.58}
-          roughness={0.32}
-          transparent
-        />
-      </mesh>
-
-      <group ref={blastGroup} visible={false}>
-        <sprite ref={blastCore} scale={[1, 1, 1]}>
-          <spriteMaterial
-            map={glowMap}
-            color="#c8fff4"
-            transparent
-            opacity={0}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </sprite>
-        <sprite ref={blastMid} scale={[1, 1, 1]}>
-          <spriteMaterial
-            map={glowMap}
-            color="#7ee8d8"
-            transparent
-            opacity={0}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </sprite>
-        <sprite ref={blastHalo} scale={[1, 1, 1]}>
-          <spriteMaterial
-            map={glowMap}
-            color="#4ab0a0"
-            transparent
-            opacity={0}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-          />
-        </sprite>
-      </group>
-      <pointLight ref={blastLight} color="#8ef0e0" intensity={0} distance={14} decay={2} />
-    </group>
+    <mesh ref={mesh} position={[0, 7.35, -1.35]}>
+      <sphereGeometry args={[1, 48, 48]} />
+      <meshStandardMaterial
+        ref={mat}
+        color="#2f5c58"
+        emissive="#143430"
+        emissiveIntensity={0.14}
+        metalness={0.58}
+        roughness={0.32}
+        transparent
+      />
+    </mesh>
   )
 }
 
@@ -1901,7 +2369,7 @@ function Starfield() {
   const discMap = useMemo(() => makeDiscTexture(), [])
 
   if (!data.current) {
-    const count = 4200
+    const count = 6200
     const positions = new Float32Array(count * 3)
     const colors = new Float32Array(count * 3)
     const baseColors = new Float32Array(count * 3)
@@ -1911,35 +2379,35 @@ function Starfield() {
 
     for (let i = 0; i < count; i += 1) {
       const o = i * 3
-      positions[o] = (seededRandom(i + 1) - 0.5) * 50
-      positions[o + 1] = seededRandom(i + 2) * 24 - 8
-      positions[o + 2] = (seededRandom(i + 3) - 0.5) * 36 - 5
+      positions[o] = (seededRandom(i + 1) - 0.5) * 54
+      positions[o + 1] = seededRandom(i + 2) * 26 - 8
+      positions[o + 2] = (seededRandom(i + 3) - 0.5) * 40 - 5
 
       const tier = seededRandom(i + 6)
-      if (tier < 0.55) speeds[i] = 0.0003 + seededRandom(i + 7) * 0.0008
-      else if (tier < 0.85) speeds[i] = 0.002 + seededRandom(i + 7) * 0.004
-      else speeds[i] = 0.01 + seededRandom(i + 7) * 0.028
+      if (tier < 0.5) speeds[i] = 0.0003 + seededRandom(i + 7) * 0.0008
+      else if (tier < 0.8) speeds[i] = 0.002 + seededRandom(i + 7) * 0.004
+      else speeds[i] = 0.01 + seededRandom(i + 7) * 0.032
 
       flickers[i] = 0.4 + seededRandom(i + 8) * 4.5
       phases[i] = seededRandom(i + 9) * Math.PI * 2
 
-      const shade = 0.45 + seededRandom(i + 4) * 0.55
+      const shade = 0.52 + seededRandom(i + 4) * 0.55
       const tone = seededRandom(i + 5)
       let r
       let g
       let b
-      if (tone < 0.45) {
-        r = shade * 0.5
-        g = shade * 0.82
-        b = shade * 1.0
-      } else if (tone < 0.82) {
-        r = shade * 0.32
-        g = shade * 0.95
-        b = shade * 0.72
+      if (tone < 0.4) {
+        r = shade * 0.55
+        g = shade * 0.88
+        b = shade * 1.05
+      } else if (tone < 0.78) {
+        r = shade * 0.38
+        g = shade * 1.0
+        b = shade * 0.78
       } else {
-        r = shade * 0.88
-        g = shade * 0.98
-        b = shade * 0.92
+        r = shade * 0.95
+        g = shade * 1.0
+        b = shade * 0.96
       }
       baseColors[o] = r
       baseColors[o + 1] = g
