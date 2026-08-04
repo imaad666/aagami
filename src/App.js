@@ -727,9 +727,9 @@ function SensingSection() {
               stacked
                 ? undefined
                 : {
-                    opacity: clamp(intro),
-                    transform: `translate3d(0, ${(1 - intro) * 28}px, 0)`,
-                  }
+                  opacity: clamp(intro),
+                  transform: `translate3d(0, ${(1 - intro) * 28}px, 0)`,
+                }
             }>
             <p className="sensing-eyebrow">How Nanopore Sensing Works</p>
             <h2 id="sensing-heading" className="sensing-heading">
@@ -754,11 +754,11 @@ function SensingSection() {
                     stacked
                       ? undefined
                       : {
-                          opacity: show,
-                          '--reveal-y': `${(1 - show) * 28}px`,
-                          filter: `blur(${(1 - show) * 8}px)`,
-                          visibility: show < 0.02 ? 'hidden' : 'visible',
-                        }
+                        opacity: show,
+                        '--reveal-y': `${(1 - show) * 28}px`,
+                        filter: `blur(${(1 - show) * 8}px)`,
+                        visibility: show < 0.02 ? 'hidden' : 'visible',
+                      }
                   }>
                   <span className="sensing-card-index" aria-hidden>
                     {step.num}
@@ -1193,10 +1193,10 @@ function ImpactSection() {
                 stacked
                   ? undefined
                   : {
-                      opacity: introAmt,
-                      filter: `blur(${(1 - introAmt) * 10}px)`,
-                      visibility: introAmt < 0.02 ? 'hidden' : 'visible',
-                    }
+                    opacity: introAmt,
+                    filter: `blur(${(1 - introAmt) * 10}px)`,
+                    visibility: introAmt < 0.02 ? 'hidden' : 'visible',
+                  }
               }>
               <p className="impact-eyebrow" id="impact-heading">
                 Driving Global Impact
@@ -1218,11 +1218,11 @@ function ImpactSection() {
                       stacked
                         ? undefined
                         : {
-                            opacity: show,
-                            filter: show ? 'none' : 'blur(12px)',
-                            transform: `translate3d(0, ${show ? 0 : 18}px, 0)`,
-                            visibility: show ? 'visible' : 'hidden',
-                          }
+                          opacity: show,
+                          filter: show ? 'none' : 'blur(12px)',
+                          transform: `translate3d(0, ${show ? 0 : 18}px, 0)`,
+                          visibility: show ? 'visible' : 'hidden',
+                        }
                     }>
                     <p className="impact-kicker">
                       <span className="impact-kicker-dot" aria-hidden />
@@ -1515,8 +1515,8 @@ function SiteFooter() {
         <div className="site-footer-grid">
           <div className="site-footer-block">
             <p className="site-footer-label">Email Us</p>
-            <a className="site-footer-link" href="mailto:contact@aagmiseq.com">
-              contact@aagmiseq.com
+            <a className="site-footer-link" href="mailto:contact@aagamiseq.com">
+              contact@aagamiseq.com
             </a>
           </div>
           <div className="site-footer-block">
