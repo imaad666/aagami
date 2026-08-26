@@ -14,17 +14,17 @@ const lookAtTarget = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
 const _dir = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
-const _fogA = new THREE.Color('#12383c')
-const _fogB = new THREE.Color('#164850')
-const _fogC = new THREE.Color('#143e3c')
+const _fogA = new THREE.Color('#12081f')
+const _fogB = new THREE.Color('#1B1465')
+const _fogC = new THREE.Color('#2a1a4a')
 const _fogNow = new THREE.Color()
 const _cursorDir = new THREE.Vector3()
 const _heroColor = new THREE.Color()
 const _heroEmissive = new THREE.Color()
-const HERO_COLOR = new THREE.Color('#2f5c58')
-const HERO_COLOR_PULSE = new THREE.Color('#3a6e68')
-const HERO_EMISSIVE = new THREE.Color('#143430')
-const HERO_EMISSIVE_PULSE = new THREE.Color('#1e4a44')
+const HERO_COLOR = new THREE.Color('#C9A8D4')
+const HERO_COLOR_PULSE = new THREE.Color('#E8B8D4')
+const HERO_EMISSIVE = new THREE.Color('#4a3568')
+const HERO_EMISSIVE_PULSE = new THREE.Color('#B878A0')
 const PORE_RADIUS = 0.72
 const MEMBRANE_Y = 0.0
 
@@ -53,8 +53,8 @@ const C = {
   steel: '#5a6a72',
   slate: '#3e4c54',
   bone: '#a8b2ac',
-  teal: '#2f5c58',
-  deepTeal: '#1e3e3c',
+  teal: '#D0A8C8',
+  deepTeal: '#8B74B8',
   ice: '#6e8490',
   mutedBlue: '#3a5470',
   graphite: '#2e3438',
@@ -250,17 +250,17 @@ export default function App() {
               camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
               gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
               onCreated={({ gl, scene, camera }) => {
-                gl.setClearColor(new THREE.Color('#12383c'), 1)
+                gl.setClearColor(new THREE.Color('#12081f'), 1)
                 gl.toneMapping = THREE.ACESFilmicToneMapping
                 gl.toneMappingExposure = 0.98
                 window.__aagami = { gl, scene, camera }
               }}>
-              <color attach="background" args={['#12383c']} />
+              <color attach="background" args={['#12081f']} />
               <Atmosphere />
-              <ambientLight intensity={0.45} color="#6a9088" />
-              <directionalLight position={[5, 9, 4]} intensity={1.1} color="#c8ddd4" />
-              <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#3a6870" />
-              <pointLight position={[0, 2, 5]} intensity={0.45} color="#4a8a80" distance={28} />
+              <ambientLight intensity={0.45} color="#c4b0e0" />
+              <directionalLight position={[5, 9, 4]} intensity={1.1} color="#ede4f5" />
+              <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#1B1465" />
+              <pointLight position={[0, 2, 5]} intensity={0.38} color="#D4A0C4" distance={28} />
               <CursorGlow />
 
               <CameraRig />
@@ -551,7 +551,7 @@ function DNAHelix() {
   })
 
   const backboneMat = {
-    color: '#9eb4ae',
+    color: '#b8a0d8',
     metalness: 0.08,
     roughness: 0.22,
     transmission: 0.42,
@@ -565,7 +565,7 @@ function DNAHelix() {
   }
 
   const baseMat = {
-    color: '#7f9892',
+    color: '#8B74B8',
     metalness: 0.05,
     roughness: 0.28,
     transmission: 0.5,
@@ -586,19 +586,19 @@ function DNAHelix() {
       </mesh>
       <mesh>
         <tubeGeometry args={[strandB, 220, 0.078, 12, false]} />
-        <meshPhysicalMaterial {...backboneMat} color="#8fa7a0" />
+        <meshPhysicalMaterial {...backboneMat} color="#9a84c4" />
       </mesh>
 
       {sugarsA.map((pos, i) => (
         <mesh key={`sa-${i}`} position={pos}>
           <sphereGeometry args={[0.095, 14, 14]} />
-          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#8aa09a" />
+          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#B8A0D8" />
         </mesh>
       ))}
       {sugarsB.map((pos, i) => (
         <mesh key={`sb-${i}`} position={pos}>
           <sphereGeometry args={[0.095, 14, 14]} />
-          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#7f9690" />
+          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#8B74B8" />
         </mesh>
       ))}
 
@@ -610,12 +610,12 @@ function DNAHelix() {
           </mesh>
           <mesh position={[p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
             <capsuleGeometry args={[0.07, p.len * 0.28, 6, 10]} />
-            <meshPhysicalMaterial {...baseMat} color="#748e88" />
+            <meshPhysicalMaterial {...baseMat} color="#7a649e" />
           </mesh>
           <mesh rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[p.thick * 0.55, p.thick * 0.55, p.len * 0.22, 8]} />
             <meshPhysicalMaterial
-              color="#b8d0c8"
+              color="#EDE4F5"
               metalness={0}
               roughness={0.15}
               transmission={0.7}
@@ -652,15 +652,15 @@ function SensingDNAStage({ fill = false }) {
           gl.toneMapping = THREE.ACESFilmicToneMapping
           gl.toneMappingExposure = 1.12
         }}>
-        <ambientLight intensity={0.42} color="#a8c4be" />
-        <directionalLight position={[5, 7, 4]} intensity={1.05} color="#f4fffb" />
-        <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#3d7a78" />
-        <pointLight position={[1.2, 0.5, 3.5]} intensity={0.7} color="#8fd4c8" distance={14} />
-        <pointLight position={[-2, -1.5, -2]} intensity={0.3} color="#5a9088" distance={12} />
+        <ambientLight intensity={0.42} color="#c4b0e0" />
+        <directionalLight position={[5, 7, 4]} intensity={1.05} color="#ede4f5" />
+        <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#1B1465" />
+        <pointLight position={[1.2, 0.5, 3.5]} intensity={0.7} color="#F15BB5" distance={14} />
+        <pointLight position={[-2, -1.5, -2]} intensity={0.3} color="#F15BB5" distance={12} />
         <group scale={fill ? 1.35 : 1}>
           <DNAHelix />
         </group>
-        <fog attach="fog" args={['#07191c', fill ? 7 : 9, fill ? 16 : 20]} />
+        <fog attach="fog" args={['#12081f', fill ? 7 : 9, fill ? 16 : 20]} />
       </Canvas>
     </div>
   )
@@ -1654,7 +1654,7 @@ function Atmosphere() {
     document.documentElement.style.setProperty('--fog-b', String(Math.round(_fogNow.b * 255)))
   })
 
-  return <fog ref={fogRef} attach="fog" args={['#12383c', 18, 52]} />
+  return <fog ref={fogRef} attach="fog" args={['#12081f', 18, 52]} />
 }
 
 /** Keep WebGL buffer matched to the sticky stage — critical on mobile resize / device mode */
@@ -1814,8 +1814,8 @@ function CursorGlow() {
 
   return (
     <>
-      <pointLight ref={light} color="#4ab8a8" intensity={1.6} distance={14} decay={1.7} />
-      <pointLight ref={soft} color="#2a7080" intensity={0.8} distance={18} decay={1.5} />
+      <pointLight ref={light} color="#D4A0C4" intensity={1.45} distance={14} decay={1.7} />
+      <pointLight ref={soft} color="#8B74B8" intensity={0.75} distance={18} decay={1.5} />
     </>
   )
 }
@@ -2201,7 +2201,7 @@ function HeroSphere() {
     mat.current.opacity = 1 - exitFade
     mat.current.depthWrite = exitFade < 0.85
 
-    // Soft teal pulse — same family, never a hard color swap
+    // Soft pink pulse — same family, never a hard color swap
     const pulse = (Math.sin(t * 1.6) + 1) * 0.5
     _heroColor.copy(HERO_COLOR).lerp(HERO_COLOR_PULSE, pulse * 0.55)
     _heroEmissive.copy(HERO_EMISSIVE).lerp(HERO_EMISSIVE_PULSE, pulse * 0.65)
@@ -2221,8 +2221,8 @@ function HeroSphere() {
       <sphereGeometry args={[1, 48, 48]} />
       <meshStandardMaterial
         ref={mat}
-        color="#2f5c58"
-        emissive="#143430"
+        color="#C9A8D4"
+        emissive="#4a3568"
         emissiveIntensity={0.14}
         metalness={0.58}
         roughness={0.32}
@@ -2260,11 +2260,11 @@ function Nanopore() {
 
   const discBands = useMemo(
     () => [
-      { inner: PORE, outer: 3.15, opacity: 0.88, color: '#3a7a72' },
-      { inner: 3.15, outer: 3.55, opacity: 0.55, color: '#347068' },
-      { inner: 3.55, outer: 3.95, opacity: 0.3, color: '#2c635c' },
-      { inner: 3.95, outer: 4.3, opacity: 0.14, color: '#245650' },
-      { inner: 4.3, outer: 4.55, opacity: 0.05, color: '#1c4844' },
+      { inner: PORE, outer: 3.15, opacity: 0.88, color: '#1B1465' },
+      { inner: 3.15, outer: 3.55, opacity: 0.55, color: '#2a1f6e' },
+      { inner: 3.55, outer: 3.95, opacity: 0.3, color: '#1B1465' },
+      { inner: 3.95, outer: 4.3, opacity: 0.14, color: '#3a2868' },
+      { inner: 4.3, outer: 4.55, opacity: 0.05, color: '#1a1038' },
     ],
     [],
   )
@@ -2344,7 +2344,7 @@ function Nanopore() {
               discMats.current[i] = m
             }}
             color={band.color}
-            emissive="#1a4a44"
+            emissive="#5a3d8a"
             emissiveIntensity={0.16}
             metalness={0.2}
             roughness={0.55}
@@ -2370,8 +2370,8 @@ function Nanopore() {
               ref={(m) => {
                 latticeMats.current[i] = m
               }}
-              color="#4a9088"
-              emissive="#1a4a44"
+              color="#C4A0C8"
+              emissive="#4a3568"
               emissiveIntensity={0.14}
               metalness={0.32}
               roughness={0.42}
