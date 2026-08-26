@@ -451,10 +451,10 @@ main {
   pointer-events: none;
   background:
     radial-gradient(ellipse 90% 55% at 78% 10%,
-      rgba(241, 91, 181, 0.12) 0%,
+      rgba(241, 91, 181, 0.26) 0%,
       transparent 58%),
-    radial-gradient(ellipse 70% 50% at 10% 90%, rgba(212, 196, 235, 0.12) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 48% 48%, rgba(27, 20, 101, 0.28) 0%, transparent 62%),
+    radial-gradient(ellipse 70% 50% at 10% 90%, rgba(212, 196, 235, 0.14) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 48% 48%, rgba(27, 20, 101, 0.32) 0%, transparent 62%),
     linear-gradient(162deg,
       #1B1465 0%,
       rgb(var(--fog-r), var(--fog-g), var(--fog-b)) 34%,
@@ -739,12 +739,12 @@ main {
   letter-spacing: 0.02em;
   line-height: 0.9;
   text-shadow:
-    0 0 28px rgba(212, 196, 235, 0.2),
-    0 0 60px rgba(27, 20, 101, 0.4);
+    0 0 28px rgba(241, 91, 181, 0.18),
+    0 0 60px rgba(27, 20, 101, 0.45);
 }
 
 .brand-name>span {
-  color: #E0B8D4;
+  color: #F15BB5;
 }
 
 .brand-q {
@@ -752,10 +752,10 @@ main {
   display: inline-block;
   color: #EDE4F5;
   text-shadow:
-    0 0 10px rgba(224, 184, 212, 0.75),
-    0 0 28px rgba(184, 160, 216, 0.45),
-    0 0 56px rgba(241, 91, 181, 0.18),
-    0 0 90px rgba(27, 20, 101, 0.35);
+    0 0 10px rgba(241, 91, 181, 0.95),
+    0 0 28px rgba(241, 91, 181, 0.65),
+    0 0 56px rgba(184, 160, 216, 0.5),
+    0 0 90px rgba(27, 20, 101, 0.4);
   animation: brand-q-glow 2.8s ease-in-out infinite;
 }
 
@@ -765,19 +765,19 @@ main {
   100% {
     color: #EDE4F5;
     text-shadow:
-      0 0 10px rgba(212, 196, 235, 0.55),
-      0 0 26px rgba(184, 160, 216, 0.35),
-      0 0 52px rgba(241, 91, 181, 0.14),
-      0 0 80px rgba(27, 20, 101, 0.22);
+      0 0 10px rgba(241, 91, 181, 0.75),
+      0 0 26px rgba(241, 91, 181, 0.5),
+      0 0 52px rgba(184, 160, 216, 0.35),
+      0 0 80px rgba(27, 20, 101, 0.28);
   }
 
   50% {
-    color: #FFFFFF;
+    color: #ffffff;
     text-shadow:
-      0 0 14px rgba(237, 228, 245, 0.9),
-      0 0 36px rgba(224, 184, 212, 0.55),
-      0 0 72px rgba(184, 160, 216, 0.35),
-      0 0 110px rgba(241, 91, 181, 0.18);
+      0 0 14px rgba(255, 122, 200, 1),
+      0 0 36px rgba(241, 91, 181, 0.75),
+      0 0 72px rgba(212, 196, 235, 0.45),
+      0 0 110px rgba(241, 91, 181, 0.35);
   }
 }
 
@@ -788,7 +788,7 @@ main {
   font-weight: 400;
   letter-spacing: 0.12em;
   line-height: 1.1;
-  color: #E0A8C8;
+  color: #F15BB5;
 }
 
 .scroll-hint {
@@ -1592,14 +1592,12 @@ main {
   position: absolute;
   inset: -10%;
   background:
-    linear-gradient(
-      105deg,
+    linear-gradient(105deg,
       #12081f 0%,
       #1B1465 22%,
       #8B74B8 48%,
       #F15BB5 72%,
-      #D4C4EB 100%
-    );
+      #D4C4EB 100%);
   -webkit-mask-image: radial-gradient(circle at 52% var(--mask-y, 118%),
       #000 0%,
       #000 var(--mask-radius, 18vmax),

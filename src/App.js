@@ -21,10 +21,10 @@ const _fogNow = new THREE.Color()
 const _cursorDir = new THREE.Vector3()
 const _heroColor = new THREE.Color()
 const _heroEmissive = new THREE.Color()
-const HERO_COLOR = new THREE.Color('#C9A8D4')
-const HERO_COLOR_PULSE = new THREE.Color('#E8B8D4')
-const HERO_EMISSIVE = new THREE.Color('#4a3568')
-const HERO_EMISSIVE_PULSE = new THREE.Color('#B878A0')
+const HERO_COLOR = new THREE.Color('#b59ac8')
+const HERO_COLOR_PULSE = new THREE.Color('#c9a8c4')
+const HERO_EMISSIVE = new THREE.Color('#5a3d8a')
+const HERO_EMISSIVE_PULSE = new THREE.Color('#8B74B8')
 const PORE_RADIUS = 0.72
 const MEMBRANE_Y = 0.0
 
@@ -53,7 +53,7 @@ const C = {
   steel: '#5a6a72',
   slate: '#3e4c54',
   bone: '#a8b2ac',
-  teal: '#D0A8C8',
+  teal: '#F15BB5',
   deepTeal: '#8B74B8',
   ice: '#6e8490',
   mutedBlue: '#3a5470',
@@ -260,7 +260,7 @@ export default function App() {
               <ambientLight intensity={0.45} color="#c4b0e0" />
               <directionalLight position={[5, 9, 4]} intensity={1.1} color="#ede4f5" />
               <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#1B1465" />
-              <pointLight position={[0, 2, 5]} intensity={0.38} color="#D4A0C4" distance={28} />
+              <pointLight position={[0, 2, 5]} intensity={0.45} color="#F15BB5" distance={28} />
               <CursorGlow />
 
               <CameraRig />
@@ -1814,8 +1814,8 @@ function CursorGlow() {
 
   return (
     <>
-      <pointLight ref={light} color="#D4A0C4" intensity={1.45} distance={14} decay={1.7} />
-      <pointLight ref={soft} color="#8B74B8" intensity={0.75} distance={18} decay={1.5} />
+      <pointLight ref={light} color="#F15BB5" intensity={1.6} distance={14} decay={1.7} />
+      <pointLight ref={soft} color="#8B74B8" intensity={0.8} distance={18} decay={1.5} />
     </>
   )
 }
@@ -2201,13 +2201,13 @@ function HeroSphere() {
     mat.current.opacity = 1 - exitFade
     mat.current.depthWrite = exitFade < 0.85
 
-    // Soft pink pulse — same family, never a hard color swap
+    // Soft mauve pulse — muted, never hot pink
     const pulse = (Math.sin(t * 1.6) + 1) * 0.5
-    _heroColor.copy(HERO_COLOR).lerp(HERO_COLOR_PULSE, pulse * 0.55)
-    _heroEmissive.copy(HERO_EMISSIVE).lerp(HERO_EMISSIVE_PULSE, pulse * 0.65)
+    _heroColor.copy(HERO_COLOR).lerp(HERO_COLOR_PULSE, pulse * 0.4)
+    _heroEmissive.copy(HERO_EMISSIVE).lerp(HERO_EMISSIVE_PULSE, pulse * 0.45)
     mat.current.color.copy(_heroColor)
     mat.current.emissive.copy(_heroEmissive)
-    mat.current.emissiveIntensity = 0.14 + pulse * 0.1 + focus * 0.12 + brand * 0.08
+    mat.current.emissiveIntensity = 0.1 + pulse * 0.06 + focus * 0.08 + brand * 0.05
     mesh.current.visible = exitFade < 0.98
 
     heroApi.x = mesh.current.position.x
@@ -2221,9 +2221,9 @@ function HeroSphere() {
       <sphereGeometry args={[1, 48, 48]} />
       <meshStandardMaterial
         ref={mat}
-        color="#C9A8D4"
-        emissive="#4a3568"
-        emissiveIntensity={0.14}
+        color="#b59ac8"
+        emissive="#5a3d8a"
+        emissiveIntensity={0.1}
         metalness={0.58}
         roughness={0.32}
         transparent
@@ -2370,9 +2370,9 @@ function Nanopore() {
               ref={(m) => {
                 latticeMats.current[i] = m
               }}
-              color="#C4A0C8"
-              emissive="#4a3568"
-              emissiveIntensity={0.14}
+              color="#b59ac8"
+              emissive="#5a3d8a"
+              emissiveIntensity={0.1}
               metalness={0.32}
               roughness={0.42}
               transparent
