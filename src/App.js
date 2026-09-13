@@ -1,6 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { QUALITY, useInView, useVisibleRaf } from './perf'
 
 /**
  * Aagami SEQ — nanopore sequencing scroll hero.
@@ -27,6 +28,9 @@ const HERO_EMISSIVE = new THREE.Color('#5a3d8a')
 const HERO_EMISSIVE_PULSE = new THREE.Color('#8B74B8')
 const PORE_RADIUS = 0.72
 const MEMBRANE_Y = 0.0
+const GEO_CORE = new THREE.SphereGeometry(1, 16, 16)
+const GEO_TIP = new THREE.SphereGeometry(1, 12, 12)
+const GEO_BOND = new THREE.CylinderGeometry(0.028, 0.028, 1, 6)
 
 /** Soft round sprite for PointsMaterial (default points are square) */
 function makeDiscTexture() {
@@ -176,7 +180,16 @@ const MAT_PRESETS = [
 
 // ── App ────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [ui, setUi] = useState({ brand: 0, manifesto: 0, fill: 0 })
+  const [ui, setUi] = useState({ brand: 0, manifesto: 1, fill: 0 })
+  const heroStageRef = useRef(null)
+  const heroLive = useInView(heroStageRef, { rootMargin: '8% 0px', initial: true })
+  const heroLiveRef = useRef(true)
+  const kickRef = useRef(() => {})
+  heroLiveRef.current = heroLive
+
+  useEffect(() => {
+    kickRef.current()
+  }, [heroLive])
 
   useEffect(() => {
     const onScroll = () => {
@@ -190,15 +203,13 @@ export default function App() {
       // Finish disk → transit → name before the end hold (same feel as desktop).
       const holdFrac = 0.2
       progressApi.target = clamp(raw / (1 - holdFrac))
+      kick()
     }
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('resize', onScroll)
-    window.visualViewport?.addEventListener('resize', onScroll)
 
     let raf = 0
     let lastKey = -1
     const tick = () => {
+      raf = 0
       // Keep the 3D beat tight to scroll — lag feels broken on touch / short screens
       const d = Math.abs(progressApi.target - progressApi.current)
       const ease = d > 0.12 ? 0.32 : d > 0.04 ? 0.16 : 0.1
@@ -220,13 +231,30 @@ export default function App() {
         lastKey = key
         setUi({ brand, manifesto, fill })
       }
-      raf = requestAnimationFrame(tick)
+      const moving = Math.abs(progressApi.target - progressApi.current) > 0.0008
+      if ((moving || heroLiveRef.current) && !document.hidden) {
+        raf = requestAnimationFrame(tick)
+      }
     }
-    raf = requestAnimationFrame(tick)
+    const kick = () => {
+      if (!raf) raf = requestAnimationFrame(tick)
+    }
+    kickRef.current = kick
+
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
+    window.addEventListener('resize', onScroll)
+    window.visualViewport?.addEventListener('resize', onScroll)
+    const onVis = () => {
+      if (!document.hidden) kick()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    kick()
     return () => {
-      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('scroll', onScroll, { capture: true })
       window.removeEventListener('resize', onScroll)
       window.visualViewport?.removeEventListener('resize', onScroll)
+      document.removeEventListener('visibilitychange', onVis)
       cancelAnimationFrame(raf)
     }
   }, [])
@@ -242,13 +270,20 @@ export default function App() {
         <div className="grain-overlay" aria-hidden />
 
         <div className="experience-track">
-          <div className="canvas-stage">
+          <div className="canvas-stage" ref={heroStageRef}>
             <div className="canvas-grain" aria-hidden />
             <Canvas
               frameloop="never"
-              dpr={[1, 1.5]}
+              dpr={QUALITY.dpr}
               camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
-              gl={{ antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
+              gl={{
+                antialias: QUALITY.antialias,
+                alpha: false,
+                powerPreference: 'high-performance',
+                preserveDrawingBuffer: false,
+                stencil: false,
+                depth: true,
+              }}
               onCreated={({ gl, scene, camera }) => {
                 gl.setClearColor(new THREE.Color('#12081f'), 1)
                 gl.toneMapping = THREE.ACESFilmicToneMapping
@@ -261,11 +296,11 @@ export default function App() {
               <directionalLight position={[5, 9, 4]} intensity={1.1} color="#ede4f5" />
               <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#1B1465" />
               <pointLight position={[0, 2, 5]} intensity={0.45} color="#F15BB5" distance={28} />
-              <CursorGlow />
+              {QUALITY.cursorGlow ? <CursorGlow /> : null}
 
               <CameraRig />
               <CanvasSizeSync />
-              <FrameLoopGuard />
+              <FrameLoopGuard active={heroLive} />
               <Starfield />
               <FieldMolecules />
               <HeroSphere />
@@ -374,47 +409,49 @@ function EcosystemSection() {
   const sectionRef = useRef(null)
   const [opens, setOpens] = useState(() => ECOSYSTEM_ITEMS.map(() => 0))
   const [stacked, setStacked] = useState(false)
+  const smoothedRef = useRef(ECOSYSTEM_ITEMS.map(() => 0))
+  const stackedMqRef = useRef(false)
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const sync = () => setStacked(mq.matches)
+    const sync = () => {
+      stackedMqRef.current = mq.matches
+      setStacked(mq.matches)
+    }
     sync()
     mq.addEventListener?.('change', sync)
-
-    let raf = 0
-    let running = true
-    const update = () => {
-      if (!running) return
-      const el = sectionRef.current
-      if (el) {
-        const vh = window.innerHeight
-        const start = el.offsetTop
-        const span = Math.max(1, el.offsetHeight - vh)
-        const isStacked = mq.matches
-
-        let next
-        if (isStacked) {
-          // Stacked: always show full copy — no opacity crop mid-card
-          next = ECOSYSTEM_ITEMS.map(() => 1)
-        } else {
-          const revealT = clamp((window.scrollY - start) / span)
-          const slot = 1 / ECOSYSTEM_ITEMS.length
-          next = ECOSYSTEM_ITEMS.map((_, i) => {
-            const a = 0.08 + i * slot * 0.9
-            return smoother(a, a + slot * 0.55, revealT)
-          })
-        }
-        setOpens((prev) => prev.map((v, i) => lerp(v, next[i], isStacked ? 1 : 0.28)))
-      }
-      raf = requestAnimationFrame(update)
-    }
-    raf = requestAnimationFrame(update)
-    return () => {
-      running = false
-      cancelAnimationFrame(raf)
-      mq.removeEventListener?.('change', sync)
-    }
+    return () => mq.removeEventListener?.('change', sync)
   }, [])
+
+  useVisibleRaf(sectionRef, () => {
+    const el = sectionRef.current
+    if (!el) return
+    const vh = window.innerHeight
+    const start = el.offsetTop
+    const span = Math.max(1, el.offsetHeight - vh)
+    const isStacked = stackedMqRef.current
+    const smoothed = smoothedRef.current
+
+    let next
+    if (isStacked) {
+      next = ECOSYSTEM_ITEMS.map(() => 1)
+    } else {
+      const revealT = clamp((window.scrollY - start) / span)
+      const slot = 1 / ECOSYSTEM_ITEMS.length
+      next = ECOSYSTEM_ITEMS.map((_, i) => {
+        const a = 0.08 + i * slot * 0.9
+        return smoother(a, a + slot * 0.55, revealT)
+      })
+    }
+    const eased = next.map((v, i) => lerp(smoothed[i], v, isStacked ? 1 : 0.28))
+    eased.forEach((v, i) => {
+      smoothed[i] = v
+    })
+    setOpens((prev) => {
+      const same = prev.every((v, i) => Math.abs(v - eased[i]) < 0.012)
+      return same ? prev : eased
+    })
+  })
 
   return (
     <section
@@ -499,9 +536,9 @@ const SENSING_STEPS = [
 
 function DNAHelix() {
   const group = useRef()
-  const { strandA, strandB, pairs, sugarsA, sugarsB } = useMemo(() => {
+  const { strandA, strandB, pairs, sugarsA, sugarsB, tubular } = useMemo(() => {
     // B-DNA-ish proportions: ~10.5 bp/turn, soft major/minor groove
-    const count = 42
+    const count = QUALITY.dnaCount
     const height = 9.6
     const radius = 1.05
     const turns = count / 10.5
@@ -523,8 +560,10 @@ function DNAHelix() {
       const bz = Math.sin(t + Math.PI) * rz
       pointsA.push(new THREE.Vector3(ax, y, az))
       pointsB.push(new THREE.Vector3(bx, y, bz))
-      sugarsA.push([ax * 0.92, y, az * 0.92])
-      sugarsB.push([bx * 0.92, y, bz * 0.92])
+      if (QUALITY.dnaSugars) {
+        sugarsA.push([ax * 0.92, y, az * 0.92])
+        sugarsB.push([bx * 0.92, y, bz * 0.92])
+      }
 
       const mx = (ax + bx) * 0.5
       const mz = (az + bz) * 0.5
@@ -542,6 +581,7 @@ function DNAHelix() {
       pairs: pairData,
       sugarsA,
       sugarsB,
+      tubular: QUALITY.dnaTubular,
     }
   }, [])
 
@@ -552,76 +592,62 @@ function DNAHelix() {
 
   const backboneMat = {
     color: '#b8a0d8',
-    metalness: 0.08,
-    roughness: 0.22,
-    transmission: 0.42,
-    thickness: 0.55,
-    ior: 1.42,
+    metalness: 0.12,
+    roughness: 0.28,
     transparent: true,
-    opacity: 0.62,
-    clearcoat: 0.65,
-    clearcoatRoughness: 0.28,
+    opacity: 0.7,
     depthWrite: false,
   }
 
   const baseMat = {
     color: '#8B74B8',
-    metalness: 0.05,
-    roughness: 0.28,
-    transmission: 0.5,
-    thickness: 0.35,
-    ior: 1.4,
+    metalness: 0.08,
+    roughness: 0.32,
     transparent: true,
-    opacity: 0.55,
-    clearcoat: 0.4,
-    clearcoatRoughness: 0.35,
+    opacity: 0.62,
     depthWrite: false,
   }
 
   return (
     <group ref={group} rotation={[0.2, 0.35, 0.05]} position={[0.1, -0.1, 0]} scale={0.95}>
       <mesh>
-        <tubeGeometry args={[strandA, 220, 0.078, 12, false]} />
-        <meshPhysicalMaterial {...backboneMat} />
+        <tubeGeometry args={[strandA, tubular[0], 0.078, tubular[1], false]} />
+        <meshStandardMaterial {...backboneMat} />
       </mesh>
       <mesh>
-        <tubeGeometry args={[strandB, 220, 0.078, 12, false]} />
-        <meshPhysicalMaterial {...backboneMat} color="#9a84c4" />
+        <tubeGeometry args={[strandB, tubular[0], 0.078, tubular[1], false]} />
+        <meshStandardMaterial {...backboneMat} color="#9a84c4" />
       </mesh>
 
       {sugarsA.map((pos, i) => (
-        <mesh key={`sa-${i}`} position={pos}>
-          <sphereGeometry args={[0.095, 14, 14]} />
-          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#B8A0D8" />
+        <mesh key={`sa-${i}`} position={pos} scale={0.095} geometry={GEO_TIP}>
+          <meshStandardMaterial {...baseMat} opacity={0.5} color="#B8A0D8" />
         </mesh>
       ))}
       {sugarsB.map((pos, i) => (
-        <mesh key={`sb-${i}`} position={pos}>
-          <sphereGeometry args={[0.095, 14, 14]} />
-          <meshPhysicalMaterial {...baseMat} opacity={0.5} color="#8B74B8" />
+        <mesh key={`sb-${i}`} position={pos} scale={0.095} geometry={GEO_TIP}>
+          <meshStandardMaterial {...baseMat} opacity={0.5} color="#8B74B8" />
         </mesh>
       ))}
 
       {pairs.map((p, i) => (
         <group key={i} position={[p.mx, p.y, p.mz]} rotation={[0, -p.angle, 0]}>
           <mesh position={[-p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <capsuleGeometry args={[0.07, p.len * 0.28, 6, 10]} />
-            <meshPhysicalMaterial {...baseMat} />
+            <capsuleGeometry args={[0.07, p.len * 0.28, 4, 8]} />
+            <meshStandardMaterial {...baseMat} />
           </mesh>
           <mesh position={[p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <capsuleGeometry args={[0.07, p.len * 0.28, 6, 10]} />
-            <meshPhysicalMaterial {...baseMat} color="#7a649e" />
+            <capsuleGeometry args={[0.07, p.len * 0.28, 4, 8]} />
+            <meshStandardMaterial {...baseMat} color="#7a649e" />
           </mesh>
           <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[p.thick * 0.55, p.thick * 0.55, p.len * 0.22, 8]} />
-            <meshPhysicalMaterial
+            <cylinderGeometry args={[p.thick * 0.55, p.thick * 0.55, p.len * 0.22, 6]} />
+            <meshStandardMaterial
               color="#EDE4F5"
               metalness={0}
-              roughness={0.15}
-              transmission={0.7}
-              thickness={0.2}
+              roughness={0.2}
               transparent
-              opacity={0.35}
+              opacity={0.38}
               depthWrite={false}
             />
           </mesh>
@@ -632,36 +658,46 @@ function DNAHelix() {
 }
 
 function SensingDNAStage({ fill = false }) {
+  const wrap = useRef(null)
+  const near = useInView(wrap, { rootMargin: '55% 0px', initial: false })
+  const live = useInView(wrap, { rootMargin: '10% 0px', initial: false })
+
   return (
-    <div className="sensing-dna" aria-hidden>
-      <Canvas
-        dpr={[1, 1.6]}
-        camera={{
-          position: fill ? [0, 0.15, 6.2] : [0, 0.35, 8.4],
-          fov: fill ? 46 : 38,
-          near: 0.1,
-          far: 40,
-        }}
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: 'high-performance',
-        }}
-        onCreated={({ gl }) => {
-          gl.setClearColor(0x000000, 0)
-          gl.toneMapping = THREE.ACESFilmicToneMapping
-          gl.toneMappingExposure = 1.12
-        }}>
-        <ambientLight intensity={0.42} color="#c4b0e0" />
-        <directionalLight position={[5, 7, 4]} intensity={1.05} color="#ede4f5" />
-        <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#1B1465" />
-        <pointLight position={[1.2, 0.5, 3.5]} intensity={0.7} color="#F15BB5" distance={14} />
-        <pointLight position={[-2, -1.5, -2]} intensity={0.3} color="#F15BB5" distance={12} />
-        <group scale={fill ? 1.35 : 1}>
-          <DNAHelix />
-        </group>
-        <fog attach="fog" args={['#12081f', fill ? 7 : 9, fill ? 16 : 20]} />
-      </Canvas>
+    <div ref={wrap} className="sensing-dna" aria-hidden>
+      {near ? (
+        <Canvas
+          frameloop={live ? 'always' : 'never'}
+          dpr={QUALITY.dpr}
+          camera={{
+            position: fill ? [0, 0.15, 6.2] : [0, 0.35, 8.4],
+            fov: fill ? 46 : 38,
+            near: 0.1,
+            far: 40,
+          }}
+          gl={{
+            antialias: QUALITY.antialias,
+            alpha: true,
+            powerPreference: 'high-performance',
+            stencil: false,
+          }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 0)
+            gl.toneMapping = THREE.ACESFilmicToneMapping
+            gl.toneMappingExposure = 1.12
+          }}>
+          <ambientLight intensity={0.42} color="#c4b0e0" />
+          <directionalLight position={[5, 7, 4]} intensity={1.05} color="#ede4f5" />
+          <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#1B1465" />
+          <pointLight position={[1.2, 0.5, 3.5]} intensity={0.7} color="#F15BB5" distance={14} />
+          {!QUALITY.low ? (
+            <pointLight position={[-2, -1.5, -2]} intensity={0.3} color="#F15BB5" distance={12} />
+          ) : null}
+          <group scale={fill ? 1.35 : 1}>
+            <DNAHelix />
+          </group>
+          <fog attach="fog" args={['#12081f', fill ? 7 : 9, fill ? 16 : 20]} />
+        </Canvas>
+      ) : null}
     </div>
   )
 }
@@ -671,45 +707,42 @@ function SensingSection() {
   const [progress, setProgress] = useState(0)
   const [intro, setIntro] = useState(0)
   const [stacked, setStacked] = useState(false)
+  const senseRef = useRef({ smoothed: 0, intro: 0, stacked: false })
 
   useEffect(() => {
-    let raf = 0
-    let running = true
-    let smoothed = 0
-    let introSmoothed = 0
     const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const sync = () => setStacked(mq.matches)
+    const sync = () => {
+      senseRef.current.stacked = mq.matches
+      setStacked(mq.matches)
+    }
     sync()
     mq.addEventListener?.('change', sync)
-    const update = () => {
-      if (!running) return
-      const el = sectionRef.current
-      if (el) {
-        if (mq.matches) {
-          setProgress(1)
-          setIntro(1)
-        } else {
-          const vh = window.innerHeight || 1
-          const span = Math.max(1, el.offsetHeight - vh)
-          const raw = clamp(-el.getBoundingClientRect().top / span)
-          smoothed = lerp(smoothed, raw, 0.12)
-          setProgress(smoothed)
-
-          const rect = el.getBoundingClientRect()
-          const introRaw = clamp((vh * 0.72 - rect.top) / (vh * 0.45))
-          introSmoothed = lerp(introSmoothed, introRaw, 0.1)
-          setIntro(introSmoothed)
-        }
-      }
-      raf = requestAnimationFrame(update)
-    }
-    raf = requestAnimationFrame(update)
-    return () => {
-      running = false
-      cancelAnimationFrame(raf)
-      mq.removeEventListener?.('change', sync)
-    }
+    return () => mq.removeEventListener?.('change', sync)
   }, [])
+
+  useVisibleRaf(sectionRef, () => {
+    const el = sectionRef.current
+    if (!el) return
+    const s = senseRef.current
+    if (s.stacked) {
+      if (s.smoothed !== 1 || s.intro !== 1) {
+        s.smoothed = 1
+        s.intro = 1
+        setProgress(1)
+        setIntro(1)
+      }
+      return
+    }
+    const vh = window.innerHeight || 1
+    const span = Math.max(1, el.offsetHeight - vh)
+    const raw = clamp(-el.getBoundingClientRect().top / span)
+    s.smoothed = lerp(s.smoothed, raw, 0.12)
+    const rect = el.getBoundingClientRect()
+    const introRaw = clamp((vh * 0.72 - rect.top) / (vh * 0.45))
+    s.intro = lerp(s.intro, introRaw, 0.1)
+    setProgress((prev) => (Math.abs(prev - s.smoothed) < 0.01 ? prev : s.smoothed))
+    setIntro((prev) => (Math.abs(prev - s.intro) < 0.012 ? prev : s.intro))
+  })
 
   return (
     <section
@@ -756,7 +789,6 @@ function SensingSection() {
                       : {
                         opacity: show,
                         '--reveal-y': `${(1 - show) * 28}px`,
-                        filter: `blur(${(1 - show) * 8}px)`,
                         visibility: show < 0.02 ? 'hidden' : 'visible',
                       }
                   }>
@@ -916,7 +948,16 @@ function impactPhase(progress) {
   return { phase: 'traverse', step, local: clamp(f - step), form: 1 }
 }
 
-function ImpactVisionStage({ progress, phase, stacked = false }) {
+function ImpactVisionStage({ progressRef, stacked = false }) {
+  const stageRef = useRef(null)
+  const sphereRef = useRef(null)
+  const svgRef = useRef(null)
+  const circleRefs = useRef([])
+  const coreRef = useRef(null)
+  const overlayRef = useRef(null)
+  const linkRef = useRef(null)
+  const nodeRefs = useRef([])
+  const fillRefs = useRef([])
   const vizRef = useRef({
     settles: NATURE_MORPH.map(() => 0),
     morph: 0,
@@ -927,190 +968,174 @@ function ImpactVisionStage({ progress, phase, stacked = false }) {
     fills: NATURE_NODES.map(() => 0),
     core: 0,
   })
-  const targetsRef = useRef(null)
-  const [, bump] = useState(0)
+  const stackedRef = useRef(stacked)
+  stackedRef.current = stacked
 
-  const step = phase.step
-  const local = phase.local
+  useVisibleRaf(stageRef, () => {
+    const progress = progressRef.current
+    const phase = impactPhase(progress)
+    const step = phase.step
+    const local = phase.local
+    const sphereTarget = impactBeat(progress, 0, 0.22)
+    const circleBase = impactBeat(progress, 0.04, 0.32)
+    const morphTarget = phase.form
+    const natureOpTarget = 0.42 + impactBeat(progress, 0.03, 0.2) * 0.58
+    let linkDrawTarget = 0
+    if (phase.phase === 'form') linkDrawTarget = morphTarget > 0.72 ? ((morphTarget - 0.72) / 0.28) * 0.02 : 0
+    else if (phase.phase === 'traverse') linkDrawTarget = clamp((step + local) / NATURE_NODES.length)
 
-  const sphereTarget = impactBeat(progress, 0, 0.22)
-  const circleBase = impactBeat(progress, 0.04, 0.32)
-  const morphTarget = phase.form
-  const natureOpTarget = 0.42 + impactBeat(progress, 0.03, 0.2) * 0.58
-
-  let linkDrawTarget = 0
-  if (phase.phase === 'form') linkDrawTarget = morphTarget > 0.72 ? (morphTarget - 0.72) / 0.28 * 0.02 : 0
-  else if (phase.phase === 'traverse') {
-    linkDrawTarget = clamp((step + local) / NATURE_NODES.length)
-  }
-
-  const settleTargets = NATURE_MORPH.map((_, i) => {
-    const start = (i / NATURE_MORPH.length) * 0.55
-    return smoother(start, start + 0.62, circleBase)
-  })
-  const nodeTargets = NATURE_NODES.map((_, i) => smoother(0.55 + i * 0.06, 0.82 + i * 0.05, morphTarget))
-  const coreTarget = smoother(0.15, 0.65, morphTarget)
-
-  const fillTargets = NATURE_NODES.map((_, i) => {
-    const done = phase.phase === 'traverse' && step > i
-    const isActive = phase.phase !== 'nature' && step === i
-    return done ? 1 : isActive ? Math.max(local, 0.08) : 0
-  })
-
-  targetsRef.current = {
-    settleTargets,
-    morphTarget,
-    natureOpTarget,
-    sphereTarget,
-    linkDrawTarget,
-    nodeTargets,
-    fillTargets,
-    coreTarget,
-  }
-
-  useEffect(() => {
-    let raf = 0
-    let running = true
-    const tick = () => {
-      if (!running) return
-      const t = targetsRef.current
-      if (!t) {
-        raf = requestAnimationFrame(tick)
-        return
-      }
-      const v = vizRef.current
-      const ease = 0.11
-      const easeSlow = 0.08
-      const safeLerp = (a, b, t) => {
-        const from = Number.isFinite(a) ? a : 0
-        const to = Number.isFinite(b) ? b : from
-        return lerp(from, to, t)
-      }
-
-      const settles = (v.settles || NATURE_MORPH.map(() => 0)).map((s, i) =>
-        safeLerp(s, t.settleTargets[i], easeSlow),
-      )
-      const nodes = (v.nodes || NATURE_NODES.map(() => 0)).map((s, i) =>
-        safeLerp(s, t.nodeTargets[i], easeSlow),
-      )
-      const fills = (v.fills || NATURE_NODES.map(() => 0)).map((s, i) =>
-        safeLerp(s, t.fillTargets[i], 0.15),
-      )
-
-      vizRef.current = {
-        settles,
-        morph: safeLerp(v.morph, t.morphTarget, easeSlow),
-        natureOp: safeLerp(v.natureOp, t.natureOpTarget, easeSlow),
-        sphere: safeLerp(v.sphere, t.sphereTarget, easeSlow),
-        linkDraw: safeLerp(v.linkDraw, t.linkDrawTarget, 0.14),
-        nodes,
-        fills,
-        core: safeLerp(v.core, t.coreTarget, easeSlow),
-      }
-      bump((n) => (n + 1) % 100000)
-      raf = requestAnimationFrame(tick)
+    const v = vizRef.current
+    const easeSlow = 0.08
+    const safeLerp = (a, b, t) => {
+      const from = Number.isFinite(a) ? a : 0
+      const to = Number.isFinite(b) ? b : from
+      return lerp(from, to, t)
     }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      running = false
-      cancelAnimationFrame(raf)
-    }
-  }, [])
 
-  const v = vizRef.current
-  const maskRadius = `${16 + v.sphere * 110}vmax`
-  const maskY = `${122 - v.sphere * 78}%`
-  const morph = Number.isFinite(v.morph) ? v.morph : 0
-  const overlayIn = clamp((morph - 0.55) / 0.35)
+    NATURE_MORPH.forEach((_, i) => {
+      const start = (i / NATURE_MORPH.length) * 0.55
+      v.settles[i] = safeLerp(v.settles[i], smoother(start, start + 0.62, circleBase), easeSlow)
+    })
+    NATURE_NODES.forEach((_, i) => {
+      v.nodes[i] = safeLerp(v.nodes[i], smoother(0.55 + i * 0.06, 0.82 + i * 0.05, morphTarget), easeSlow)
+      const done = phase.phase === 'traverse' && step > i
+      const isActive = phase.phase !== 'nature' && step === i
+      v.fills[i] = safeLerp(v.fills[i], done ? 1 : isActive ? Math.max(local, 0.08) : 0, 0.15)
+    })
+    v.morph = safeLerp(v.morph, morphTarget, easeSlow)
+    v.natureOp = safeLerp(v.natureOp, natureOpTarget, easeSlow)
+    v.sphere = safeLerp(v.sphere, sphereTarget, easeSlow)
+    v.linkDraw = safeLerp(v.linkDraw, linkDrawTarget, 0.14)
+    v.core = safeLerp(v.core, smoother(0.15, 0.65, morphTarget), easeSlow)
+
+    const morph = v.morph
+    const isStacked = stackedRef.current
+    if (sphereRef.current) {
+      sphereRef.current.style.setProperty('--mask-radius', `${16 + v.sphere * 110}vmax`)
+      sphereRef.current.style.setProperty('--mask-y', `${122 - v.sphere * 78}%`)
+      sphereRef.current.style.opacity = String(0.35 + v.sphere * 0.65)
+    }
+    if (svgRef.current) svgRef.current.style.opacity = String(v.natureOp)
+    NATURE_MORPH.forEach((c, i) => {
+      const el = circleRefs.current[i]
+      if (!el) return
+      const settle = v.settles[i]
+      const fromX = c.cx + c.ox * (1 - settle)
+      const fromY = c.cy + c.oy * (1 - settle)
+      el.setAttribute('cx', String(fromX + (c.tx - fromX) * morph))
+      el.setAttribute('cy', String(fromY + (c.ty - fromY) * morph))
+      el.setAttribute('r', String(c.r + (c.tr - c.r) * morph))
+      el.setAttribute('opacity', String(0.22 + settle * 0.78))
+      el.style.strokeWidth = String(isStacked ? 3.2 - morph * 0.9 : 2.2 - morph * 0.85)
+      const lit =
+        step >= 0 &&
+        phase.phase !== 'nature' &&
+        morph > 0.55 &&
+        i === (step * 3) % NATURE_MORPH.length
+      el.classList.toggle('is-lit', lit)
+    })
+    if (coreRef.current) coreRef.current.setAttribute('opacity', String(0.08 + v.core * 0.42))
+    if (overlayRef.current) overlayRef.current.setAttribute('opacity', String(clamp((morph - 0.55) / 0.35)))
+    if (linkRef.current) linkRef.current.style.strokeDashoffset = String(1 - v.linkDraw)
+    NATURE_NODES.forEach((item, i) => {
+      const el = nodeRefs.current[i]
+      if (!el) return
+      const nodeIn = v.nodes[i]
+      const isActive = phase.phase !== 'nature' && step === i
+      const done = phase.phase === 'traverse' && step > i
+      const scale = 0.82 + nodeIn * 0.18 + (isActive ? 0.08 : 0)
+      el.setAttribute('transform', `translate(${item.x} ${item.y}) scale(${scale})`)
+      el.setAttribute('opacity', String(nodeIn))
+      el.classList.toggle('is-active', isActive)
+      el.classList.toggle('is-done', done)
+      const fillEl = fillRefs.current[i]
+      if (fillEl) fillEl.style.strokeDashoffset = String(1 - v.fills[i])
+    })
+  })
+
+  const v0 = vizRef.current
 
   return (
-    <div className="impact-stage" aria-hidden>
+    <div className="impact-stage" ref={stageRef} aria-hidden>
       <div
+        ref={sphereRef}
         className="impact-sphere"
         style={{
-          '--mask-radius': maskRadius,
-          '--mask-y': maskY,
-          opacity: 0.35 + v.sphere * 0.65,
+          '--mask-radius': `${16 + v0.sphere * 110}vmax`,
+          '--mask-y': `${122 - v0.sphere * 78}%`,
+          opacity: 0.35 + v0.sphere * 0.65,
         }}
       />
 
       <div className="impact-graphics">
         <svg
+          ref={svgRef}
           className="impact-nature-svg"
           viewBox={stacked ? MANDALA_MOBILE_VIEW : '150 1900 1700 1400'}
           fill="none"
           preserveAspectRatio="xMidYMid meet"
-          style={{ opacity: v.natureOp }}>
-          {NATURE_MORPH.map((c, i) => {
-            const settle = v.settles[i]
-            const fromX = c.cx + c.ox * (1 - settle)
-            const fromY = c.cy + c.oy * (1 - settle)
-            const cx = fromX + (c.tx - fromX) * morph
-            const cy = fromY + (c.ty - fromY) * morph
-            const r = c.r + (c.tr - c.r) * morph
-            const lit =
-              step >= 0 &&
-              phase.phase !== 'nature' &&
-              morph > 0.55 &&
-              i === (step * 3) % NATURE_MORPH.length
-            return (
-              <circle
-                key={c.cls}
-                className={`impact-nature-circle ${c.cls}${lit ? ' is-lit' : ''}`}
-                cx={cx}
-                cy={cy}
-                r={r}
-                opacity={0.22 + settle * 0.78}
-                style={{ strokeWidth: stacked ? 3.2 - morph * 0.9 : 2.2 - morph * 0.85 }}
-              />
-            )
-          })}
+          style={{ opacity: v0.natureOp }}>
+          {NATURE_MORPH.map((c, i) => (
+            <circle
+              key={c.cls}
+              ref={(el) => {
+                circleRefs.current[i] = el
+              }}
+              className={`impact-nature-circle ${c.cls}`}
+              cx={c.cx + c.ox}
+              cy={c.cy + c.oy}
+              r={c.r}
+              opacity={0.22}
+              style={{ strokeWidth: stacked ? 3.2 : 2.2 }}
+            />
+          ))}
 
           <circle
+            ref={coreRef}
             className="impact-mandala-core"
             cx={NATURE_CLUSTER[0]}
             cy={NATURE_CLUSTER[1]}
             r={NATURE_MANDALA_R}
-            opacity={0.08 + v.core * 0.42}
+            opacity={0.08}
           />
 
-          <g className="impact-mandala-overlay" opacity={overlayIn}>
+          <g ref={overlayRef} className="impact-mandala-overlay" opacity={0}>
             <path className="impact-link-track" d={NATURE_LINK_PATH} />
             <path
+              ref={linkRef}
               className="impact-link-progress"
               d={NATURE_LINK_PATH}
               pathLength="1"
-              style={{ strokeDasharray: 1, strokeDashoffset: 1 - v.linkDraw }}
+              style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
             />
 
-            {NATURE_NODES.map((item, i) => {
-              const nodeIn = v.nodes[i]
-              const isActive = phase.phase !== 'nature' && step === i
-              const done = phase.phase === 'traverse' && step > i
-              const fill = v.fills[i]
-              const scale = 0.82 + nodeIn * 0.18 + (isActive ? 0.08 : 0)
-              return (
-                <g
-                  key={item.num}
-                  className={`impact-node-svg${isActive ? ' is-active' : ''}${done ? ' is-done' : ''}`}
-                  transform={`translate(${item.x} ${item.y}) scale(${scale})`}
-                  opacity={nodeIn}>
-                  <circle className="impact-node-halo-svg" r="46" />
-                  <circle className="impact-node-disc" r="34" />
-                  <circle className="impact-node-ring-track" r="34" />
-                  <circle
-                    className="impact-node-ring-fill"
-                    r="34"
-                    pathLength="1"
-                    style={{ strokeDasharray: 1, strokeDashoffset: 1 - fill }}
-                    transform="rotate(-90)"
-                  />
-                  <text className="impact-node-label" textAnchor="middle" dominantBaseline="central">
-                    {item.num}
-                  </text>
-                </g>
-              )
-            })}
+            {NATURE_NODES.map((item, i) => (
+              <g
+                key={item.num}
+                ref={(el) => {
+                  nodeRefs.current[i] = el
+                }}
+                className="impact-node-svg"
+                transform={`translate(${item.x} ${item.y}) scale(0.82)`}
+                opacity={0}>
+                <circle className="impact-node-halo-svg" r="46" />
+                <circle className="impact-node-disc" r="34" />
+                <circle className="impact-node-ring-track" r="34" />
+                <circle
+                  ref={(el) => {
+                    fillRefs.current[i] = el
+                  }}
+                  className="impact-node-ring-fill"
+                  r="34"
+                  pathLength="1"
+                  style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
+                  transform="rotate(-90)"
+                />
+                <text className="impact-node-label" textAnchor="middle" dominantBaseline="central">
+                  {item.num}
+                </text>
+              </g>
+            ))}
           </g>
         </svg>
       </div>
@@ -1120,57 +1145,57 @@ function ImpactVisionStage({ progress, phase, stacked = false }) {
 
 function ImpactSection() {
   const sectionRef = useRef(null)
-  const [progress, setProgress] = useState(0)
+  const progressRef = useRef(0)
+  const [phase, setPhase] = useState(() => impactPhase(0))
   const [stacked, setStacked] = useState(false)
+  const [introAmt, setIntroAmt] = useState(0)
+  const impactState = useRef({ smoothed: 0, stacked: false, key: '', intro: -1 })
 
   useEffect(() => {
-    let raf = 0
-    let running = true
-    let smoothed = 0
     const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const syncStack = () => setStacked(mq.matches)
+    const syncStack = () => {
+      impactState.current.stacked = mq.matches
+      setStacked(mq.matches)
+    }
     syncStack()
     mq.addEventListener?.('change', syncStack)
-    const update = () => {
-      if (!running) return
-      const el = sectionRef.current
-      if (el) {
-        const vh = window.innerHeight || 1
-        if (mq.matches) {
-          // Mobile: scroll through the section drives morph → node traverse
-          const rect = el.getBoundingClientRect()
-          const start = vh * 0.88
-          const end = -(el.offsetHeight - vh * 0.4)
-          const raw = clamp((start - rect.top) / Math.max(1, start - end))
-          // Skip scatter; start mid-form so the mandala is the focus
-          const mapped = 0.42 + raw * 0.58
-          smoothed = lerp(smoothed, mapped, 0.22)
-          setProgress(smoothed)
-        } else {
-          const span = Math.max(1, el.offsetHeight - vh)
-          const raw = clamp(-el.getBoundingClientRect().top / span)
-          const catchUp = Math.abs(raw - smoothed) > 0.12 ? 0.4 : 0.16
-          smoothed = lerp(smoothed, raw, catchUp)
-          setProgress(smoothed)
-        }
-      }
-      raf = requestAnimationFrame(update)
-    }
-    raf = requestAnimationFrame(update)
-    return () => {
-      running = false
-      cancelAnimationFrame(raf)
-      mq.removeEventListener?.('change', syncStack)
-    }
+    return () => mq.removeEventListener?.('change', syncStack)
   }, [])
 
-  const phase = impactPhase(progress)
+  useVisibleRaf(sectionRef, () => {
+    const el = sectionRef.current
+    if (!el) return
+    const s = impactState.current
+    const vh = window.innerHeight || 1
+    if (s.stacked) {
+      const rect = el.getBoundingClientRect()
+      const start = vh * 0.88
+      const end = -(el.offsetHeight - vh * 0.4)
+      const raw = clamp((start - rect.top) / Math.max(1, start - end))
+      s.smoothed = lerp(s.smoothed, 0.42 + raw * 0.58, 0.22)
+    } else {
+      const span = Math.max(1, el.offsetHeight - vh)
+      const raw = clamp(-el.getBoundingClientRect().top / span)
+      const catchUp = Math.abs(raw - s.smoothed) > 0.12 ? 0.4 : 0.16
+      s.smoothed = lerp(s.smoothed, raw, catchUp)
+    }
+    progressRef.current = s.smoothed
+    const next = impactPhase(s.smoothed)
+    const intro = s.stacked ? 1 : clamp(impactBeat(s.smoothed, 0.02, 0.1))
+    const key = `${next.phase}:${next.step}:${next.form >= 0.78 ? 1 : 0}`
+    if (key !== s.key) {
+      s.key = key
+      setPhase(next)
+    }
+    if (Math.abs(intro - s.intro) > 0.02) {
+      s.intro = intro
+      setIntroAmt(intro)
+    }
+  })
 
   // Step copy waits until node 01 is actually on the mandala
   const nodesReady = phase.phase === 'traverse' || (phase.phase === 'form' && phase.form >= 0.78)
 
-  // Intro starts huge/centered, then docks top-left when node 01 arrives
-  const introAmt = stacked ? 1 : clamp(impactBeat(progress, 0.02, 0.1))
   const introDocked = stacked || nodesReady
   const STEP_CORNERS = ['tr', 'br', 'bl']
 
@@ -1180,11 +1205,10 @@ function ImpactSection() {
       className={`impact${stacked ? ' is-stacked' : ''}`}
       ref={sectionRef}
       aria-labelledby="impact-heading"
-      data-progress={progress.toFixed(3)}
       data-phase={phase.phase}>
       <div className="impact-track">
         <div className="impact-sheet">
-          <ImpactVisionStage progress={progress} phase={phase} stacked={stacked} />
+          <ImpactVisionStage progressRef={progressRef} stacked={stacked} />
 
           <div className="impact-copy">
             <div
@@ -1194,7 +1218,6 @@ function ImpactSection() {
                   ? undefined
                   : {
                     opacity: introAmt,
-                    filter: `blur(${(1 - introAmt) * 10}px)`,
                     visibility: introAmt < 0.02 ? 'hidden' : 'visible',
                   }
               }>
@@ -1219,7 +1242,6 @@ function ImpactSection() {
                         ? undefined
                         : {
                           opacity: show,
-                          filter: show ? 'none' : 'blur(12px)',
                           transform: `translate3d(0, ${show ? 0 : 18}px, 0)`,
                           visibility: show ? 'visible' : 'hidden',
                         }
@@ -1294,45 +1316,39 @@ function AboutSection() {
   const sectionRef = useRef(null)
   const sheetRef = useRef(null)
   const [stacked, setStacked] = useState(false)
+  const aboutMq = useRef(false)
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const sync = () => setStacked(mq.matches)
+    const sync = () => {
+      aboutMq.current = mq.matches
+      setStacked(mq.matches)
+    }
     sync()
     mq.addEventListener?.('change', sync)
-
-    let raf = 0
-    let running = true
-    const tick = () => {
-      if (!running) return
-      const el = sectionRef.current
-      const sheet = sheetRef.current
-      if (el && sheet) {
-        if (mq.matches) {
-          sheet.style.setProperty('--about-orb-x', '50%')
-          sheet.style.setProperty('--about-orb-y', '28%')
-          sheet.style.setProperty('--about-orb-s', '58%')
-          sheet.style.setProperty('--about-orb-o', '0.38')
-        } else {
-          const vh = window.innerHeight || 1
-          const span = Math.max(1, el.offsetHeight - vh)
-          const raw = clamp(-el.getBoundingClientRect().top / span)
-          const t = smoother(0, 1, raw)
-          sheet.style.setProperty('--about-orb-x', `${50 + Math.sin(t * Math.PI) * 10}%`)
-          sheet.style.setProperty('--about-orb-y', `${90 - t * 62}%`)
-          sheet.style.setProperty('--about-orb-s', `${34 + t * 52}%`)
-          sheet.style.setProperty('--about-orb-o', String(0.2 + t * 0.42))
-        }
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => {
-      running = false
-      cancelAnimationFrame(raf)
-      mq.removeEventListener?.('change', sync)
-    }
+    return () => mq.removeEventListener?.('change', sync)
   }, [])
+
+  useVisibleRaf(sectionRef, () => {
+    const el = sectionRef.current
+    const sheet = sheetRef.current
+    if (!el || !sheet) return
+    if (aboutMq.current) {
+      sheet.style.setProperty('--about-orb-x', '50%')
+      sheet.style.setProperty('--about-orb-y', '28%')
+      sheet.style.setProperty('--about-orb-s', '58%')
+      sheet.style.setProperty('--about-orb-o', '0.38')
+      return
+    }
+    const vh = window.innerHeight || 1
+    const span = Math.max(1, el.offsetHeight - vh)
+    const raw = clamp(-el.getBoundingClientRect().top / span)
+    const t = smoother(0, 1, raw)
+    sheet.style.setProperty('--about-orb-x', `${50 + Math.sin(t * Math.PI) * 10}%`)
+    sheet.style.setProperty('--about-orb-y', `${90 - t * 62}%`)
+    sheet.style.setProperty('--about-orb-s', `${34 + t * 52}%`)
+    sheet.style.setProperty('--about-orb-o', String(0.2 + t * 0.42))
+  })
 
   return (
     <section
@@ -1589,7 +1605,7 @@ function SiteNav() {
             e.preventDefault()
             go('hero')
           }}>
-          <img src="/aagamiseq-logo.png" alt="AagamiSEQ Technologies" />
+          <img src="/aagamiseq-logo.png" alt="AagamiSEQ Technologies" width="160" height="64" decoding="async" />
         </a>
 
         <nav className="site-nav-links" aria-label="Primary">
@@ -1642,6 +1658,7 @@ function SiteNav() {
 // ── Atmosphere ─────────────────────────────────────────────────────────────
 function Atmosphere() {
   const fogRef = useRef()
+  const fogTick = useRef(0)
 
   useFrame((state) => {
     const t = state.clock.elapsedTime * 0.08
@@ -1649,9 +1666,12 @@ function Atmosphere() {
     const w2 = (Math.sin(t * 0.7 + 1.2) + 1) * 0.5
     _fogNow.copy(_fogA).lerp(_fogB, w1).lerp(_fogC, w2 * 0.45)
     if (fogRef.current) fogRef.current.color.copy(_fogNow)
-    document.documentElement.style.setProperty('--fog-r', String(Math.round(_fogNow.r * 255)))
-    document.documentElement.style.setProperty('--fog-g', String(Math.round(_fogNow.g * 255)))
-    document.documentElement.style.setProperty('--fog-b', String(Math.round(_fogNow.b * 255)))
+    fogTick.current += 1
+    if (fogTick.current % 8 === 0) {
+      document.documentElement.style.setProperty('--fog-r', String(Math.round(_fogNow.r * 255)))
+      document.documentElement.style.setProperty('--fog-g', String(Math.round(_fogNow.g * 255)))
+      document.documentElement.style.setProperty('--fog-b', String(Math.round(_fogNow.b * 255)))
+    }
   })
 
   return <fog ref={fogRef} attach="fog" args={['#12081f', 18, 52]} />
@@ -1690,19 +1710,20 @@ function CanvasSizeSync() {
 }
 
 /** Own rAF loop — avoids blank canvas when the host stalls r3f's internal frameloop */
-function FrameLoopGuard() {
+function FrameLoopGuard({ active = true }) {
   const gl = useThree((s) => s.gl)
   const scene = useThree((s) => s.scene)
   const camera = useThree((s) => s.camera)
   const advance = useThree((s) => s.advance)
 
   useEffect(() => {
+    if (!active) return undefined
     let raf = 0
     let running = true
     const tick = (now) => {
-      if (!running) return
+      raf = 0
+      if (!running || document.hidden) return
       try {
-        // Drive subscribers + render explicitly
         advance(now / 1000, true)
         gl.render(scene, camera)
       } catch (_) {
@@ -1714,12 +1735,27 @@ function FrameLoopGuard() {
       }
       raf = requestAnimationFrame(tick)
     }
-    raf = requestAnimationFrame(tick)
+    const start = () => {
+      if (!raf && running && !document.hidden) raf = requestAnimationFrame(tick)
+    }
+    const onVis = () => {
+      if (document.hidden) {
+        if (raf) {
+          cancelAnimationFrame(raf)
+          raf = 0
+        }
+      } else {
+        start()
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    start()
     return () => {
       running = false
-      cancelAnimationFrame(raf)
+      if (raf) cancelAnimationFrame(raf)
+      document.removeEventListener('visibilitychange', onVis)
     }
-  }, [advance, gl, scene, camera])
+  }, [advance, gl, scene, camera, active])
 
   return null
 }
@@ -1844,8 +1880,7 @@ function StructureMesh({ structureIndex, matPreset }) {
 
   return (
     <group>
-      <mesh>
-        <sphereGeometry args={[def.coreR, 24, 24]} />
+      <mesh scale={def.coreR} geometry={GEO_CORE}>
         <AtomMaterial color={def.core} preset={matPreset} />
       </mesh>
       {def.tips.map((tip, i) => {
@@ -1854,8 +1889,7 @@ function StructureMesh({ structureIndex, matPreset }) {
         const tipPreset = (matPreset + i) % MAT_PRESETS.length
         return (
           <group key={i}>
-            <mesh position={mid} quaternion={bondQuat(tip.pos)}>
-              <cylinderGeometry args={[0.028, 0.028, length, 6]} />
+            <mesh position={mid} quaternion={bondQuat(tip.pos)} scale={[1, length, 1]} geometry={GEO_BOND}>
               <meshStandardMaterial
                 color={bondColor}
                 metalness={0.4}
@@ -1864,8 +1898,7 @@ function StructureMesh({ structureIndex, matPreset }) {
                 opacity={Math.min(1, MAT_PRESETS[matPreset].opacity + 0.15)}
               />
             </mesh>
-            <mesh position={tip.pos}>
-              <sphereGeometry args={[tip.r, 16, 16]} />
+            <mesh position={tip.pos} scale={tip.r} geometry={GEO_TIP}>
               <AtomMaterial color={tip.color} preset={tipPreset} />
             </mesh>
           </group>
@@ -1876,7 +1909,7 @@ function StructureMesh({ structureIndex, matPreset }) {
 }
 
 // ── FieldMolecules ─────────────────────────────────────────────────────────
-const COUNT = 78
+const COUNT = QUALITY.molecules
 
 function FieldMolecules() {
   const fadeRef = useRef(1)
@@ -1925,11 +1958,12 @@ function FieldMolecules() {
     const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
     fadeRef.current = (1 - focus * 0.25) * (1 - clear)
 
-    if (!posXZ.current) return
+    if (!posXZ.current || fadeRef.current <= 0.04) return
     const px = posXZ.current
     const n = COUNT
 
-    for (let iter = 0; iter < 2; iter++) {
+    const passes = QUALITY.low ? 1 : 2
+    for (let iter = 0; iter < passes; iter++) {
       for (let a = 0; a < n; a++) {
         const ax = px[a * 2]
         const az = px[a * 2 + 1]
@@ -2218,7 +2252,7 @@ function HeroSphere() {
 
   return (
     <mesh ref={mesh} position={[0, 7.35, -1.35]}>
-      <sphereGeometry args={[1, 48, 48]} />
+      <sphereGeometry args={[1, 32, 32]} />
       <meshStandardMaterial
         ref={mat}
         color="#b59ac8"
@@ -2271,7 +2305,7 @@ function Nanopore() {
 
   const atomBands = useMemo(() => {
     const bands = MEMBRANE_FADE_BANDS.map(() => [])
-    const spacing = 0.168
+    const spacing = QUALITY.latticeStep
     const atomR = 0.058
     let ring = 0
     for (let r = PORE + 0.12; r <= 4.5; r += spacing) {
@@ -2338,7 +2372,7 @@ function Nanopore() {
       {/* Disc — solid core → soft rim fade */}
       {discBands.map((band, i) => (
         <mesh key={`disc-${band.inner}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.018, 0]}>
-          <ringGeometry args={[band.inner, band.outer, 192]} />
+          <ringGeometry args={[band.inner, band.outer, QUALITY.ringSegs]} />
           <meshStandardMaterial
             ref={(m) => {
               discMats.current[i] = m
@@ -2365,7 +2399,7 @@ function Nanopore() {
               latticeMeshes.current[i] = m
             }}
             args={[undefined, undefined, atoms.length]}>
-            <sphereGeometry args={[1, 10, 10]} />
+            <sphereGeometry args={[1, QUALITY.low ? 6 : 8, QUALITY.low ? 6 : 8]} />
             <meshStandardMaterial
               ref={(m) => {
                 latticeMats.current[i] = m
@@ -2393,7 +2427,7 @@ function Starfield() {
   const discMap = useMemo(() => makeDiscTexture(), [])
 
   if (!data.current) {
-    const count = 6200
+    const count = QUALITY.stars
     const positions = new Float32Array(count * 3)
     const colors = new Float32Array(count * 3)
     const baseColors = new Float32Array(count * 3)
@@ -2447,6 +2481,8 @@ function Starfield() {
     data.current = { geometry, speeds, flickers, phases, baseColors, count }
   }
 
+  const starFrame = useRef(0)
+
   useFrame((state) => {
     if (!points.current || !data.current) return
     const p = progressApi.current
@@ -2455,6 +2491,8 @@ function Starfield() {
     const { geometry, speeds, flickers, phases, baseColors, count } = data.current
     const positions = geometry.attributes.position.array
     const colors = geometry.attributes.color.array
+    starFrame.current += 1
+    const paintColor = !QUALITY.low || starFrame.current % 2 === 0
 
     for (let i = 0; i < count; i += 1) {
       const o = i * 3
@@ -2466,14 +2504,16 @@ function Starfield() {
       if (positions[o + 1] > 16) positions[o + 1] = -8
       if (positions[o + 1] < -8) positions[o + 1] = 16
 
-      const flick = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * flickers[i] + phases[i]))
-      colors[o] = baseColors[o] * flick
-      colors[o + 1] = baseColors[o + 1] * flick
-      colors[o + 2] = baseColors[o + 2] * flick
+      if (paintColor) {
+        const flick = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * flickers[i] + phases[i]))
+        colors[o] = baseColors[o] * flick
+        colors[o + 1] = baseColors[o + 1] * flick
+        colors[o + 2] = baseColors[o + 2] * flick
+      }
     }
 
     geometry.attributes.position.needsUpdate = true
-    geometry.attributes.color.needsUpdate = true
+    if (paintColor) geometry.attributes.color.needsUpdate = true
     points.current.material.opacity = 0.72 * (1 - clear * 0.55) + 0.18
   })
 
