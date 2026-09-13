@@ -31,6 +31,7 @@ main {
   overflow-x: clip;
 }
 
+
 :root {
   /* Official AagamiSEQ brand scheme */
   --brand-dk1: #001219;
@@ -319,7 +320,7 @@ main {
   border: 0;
   position: absolute;
   inset: 0;
-  background: rgba(4, 16, 18, 0.62);
+  background: rgba(12, 8, 31, 0.62);
   opacity: 0;
   transition: opacity 0.3s ease;
   cursor: pointer;
@@ -337,7 +338,7 @@ main {
   height: 100%;
   padding: 5.5rem 1.75rem 2.5rem;
   background: var(--bg);
-  border-left: 1px solid rgba(150, 180, 170, 0.16);
+  border-left: 1px solid rgba(140, 120, 180, 0.16);
   box-shadow: -24px 0 60px rgba(0, 0, 0, 0.45);
   transform: translateX(104%);
   transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
@@ -532,38 +533,40 @@ main {
 .manifesto-fill {
   position: absolute;
   z-index: 3;
-  left: 50%;
   top: 50%;
-  width: min(92vw, 68rem);
-  max-width: calc(100% - 2rem);
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
   margin: 0;
-  padding: 0 0.75rem;
+  padding: 0 clamp(1.1rem, 7vw, 4.5rem);
   box-sizing: border-box;
-  transform: translate(-50%, -50%);
+  transform: translateY(-50%);
   pointer-events: none;
   text-align: center;
   font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif;
-  /* vmin keeps lines readable without cropping on short or narrow screens */
-  font-size: clamp(1.35rem, min(5.4vw, 5.8vh), 4.1rem);
+  /* Stay inside the viewport so each line reads as a centered block */
+  font-size: clamp(1.15rem, 2.9vw, 2.65rem);
   font-weight: 400;
-  line-height: 1.28;
+  line-height: 1.32;
   letter-spacing: -0.015em;
 }
 
 .manifesto-line {
   display: block;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  text-wrap: balance;
 }
 
 .manifesto-char {
   display: inline;
   color: transparent;
   background-image: linear-gradient(90deg,
-      rgba(236, 242, 238, 0.98) 0%,
-      rgba(236, 242, 238, 0.98) calc(var(--char-fill, 0) * 100%),
-      rgba(150, 168, 162, 0.22) calc(var(--char-fill, 0) * 100%),
-      rgba(150, 168, 162, 0.22) 100%);
+      rgba(242, 236, 248, 0.98) 0%,
+      rgba(242, 236, 248, 0.98) calc(var(--char-fill, 0) * 100%),
+      rgba(184, 160, 216, 0.28) calc(var(--char-fill, 0) * 100%),
+      rgba(184, 160, 216, 0.28) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -573,31 +576,19 @@ main {
   white-space: pre;
 }
 
-/* Tablets — keep lines uncropped without going full phone wrap */
+/* Tablets */
 @media (max-width: 900px) and (min-width: 640px) {
   .manifesto-fill {
-    width: min(92vw, 44rem);
-    font-size: clamp(1.35rem, min(3.8vw, 4.5vh), 2.4rem);
-    line-height: 1.26;
-  }
-
-  .manifesto-line {
-    white-space: nowrap;
-  }
-}
-
-/* Tall desktop — allow the hero type to breathe */
-@media (min-height: 900px) and (min-width: 1100px) {
-  .manifesto-fill {
-    font-size: clamp(2.4rem, 5.2vw, 4.1rem);
+    font-size: clamp(1.2rem, 3.4vw, 1.85rem);
+    line-height: 1.3;
   }
 }
 
 /* Mid laptop heights */
 @media (max-height: 820px) {
   .manifesto-fill {
-    font-size: clamp(1.4rem, min(4.6vw, 4.8vh), 2.85rem);
-    line-height: 1.26;
+    font-size: clamp(1.15rem, min(3.2vw, 4.2vh), 2.2rem);
+    line-height: 1.28;
   }
 
   .brand-name {
@@ -613,9 +604,8 @@ main {
 @media (max-height: 700px) {
   .manifesto-fill {
     top: 46%;
-    width: min(94vw, 60rem);
-    font-size: clamp(1.2rem, min(4vw, 4.2vh), 2.2rem);
-    line-height: 1.22;
+    font-size: clamp(1.1rem, min(3.2vw, 3.8vh), 1.85rem);
+    line-height: 1.24;
   }
 
   .brand-name {
@@ -631,9 +621,8 @@ main {
 @media (max-height: 580px) {
   .manifesto-fill {
     top: 44%;
-    width: min(96vw, 52rem);
-    font-size: clamp(1.05rem, min(3.4vw, 3.6vh), 1.7rem);
-    line-height: 1.2;
+    font-size: clamp(1.05rem, min(3.2vw, 3.4vh), 1.55rem);
+    line-height: 1.22;
     letter-spacing: -0.01em;
   }
 
@@ -656,7 +645,6 @@ main {
 @media (max-height: 480px) and (orientation: landscape) {
   .manifesto-fill {
     top: 48%;
-    width: min(90vw, 48rem);
     font-size: clamp(0.95rem, 3.2vh, 1.35rem);
     line-height: 1.18;
   }
@@ -673,15 +661,9 @@ main {
 /* Narrow phones */
 @media (max-width: 639px) {
   .manifesto-fill {
-    width: calc(100% - 1.5rem);
-    max-width: none;
-    padding: 0 0.75rem;
+    padding: 0 1rem;
     font-size: clamp(1.15rem, 5.2vw, 1.65rem);
     line-height: 1.28;
-  }
-
-  .manifesto-line {
-    white-space: normal;
   }
 
   .brand-reveal {
@@ -1112,10 +1094,6 @@ main {
     line-height: 1.5;
   }
 
-  .ecosystem-col-points {
-    overflow: visible;
-  }
-
   .ecosystem-col-points li {
     display: list-item !important;
     font-size: clamp(0.88rem, 2.5vw, 0.95rem);
@@ -1262,12 +1240,12 @@ main {
   position: relative;
   z-index: 1;
   padding: 0.95rem 0 0;
-  border-top: 1px solid rgba(160, 210, 200, 0.28);
+  border-top: 1px solid rgba(184, 160, 216, 0.28);
   transition: border-color 0.35s ease;
 }
 
 .sensing-card.is-shown:hover .sensing-card-copy {
-  border-top-color: rgba(150, 240, 220, 0.7);
+  border-top-color: rgba(241, 91, 181, 0.55);
 }
 
 .sensing-card.is-shown:hover .sensing-card-index {
@@ -1289,7 +1267,7 @@ main {
   font-weight: 500;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: rgba(150, 220, 210, 0.78);
+  color: rgba(184, 160, 216, 0.82);
   transition: color 0.3s ease;
 }
 
@@ -1472,8 +1450,8 @@ main {
     z-index: 1;
     pointer-events: none;
     background:
-      linear-gradient(180deg, rgba(6, 20, 22, 0.55) 0%, rgba(6, 20, 22, 0.18) 42%, rgba(6, 20, 22, 0.42) 100%),
-      radial-gradient(ellipse 65% 50% at 50% 48%, transparent 15%, rgba(6, 20, 22, 0.35) 100%);
+      linear-gradient(180deg, rgba(18, 8, 31, 0.55) 0%, rgba(18, 8, 31, 0.18) 42%, rgba(18, 8, 31, 0.42) 100%),
+      radial-gradient(ellipse 65% 50% at 50% 48%, transparent 15%, rgba(18, 8, 31, 0.35) 100%);
   }
 
   .sensing-intro {
@@ -1497,7 +1475,7 @@ main {
   .sensing-lede {
     font-size: clamp(0.92rem, 2.8vw, 1rem);
     max-width: none;
-    color: rgba(210, 232, 226, 0.88);
+    color: rgba(210, 200, 230, 0.88);
   }
 
   .sensing-cards {
@@ -1533,7 +1511,7 @@ main {
   }
 
   .sensing-card+.sensing-card {
-    border-top: 1px solid rgba(160, 210, 200, 0.22);
+    border-top: 1px solid rgba(184, 160, 216, 0.22);
   }
 
   .sensing-card-copy {
@@ -1552,7 +1530,7 @@ main {
   .sensing-card-body {
     max-width: none;
     font-size: clamp(0.9rem, 2.6vw, 0.98rem);
-    color: rgba(205, 228, 222, 0.82);
+    color: rgba(210, 200, 230, 0.82);
   }
 }
 
@@ -1622,7 +1600,7 @@ main {
   width: min(120vw, 64rem);
   height: auto;
   transform: translate(-50%, -50%);
-  color: rgba(232, 244, 250, 0.88);
+  color: rgba(232, 228, 245, 0.88);
   overflow: visible;
 }
 
@@ -1634,8 +1612,8 @@ main {
 }
 
 .impact-nature-circle.is-lit {
-  stroke: rgba(180, 255, 235, 0.95);
-  filter: drop-shadow(0 0 6px rgba(212, 196, 235, 0.4));
+  stroke: rgba(241, 91, 181, 0.85);
+  filter: drop-shadow(0 0 6px rgba(241, 91, 181, 0.4));
 }
 
 .impact-mandala-core {
@@ -1650,15 +1628,15 @@ main {
 
 .impact-mandala-arc {
   fill: none;
-  stroke: rgba(150, 220, 210, 0.18);
+  stroke: rgba(184, 160, 216, 0.22);
   stroke-width: 1.4;
   stroke-linecap: round;
   stroke-dasharray: 1;
 }
 
 .impact-mandala-arc.is-on {
-  stroke: rgba(170, 255, 235, 0.75);
-  filter: drop-shadow(0 0 5px rgba(120, 240, 220, 0.4));
+  stroke: rgba(241, 91, 181, 0.7);
+  filter: drop-shadow(0 0 5px rgba(241, 91, 181, 0.4));
 }
 
 .impact-link-track,
@@ -1670,7 +1648,7 @@ main {
 }
 
 .impact-link-track {
-  stroke: rgba(160, 220, 210, 0.32);
+  stroke: rgba(184, 160, 216, 0.38);
   stroke-width: 1.6;
   stroke-dasharray: none;
 }
@@ -1886,7 +1864,7 @@ main {
   height: 5px;
   border-radius: 50%;
   background: #F15BB5;
-  box-shadow: 0 0 10px rgba(143, 232, 216, 0.55);
+  box-shadow: 0 0 10px rgba(241, 91, 181, 0.55);
 }
 
 .impact-title {
@@ -1912,7 +1890,7 @@ main {
   font-size: clamp(0.78rem, 1.05vw, 0.92rem);
   font-weight: 500;
   letter-spacing: 0.04em;
-  color: var(--brand-accent5);
+  color: #F15BB5;
 }
 
 @media (max-width: 1100px) and (min-width: 900px) {
@@ -2029,7 +2007,7 @@ main {
     z-index: 1;
     pointer-events: none;
     background:
-      linear-gradient(180deg, rgba(12, 42, 46, 0.28) 0%, rgba(12, 42, 46, 0.22) 32%, rgba(12, 42, 46, 0.72) 68%, rgba(12, 42, 46, 0.9) 100%);
+      linear-gradient(180deg, rgba(18, 8, 31, 0.28) 0%, rgba(18, 8, 31, 0.22) 32%, rgba(18, 8, 31, 0.72) 68%, rgba(18, 8, 31, 0.9) 100%);
   }
 
   .impact-copy {
@@ -2110,7 +2088,7 @@ main {
   }
 
   .impact-step+.impact-step {
-    border-top: 1px solid rgba(160, 210, 200, 0.2);
+    border-top: 1px solid rgba(184, 160, 216, 0.2);
   }
 
   .impact-title {
@@ -2207,8 +2185,8 @@ main {
   padding: 0.7rem;
   border-radius: 0;
   background: #fff;
-  border: 1px solid rgba(20, 60, 55, 0.14);
-  box-shadow: 0 10px 24px rgba(16, 40, 40, 0.06);
+  border: 1px solid rgba(27, 20, 101, 0.14);
+  box-shadow: 0 10px 24px rgba(27, 20, 101, 0.08);
   overflow: hidden;
 }
 
@@ -2231,7 +2209,7 @@ main {
   margin: 0;
   font-size: 0.78rem;
   line-height: 1.4;
-  color: rgba(30, 70, 70, 0.62);
+  color: rgba(27, 20, 101, 0.58);
   text-wrap: pretty;
 }
 
@@ -2301,7 +2279,7 @@ main {
   justify-self: end;
   font-size: clamp(0.92rem, 1.2vw, 1.05rem);
   line-height: 1.55;
-  color: rgba(30, 70, 70, 0.72);
+  color: rgba(27, 20, 101, 0.68);
   text-wrap: pretty;
 }
 
@@ -2350,8 +2328,8 @@ main {
   border-radius: 50%;
   overflow: hidden;
   background: var(--lavender-soft);
-  border: 2px solid rgba(20, 100, 95, 0.16);
-  box-shadow: 0 12px 28px rgba(16, 40, 40, 0.1);
+  border: 2px solid rgba(27, 20, 101, 0.16);
+  box-shadow: 0 12px 28px rgba(27, 20, 101, 0.1);
   transition: border-color 0.4s ease, box-shadow 0.4s ease;
 }
 
@@ -2384,7 +2362,7 @@ main {
   margin: 0.2rem 0 0;
   font-size: 0.84rem;
   line-height: 1.5;
-  color: rgba(30, 70, 70, 0.72);
+  color: rgba(27, 20, 101, 0.68);
   text-wrap: pretty;
   max-width: 16.5rem;
   min-height: calc(1.5em * 4);
@@ -2408,10 +2386,10 @@ main {
 }
 
 .team-card.is-hot .team-card-photo {
-  border-color: rgba(23, 136, 127, 0.55);
+  border-color: rgba(241, 91, 181, 0.55);
   box-shadow:
-    0 0 0 4px rgba(23, 136, 127, 0.1),
-    0 18px 36px rgba(16, 40, 40, 0.14);
+    0 0 0 4px rgba(241, 91, 181, 0.12),
+    0 18px 36px rgba(27, 20, 101, 0.14);
 }
 
 @media (max-width: 900px) {
@@ -2494,9 +2472,9 @@ main {
   inset: -15%;
   pointer-events: none;
   background: radial-gradient(circle at var(--about-orb-x, 50%) var(--about-orb-y, 88%),
-      rgba(110, 235, 225, calc(var(--about-orb-o, 0.35) * 0.95)) 0%,
-      rgba(55, 170, 165, calc(var(--about-orb-o, 0.35) * 0.45)) calc(var(--about-orb-s, 42%) * 0.45),
-      rgba(20, 80, 85, calc(var(--about-orb-o, 0.35) * 0.18)) var(--about-orb-s, 42%),
+      rgba(241, 91, 181, calc(var(--about-orb-o, 0.35) * 0.95)) 0%,
+      rgba(139, 116, 184, calc(var(--about-orb-o, 0.35) * 0.45)) calc(var(--about-orb-s, 42%) * 0.45),
+      rgba(27, 20, 101, calc(var(--about-orb-o, 0.35) * 0.22)) var(--about-orb-s, 42%),
       transparent calc(var(--about-orb-s, 42%) + 18%));
   transition: opacity 0.2s linear;
 }
@@ -2508,8 +2486,8 @@ main {
   pointer-events: none;
   opacity: 0.55;
   background:
-    radial-gradient(ellipse 70% 55% at 50% 100%, rgba(70, 210, 205, 0.18), transparent 70%),
-    radial-gradient(ellipse 45% 40% at 50% 85%, rgba(40, 130, 140, 0.22), transparent 72%);
+    radial-gradient(ellipse 70% 55% at 50% 100%, rgba(241, 91, 181, 0.18), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 50% 85%, rgba(27, 20, 101, 0.32), transparent 72%);
 }
 
 .about-grain {
@@ -2614,7 +2592,7 @@ main {
 
 .about-divider-path {
   fill: none;
-  stroke: rgba(190, 240, 235, 0.38);
+  stroke: rgba(184, 160, 216, 0.38);
   stroke-width: 1.15;
   stroke-linecap: round;
 }

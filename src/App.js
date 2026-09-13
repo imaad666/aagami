@@ -125,7 +125,29 @@ const MANIFESTO_LINES = [
   'with sub-nanometer precision.',
   'A paradigm shift in early-stage oncology.',
 ]
+const MANIFESTO_LINES_COMPACT = ['Detecting molecular signatures', 'with sub-nanometer precision.']
 const MANIFESTO = MANIFESTO_LINES.join(' ')
+
+const COMPACT_COPY_MQ = '(max-width: 899px), (max-height: 560px)'
+
+function useCompactCopy() {
+  const [compact, setCompact] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(COMPACT_COPY_MQ).matches : false,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia(COMPACT_COPY_MQ)
+    const sync = () => setCompact(mq.matches)
+    sync()
+    mq.addEventListener?.('change', sync)
+    return () => mq.removeEventListener?.('change', sync)
+  }, [])
+  return compact
+}
+
+function Copy({ full, short }) {
+  const compact = useCompactCopy()
+  return compact ? short : full
+}
 
 const progressApi = { current: 0, target: 0 }
 // Live hero sphere pose — molecules bounce off this instead of clipping through
@@ -337,19 +359,22 @@ export default function App() {
 }
 
 function ManifestoFill({ fill, opacity }) {
+  const compact = useCompactCopy()
+  const source = compact ? MANIFESTO_LINES_COMPACT : MANIFESTO_LINES
+  const label = source.join(' ')
   const lines = useMemo(() => {
     let offset = 0
-    return MANIFESTO_LINES.map((line) => {
+    return source.map((line) => {
       const start = offset
-      offset += line.length + 1 // +1 for the joining space in MANIFESTO
+      offset += line.length + 1 // +1 for the joining space
       return { line, start }
     })
-  }, [])
+  }, [compact])
   if (opacity < 0.02) return null
 
-  const n = MANIFESTO.length
+  const n = label.length
   return (
-    <p className="manifesto-fill" style={{ opacity }} aria-label={MANIFESTO}>
+    <p className="manifesto-fill" style={{ opacity }} aria-label={label}>
       {lines.map(({ line, start }, li) => (
         <span key={li} className="manifesto-line">
           {Array.from(line).map((ch, ci) => {
@@ -383,24 +408,28 @@ const ECOSYSTEM_ITEMS = [
     kicker: 'The Engine of Discovery',
     title: 'Core Readout Device',
     body: 'Ultra-low-noise sensing hardware for high-precision current measurement and consistent signal readout from nanopore chips.',
+    bodyShort: 'Ultra-low-noise hardware for precise current readout from nanopore chips.',
     points: ['Pico-ampere sensitivity', 'Multi-channel I/O', 'Compact benchtop form factor'],
   },
   {
     kicker: 'Custom-Engineered Precision',
     title: 'Solid-State Nanopore Chips',
     body: 'Silicon-nitride membranes with atomically precise pores, tuned to specific biomarker sizes for reliable, high-fidelity sensing.',
+    bodyShort: 'Silicon-nitride membranes with atomically precise pores, tuned to each biomarker.',
     points: ['Custom pore diameters', 'High durability', 'Sub-nanometer precision'],
   },
   {
     kicker: 'Intelligent Signal Processing',
     title: 'AI Analysis Software',
     body: 'A cloud-native suite using deep learning to classify molecular signatures and identify cancer markers with real-time analysis.',
+    bodyShort: 'Deep learning that classifies molecular signatures and cancer markers in real time.',
     points: ['Real-time functionality', 'Automated anomaly detection', 'Clinical reporting dashboard'],
   },
   {
     kicker: 'Standardized Workflow',
     title: 'Consumables & Kits',
     body: 'Ready-to-use sample prep kits and buffer solutions, optimized for high signal-to-noise and consistent, repeatable assay workflows.',
+    bodyShort: 'Ready-to-use prep kits and buffers for consistent, repeatable assays.',
     points: ['Fast sample prep', 'High stability reagents', 'Lot-to-lot consistency'],
   },
 ]
@@ -463,8 +492,10 @@ function EcosystemSection() {
           <div className="ecosystem-intro">
             <p className="ecosystem-eyebrow">Our Ecosystem</p>
             <h2 className="ecosystem-heading">
-              We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to
-              the final clinical insight.
+              <Copy
+                full="We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to the final clinical insight."
+                short="A complete solution for single-molecule sensing — from sensor to clinical insight."
+              />
             </h2>
           </div>
 
@@ -486,12 +517,16 @@ function EcosystemSection() {
                           transform: `translate3d(0, ${(1 - open) * 14}px, 0)`,
                         }
                     }>
-                    <p className="ecosystem-col-body">{item.body}</p>
-                    <ul className="ecosystem-col-points">
-                      {item.points.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
+                    <p className="ecosystem-col-body">
+                      <Copy full={item.body} short={item.bodyShort} />
+                    </p>
+                    {stacked ? null : (
+                      <ul className="ecosystem-col-points">
+                        {item.points.map((point) => (
+                          <li key={point}>{point}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                   <div className="ecosystem-col-foot">
                     <p className="ecosystem-col-kicker">{item.kicker}</p>
@@ -512,24 +547,28 @@ const SENSING_STEPS = [
     num: '01',
     title: 'Molecular Translocation',
     body: 'Bio-molecules (DNA, RNA, Proteins) are driven by an electric field through a nanometer-sized aperture.',
+    bodyShort: 'DNA, RNA, and proteins are driven through a nanometer aperture.',
     place: 'l1',
   },
   {
     num: '02',
     title: 'Ionic Current Blockade',
     body: 'As molecules pass through, they partially block the flow of ions, creating a unique current signature.',
+    bodyShort: 'Passing molecules block ions, leaving a unique current signature.',
     place: 'l2',
   },
   {
     num: '03',
     title: 'Signature Analysis',
     body: "The magnitude and duration of current changes reveal the molecule's physical and chemical properties.",
+    bodyShort: "Current size and duration reveal each molecule's properties.",
     place: 'r1',
   },
   {
     num: '04',
     title: 'Clinical Diagnosis',
     body: "Our AI identifies 'cancerous' patterns early, allowing for intervention before symptoms even appear.",
+    bodyShort: 'AI spots cancer patterns before symptoms appear.',
     place: 'r2',
   },
 ]
@@ -766,12 +805,16 @@ function SensingSection() {
             }>
             <p className="sensing-eyebrow">How Nanopore Sensing Works</p>
             <h2 id="sensing-heading" className="sensing-heading">
-              Solid-state nanopores act as high-resolution &ldquo;smart&rdquo; filters.
+              <Copy
+                full='Solid-state nanopores act as high-resolution “smart” filters.'
+                short="Nanopores that act as high-resolution smart filters."
+              />
             </h2>
             <p className="sensing-lede">
-              Unlike traditional chemical assays, our technology measures individual molecules physically,
-              providing unparalleled sensitivity for detecting trace amounts of cancer biomarkers in blood or
-              urine.
+              <Copy
+                full="Unlike traditional chemical assays, our technology measures individual molecules physically, providing unparalleled sensitivity for detecting trace amounts of cancer biomarkers in blood or urine."
+                short="We measure individual molecules physically — catching trace cancer biomarkers in blood or urine."
+              />
             </p>
           </div>
 
@@ -798,7 +841,9 @@ function SensingSection() {
                   <div className="sensing-card-copy">
                     <p className="sensing-card-num">{step.num}</p>
                     <h3 className="sensing-card-title">{step.title}</h3>
-                    <p className="sensing-card-body">{step.body}</p>
+                    <p className="sensing-card-body">
+                      <Copy full={step.body} short={step.bodyShort} />
+                    </p>
                   </div>
                 </article>
               )
@@ -816,6 +861,7 @@ const IMPACT_STEPS = [
     kicker: 'Clinical Clinics',
     title: 'Point-of-Care Diagnosis',
     body: 'Our compact readout device allows small clinics to perform liquid biopsy tests without sending samples to centralized labs, reducing wait times from weeks to hours.',
+    bodyShort: 'Compact readout lets clinics run liquid biopsies in hours, not weeks.',
     metric: '90% Faster Results',
   },
   {
@@ -823,6 +869,7 @@ const IMPACT_STEPS = [
     kicker: 'Research Labs',
     title: 'Single Molecule Precision',
     body: 'Empowering biophysicists and oncologists with the tools to study molecular dynamics, epigenetics, and protein folding in real-time at unprecedented resolution.',
+    bodyShort: 'Study molecular dynamics, epigenetics, and protein folding in real time.',
     metric: 'Sub-nm Resolution',
   },
   {
@@ -830,6 +877,7 @@ const IMPACT_STEPS = [
     kicker: 'Hospitals',
     title: 'Large-Scale Screening',
     body: 'Standardized chips and AI software enable high-throughput screening of entire populations, making early detection a routine part of annual health checkups.',
+    bodyShort: 'Standardized chips and AI make early detection part of routine checkups.',
     metric: 'Cost Reduction: 60%',
   },
 ]
@@ -1224,7 +1272,12 @@ function ImpactSection() {
               <p className="impact-eyebrow" id="impact-heading">
                 Driving Global Impact
               </p>
-              <h2>We are bridging the gap between cutting-edge biophysics and everyday medical practice.</h2>
+              <h2>
+                <Copy
+                  full="We are bridging the gap between cutting-edge biophysics and everyday medical practice."
+                  short="Bridging cutting-edge biophysics and everyday medical practice."
+                />
+              </h2>
             </div>
 
             <div className="impact-copy-stack" aria-live="polite">
@@ -1251,7 +1304,9 @@ function ImpactSection() {
                       {item.kicker}
                     </p>
                     <h3 className="impact-title">{item.title}</h3>
-                    <p className="impact-body">{item.body}</p>
+                    <p className="impact-body">
+                      <Copy full={item.body} short={item.bodyShort} />
+                    </p>
                     <p className="impact-metric">{item.metric}</p>
                   </article>
                 )
@@ -1293,7 +1348,12 @@ function TrustSection() {
       <div className="trust-inner">
         <header className="trust-header">
           <p className="trust-eyebrow">Network of Trust</p>
-          <h2 id="trust-heading">Backed by leading research institutions and innovation hubs</h2>
+          <h2 id="trust-heading">
+            <Copy
+              full="Backed by leading research institutions and innovation hubs"
+              short="Backed by leading research and innovation hubs"
+            />
+          </h2>
         </header>
 
         <ul className="trust-grid">
@@ -1366,18 +1426,25 @@ function AboutSection() {
             <div className="about-pane about-pane-left">
               <p className="about-eyebrow">About Us</p>
               <h2 id="about-heading">
-                Pioneering the next{' '}
-                <br />
-                generation of{' '}
-                <br />
-                <span>genetic diagnostics.</span>
+                {stacked ? (
+                  <>
+                    Pioneering the next generation of <span>genetic diagnostics.</span>
+                  </>
+                ) : (
+                  <>
+                    Pioneering the next{' '}
+                    <br />
+                    generation of{' '}
+                    <br />
+                    <span>genetic diagnostics.</span>
+                  </>
+                )}
               </h2>
               <p className="about-copy">
-                AAGAMISEQ is pioneering the next generation of genetic diagnostics by leveraging advanced
-                Solid-State Nanopore Technology (SSNT). We provide a fully integrated, end-to-end platform
-                designed to deliver rapid, cost-effective, and highly accurate single-molecule analysis of
-                nucleic acids and proteins. By moving beyond conventional sequencing limitations, AAGAMISEQ
-                enables earlier detection, personalized medicine, and superior research outcomes.
+                <Copy
+                  full="AAGAMISEQ is pioneering the next generation of genetic diagnostics by leveraging advanced Solid-State Nanopore Technology (SSNT). We provide a fully integrated, end-to-end platform designed to deliver rapid, cost-effective, and highly accurate single-molecule analysis of nucleic acids and proteins. By moving beyond conventional sequencing limitations, AAGAMISEQ enables earlier detection, personalized medicine, and superior research outcomes."
+                  short="AAGAMISEQ uses solid-state nanopore technology for rapid, accurate single-molecule analysis of nucleic acids and proteins — enabling earlier detection and personalized medicine."
+                />
               </p>
             </div>
 
@@ -1410,14 +1477,17 @@ function AboutSection() {
 
             <div className="about-pane about-pane-right">
               <p className="about-eyebrow">Mission</p>
-              <h3 className="about-mission-title">To democratize genetic insights for a healthier world.</h3>
+              <h3 className="about-mission-title">
+                <Copy
+                  full="To democratize genetic insights for a healthier world."
+                  short="Democratize genetic insights for a healthier world."
+                />
+              </h3>
               <p className="about-copy">
-                The future of medicine is personal, and at its core lies rapid, accurate, and accessible genetic
-                information. However, current sequencing technologies face limitations in speed, cost, and
-                complexity—creating a bottleneck for widespread clinical adoption. AAGAMISEQ was founded to
-                break this barrier. Our mission is to democratize genetic diagnostics by pioneering a fully
-                integrated solid-state nanopore sequencing platform, delivering actionable insights from sample
-                to result with unprecedented efficiency.
+                <Copy
+                  full="The future of medicine is personal, and at its core lies rapid, accurate, and accessible genetic information. However, current sequencing technologies face limitations in speed, cost, and complexity—creating a bottleneck for widespread clinical adoption. AAGAMISEQ was founded to break this barrier. Our mission is to democratize genetic diagnostics by pioneering a fully integrated solid-state nanopore sequencing platform, delivering actionable insights from sample to result with unprecedented efficiency."
+                  short="Current sequencing is too slow, costly, and complex for the clinic. We built an integrated nanopore platform to make genetic insights fast, accurate, and accessible."
+                />
               </p>
             </div>
           </div>
@@ -1432,24 +1502,28 @@ const TEAM_MEMBERS = [
     name: 'Prof. Manoj Varma',
     role: 'Founder | R&D Advisor',
     bio: 'Leading research and development initiatives, bringing decades of expertise in nanoscale engineering and semiconductor physics to drive innovation at AAGAMISEQ.',
+    bioShort: 'Nanoscale engineering and semiconductor physics, leading R&D.',
     src: '/team/manoj.jpg',
   },
   {
     name: 'Divya Mohan Yadav, PhD',
     role: 'Founder | CEO',
     bio: "Spearheading the company's vision and strategic direction, combining deep scientific expertise with entrepreneurial leadership to revolutionize cancer diagnostics.",
+    bioShort: 'Scientific expertise and entrepreneurial leadership as CEO.',
     src: '/team/divya.jpg',
   },
   {
     name: 'Muddukrishna P',
     role: 'Founder | CPO',
     bio: 'Driving product development and engineering excellence, translating cutting-edge research into practical, scalable diagnostic solutions.',
+    bioShort: 'Product and engineering — from research to scalable diagnostics.',
     src: '/team/muddu.jpeg',
   },
   {
     name: 'Anumol Dominic, PhD',
     role: 'Lead Fabrication Engg',
     bio: 'Driving nanopore chip development and process optimization end-to-end, ensuring reliable fabrication, reproducibility, and scalable, production-ready performance.',
+    bioShort: 'Nanopore chip fabrication, reproducibility, and scale.',
     src: '/team/anumol.jpeg',
   },
 ]
@@ -1464,16 +1538,31 @@ function TeamSection() {
           <div className="team-header-copy">
             <p className="team-eyebrow">The Team</p>
             <h2 id="team-heading">
-              The Minds
-              <br />
-              Behind
-              <br />
-              <span>the Innovation.</span>
+              <Copy
+                full={
+                  <>
+                    The Minds
+                    <br />
+                    Behind
+                    <br />
+                    <span>the Innovation.</span>
+                  </>
+                }
+                short={
+                  <>
+                    The minds behind
+                    <br />
+                    <span>the innovation.</span>
+                  </>
+                }
+              />
             </h2>
           </div>
           <p className="team-lede">
-            Our interdisciplinary team combines expertise in quantum physics, semiconductor engineering, and
-            clinical oncology to redefine the future of diagnostics.
+            <Copy
+              full="Our interdisciplinary team combines expertise in quantum physics, semiconductor engineering, and clinical oncology to redefine the future of diagnostics."
+              short="Quantum physics, semiconductor engineering, and clinical oncology — together to redefine diagnostics."
+            />
           </p>
         </header>
 
@@ -1492,7 +1581,9 @@ function TeamSection() {
                 </div>
                 <p className="team-card-name">{member.name}</p>
                 <p className="team-card-role">{member.role}</p>
-                <p className="team-card-bio">{member.bio}</p>
+                <p className="team-card-bio">
+                  <Copy full={member.bio} short={member.bioShort} />
+                </p>
               </article>
             </li>
           ))}
@@ -1523,8 +1614,10 @@ function SiteFooter() {
             <span>Cancer together.</span>
           </h2>
           <p className="site-footer-lede">
-            Interested in learning more about our technology or exploring partnership opportunities? We&apos;d
-            love to hear from you.
+            <Copy
+              full="Interested in learning more about our technology or exploring partnership opportunities? We'd love to hear from you."
+              short="Want to learn more or partner with us? We'd love to hear from you."
+            />
           </p>
         </div>
 
@@ -1546,7 +1639,10 @@ function SiteFooter() {
           <div className="site-footer-block site-footer-brand">
             <p className="site-footer-brand-name">AAGAMISEQ</p>
             <p className="site-footer-brand-copy">
-              Pioneering early cancer detection through advanced nanopore DNA sequencing technology.
+              <Copy
+                full="Pioneering early cancer detection through advanced nanopore DNA sequencing technology."
+                short="Early cancer detection through nanopore DNA sequencing."
+              />
             </p>
           </div>
         </div>
