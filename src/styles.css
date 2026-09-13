@@ -1,4 +1,3 @@
-
 * {
   box-sizing: border-box;
 }
@@ -2662,6 +2661,7 @@ main {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .about-divider-glow,
   .gradient-wash,
   .brand-q {
