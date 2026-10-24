@@ -6,15 +6,15 @@ function detectQuality() {
       low: false,
       mobile: false,
       dpr: [1, 1.25],
-      stars: 1600,
-      molecules: 32,
+      stars: 280,
+      molecules: 0,
       antialias: true,
-      latticeStep: 0.22,
-      ringSegs: 72,
-      dnaCount: 28,
-      dnaTubular: [96, 8],
+      latticeStep: 0.28,
+      ringSegs: 64,
+      dnaCount: 24,
+      dnaTubular: [80, 8],
       dnaSugars: true,
-      cursorGlow: true,
+      cursorGlow: false,
     }
   }
 
@@ -30,15 +30,16 @@ function detectQuality() {
     low,
     mobile,
     dpr: low ? [1, 1] : [1, 1.25],
-    stars: low ? 720 : 1600,
-    molecules: low ? 18 : 32,
+    // Quiet hero: soft starfield only — no floating molecule swarm
+    stars: low ? 120 : 280,
+    molecules: 0,
     antialias: !low,
-    latticeStep: low ? 0.3 : 0.22,
-    ringSegs: low ? 48 : 72,
-    dnaCount: low ? 16 : 28,
-    dnaTubular: low ? [56, 6] : [96, 8],
+    latticeStep: low ? 0.34 : 0.28,
+    ringSegs: low ? 40 : 64,
+    dnaCount: low ? 14 : 24,
+    dnaTubular: low ? [48, 6] : [80, 8],
     dnaSugars: !low,
-    cursorGlow: !low,
+    cursorGlow: false,
   }
 }
 
@@ -81,18 +82,17 @@ export function useVisibleRaf(ref, callback) {
     }
 
     const start = () => {
-      if (!raf && running && visible && !document.hidden) {
-        raf = requestAnimationFrame(tick)
-      }
+      if (!raf && running && visible && !document.hidden) raf = requestAnimationFrame(tick)
     }
 
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        visible = entry.isIntersecting
-        if (visible) start()
-      },
-      { rootMargin: '12% 0px' },
-    )
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting
+      if (visible) start()
+      else if (raf) {
+        cancelAnimationFrame(raf)
+        raf = 0
+      }
+    }, { rootMargin: '12% 0px' })
     io.observe(el)
 
     const onVis = () => {
@@ -101,17 +101,14 @@ export function useVisibleRaf(ref, callback) {
           cancelAnimationFrame(raf)
           raf = 0
         }
-      } else {
-        start()
-      }
+      } else if (visible) start()
     }
     document.addEventListener('visibilitychange', onVis)
-
     return () => {
       running = false
-      if (raf) cancelAnimationFrame(raf)
       io.disconnect()
       document.removeEventListener('visibilitychange', onVis)
+      if (raf) cancelAnimationFrame(raf)
     }
   }, [ref])
 }
