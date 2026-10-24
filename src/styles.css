@@ -47,26 +47,26 @@ main {
   --brand-hlink: #06A6C6;
   --brand-folhlink: #FC28FC;
 
-  /* Key-art lavender + pink lead */
-  --lavender: #D4C4EB;
-  --lavender-mid: #B8A0D8;
-  --lavender-deep: #8B74B8;
-  --lavender-soft: #EDE4F5;
-  --lavender-fog: #2a1a4a;
+  /* Surface system: navy + cool blue (lavender names kept for CSS churn) */
+  --lavender: #A8D4F0;
+  --lavender-mid: #5BB8E8;
+  --lavender-deep: #2B6CB0;
+  --lavender-soft: #E8F4FC;
+  --lavender-fog: #0B1A3A;
 
-  --bg: #12081f;
-  --bg-elevated: #1B1465;
-  --bg-deep: #0a0414;
-  --text: #F2ECF8;
+  --bg: #050B1A;
+  --bg-elevated: #0E2841;
+  --bg-deep: #020617;
+  --text: #E8F0F8;
   --text-strong: #FFFFFF;
   --accent: var(--brand-accent2);
   --accent-strong: #ff7ac8;
   --accent-deep: var(--brand-accent1);
   --accent-soft: var(--lavender);
 
-  --fog-r: 42;
-  --fog-g: 26;
-  --fog-b: 74;
+  --fog-r: 8;
+  --fog-g: 22;
+  --fog-b: 48;
   --site-nav-h: 4.25rem;
   --site-nav-gap: 0.9rem;
   --site-screen-top: calc(var(--site-nav-h) + env(safe-area-inset-top, 0px));
@@ -85,8 +85,8 @@ main {
 .experience-track {
   position: relative;
   width: 100%;
-  height: 620vh;
-  min-height: 620vh;
+  height: 280vh;
+  min-height: 280vh;
 }
 
 .canvas-stage {
@@ -450,18 +450,18 @@ main {
   pointer-events: none;
   background:
     radial-gradient(ellipse 90% 55% at 78% 10%,
-      rgba(241, 91, 181, 0.26) 0%,
+      rgba(241, 91, 181, 0.18) 0%,
       transparent 58%),
-    radial-gradient(ellipse 70% 50% at 10% 90%, rgba(212, 196, 235, 0.14) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 48% 48%, rgba(27, 20, 101, 0.32) 0%, transparent 62%),
+    radial-gradient(ellipse 70% 50% at 10% 90%, rgba(0, 187, 249, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 48% 48%, rgba(14, 40, 65, 0.45) 0%, transparent 62%),
     linear-gradient(162deg,
-      #1B1465 0%,
+      #0E2841 0%,
       rgb(var(--fog-r), var(--fog-g), var(--fog-b)) 34%,
-      #2a1a4a 55%,
+      #0B1A3A 55%,
       #1B1465 78%,
-      #12081f 100%);
-  background-size: 150% 150%, 140% 140%, 125% 125%, 100% 100%;
-  animation: wash-drift 36s ease-in-out infinite alternate;
+      #050B1A 100%);
+  background-size: 100% 100%;
+  animation: none;
 }
 
 /* Soft vignette — darker corners (no bottom band — conflicts with ecosystem sheet) */
@@ -493,7 +493,7 @@ main {
   inset: -8%;
   z-index: 5;
   pointer-events: none;
-  opacity: 0.32;
+  opacity: 0.12;
   mix-blend-mode: soft-light;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.55 0 0 0 0 0.6 0 0 0 0 0.62 0 0 0 0.55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 180px 180px;
@@ -563,10 +563,10 @@ main {
   display: inline;
   color: transparent;
   background-image: linear-gradient(90deg,
-      rgba(242, 236, 248, 0.98) 0%,
-      rgba(242, 236, 248, 0.98) calc(var(--char-fill, 0) * 100%),
-      rgba(184, 160, 216, 0.28) calc(var(--char-fill, 0) * 100%),
-      rgba(184, 160, 216, 0.28) 100%);
+      rgba(232, 240, 248, 0.98) 0%,
+      rgba(232, 240, 248, 0.98) calc(var(--char-fill, 0) * 100%),
+      rgba(0, 187, 249, 0.22) calc(var(--char-fill, 0) * 100%),
+      rgba(0, 187, 249, 0.22) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1137,7 +1137,7 @@ main {
   background:
     radial-gradient(ellipse 55% 50% at 78% 58%, rgba(241, 91, 181, 0.18), transparent 68%),
     radial-gradient(ellipse 45% 40% at 12% 18%, rgba(212, 196, 235, 0.16), transparent 62%),
-    linear-gradient(165deg, #1B1465 0%, #12081f 42%, #2a1a4a 72%, #0a0414 100%);
+    linear-gradient(165deg, #0E2841 0%, #050B1A 42%, #0B1A3A 72%, #020617 100%);
 }
 
 .sensing-dna {
@@ -1570,11 +1570,11 @@ main {
   inset: -10%;
   background:
     linear-gradient(105deg,
-      #12081f 0%,
-      #1B1465 22%,
-      #8B74B8 48%,
+      #050B1A 0%,
+      #0E2841 22%,
+      #00BBF9 48%,
       #F15BB5 72%,
-      #D4C4EB 100%);
+      #A8D4F0 100%);
   -webkit-mask-image: radial-gradient(circle at 52% var(--mask-y, 118%),
       #000 0%,
       #000 var(--mask-radius, 18vmax),
