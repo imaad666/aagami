@@ -1,6 +1,19 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import {
+  IconAI,
+  IconAffordable,
+  IconChip,
+  IconDevice,
+  IconKit,
+  IconLab,
+  IconLeaf,
+  IconPore,
+  IconSample,
+  IconSignal,
+  IconTarget,
+} from './icons'
 import { QUALITY, useInView, useVisibleRaf } from './perf'
 
 /**
@@ -15,9 +28,9 @@ const lookAtTarget = new THREE.Vector3()
 const _up = new THREE.Vector3(0, 1, 0)
 const _dir = new THREE.Vector3()
 const _quat = new THREE.Quaternion()
-const _fogA = new THREE.Color('#12081f')
-const _fogB = new THREE.Color('#1B1465')
-const _fogC = new THREE.Color('#2a1a4a')
+const _fogA = new THREE.Color('#050B1A')
+const _fogB = new THREE.Color('#0E2841')
+const _fogC = new THREE.Color('#1B1465')
 const _fogNow = new THREE.Color()
 const _cursorDir = new THREE.Vector3()
 const _heroColor = new THREE.Color()
@@ -120,13 +133,16 @@ const BEATS = {
   manifestoOutEnd: 0.54,
 }
 
-const MANIFESTO_LINES = [
-  'Detecting molecular signatures',
-  'with sub-nanometer precision.',
-  'A paradigm shift in early-stage oncology.',
-]
-const MANIFESTO_LINES_COMPACT = ['Detecting molecular signatures', 'with sub-nanometer precision.']
+const MANIFESTO_LINES = ['From molecules to answers.', 'Nanopore diagnostics for earlier cancer detection.']
+const MANIFESTO_LINES_COMPACT = ['From molecules to answers.']
 const MANIFESTO = MANIFESTO_LINES.join(' ')
+
+const VALUE_CHIPS = [
+  { label: 'Earlier Detection', Icon: IconTarget },
+  { label: 'Affordable', Icon: IconAffordable },
+  { label: 'Accessible Labs', Icon: IconLab },
+  { label: 'Healthier Tomorrow', Icon: IconLeaf },
+]
 
 const COMPACT_COPY_MQ = '(max-width: 899px), (max-height: 560px)'
 
@@ -307,25 +323,23 @@ export default function App() {
                 depth: true,
               }}
               onCreated={({ gl, scene, camera }) => {
-                gl.setClearColor(new THREE.Color('#12081f'), 1)
+                gl.setClearColor(new THREE.Color('#050B1A'), 1)
                 gl.toneMapping = THREE.ACESFilmicToneMapping
-                gl.toneMappingExposure = 0.98
+                gl.toneMappingExposure = 1.02
                 window.__aagami = { gl, scene, camera }
               }}>
-              <color attach="background" args={['#12081f']} />
+              <color attach="background" args={['#050B1A']} />
               <Atmosphere />
-              <ambientLight intensity={0.45} color="#c4b0e0" />
-              <directionalLight position={[5, 9, 4]} intensity={1.1} color="#ede4f5" />
-              <directionalLight position={[-4, 1, -3]} intensity={0.4} color="#1B1465" />
-              <pointLight position={[0, 2, 5]} intensity={0.45} color="#F15BB5" distance={28} />
-              {QUALITY.cursorGlow ? <CursorGlow /> : null}
+              <ambientLight intensity={0.5} color="#c8d8f0" />
+              <directionalLight position={[5, 9, 4]} intensity={1.05} color="#e8f4fc" />
+              <directionalLight position={[-4, 1, -3]} intensity={0.45} color="#00BBF9" />
+              <pointLight position={[0, 2, 5]} intensity={0.5} color="#F15BB5" distance={28} />
 
               <CameraRig />
               <CanvasSizeSync />
               <FrameLoopGuard active={heroLive} />
               <Starfield />
-              <FieldMolecules />
-              <HeroSphere />
+              <HeroDNA />
               <Nanopore />
             </Canvas>
 
@@ -340,6 +354,19 @@ export default function App() {
                 </span>
               </div>
               <p className="brand-tagline">Nanopore Diagnostics</p>
+              <p className="brand-lede">An affordable molecular platform for early cancer detection.</p>
+              <a className="brand-cta" href="#how-it-works">
+                Our Technology
+                <span aria-hidden>→</span>
+              </a>
+              <ul className="brand-chips">
+                {VALUE_CHIPS.map(({ label, Icon }) => (
+                  <li key={label}>
+                    <Icon className="brand-chip-icon" />
+                    <span>{label}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
@@ -410,6 +437,7 @@ const ECOSYSTEM_ITEMS = [
     body: 'Ultra-low-noise sensing hardware for high-precision current measurement and consistent signal readout from nanopore chips.',
     bodyShort: 'Ultra-low-noise hardware for precise current readout from nanopore chips.',
     points: ['Pico-ampere sensitivity', 'Multi-channel I/O', 'Compact benchtop form factor'],
+    Icon: IconDevice,
   },
   {
     kicker: 'Custom-Engineered Precision',
@@ -417,6 +445,7 @@ const ECOSYSTEM_ITEMS = [
     body: 'Silicon-nitride membranes with atomically precise pores, tuned to specific biomarker sizes for reliable, high-fidelity sensing.',
     bodyShort: 'Silicon-nitride membranes with atomically precise pores, tuned to each biomarker.',
     points: ['Custom pore diameters', 'High durability', 'Sub-nanometer precision'],
+    Icon: IconChip,
   },
   {
     kicker: 'Intelligent Signal Processing',
@@ -424,6 +453,7 @@ const ECOSYSTEM_ITEMS = [
     body: 'A cloud-native suite using deep learning to classify molecular signatures and identify cancer markers with real-time analysis.',
     bodyShort: 'Deep learning that classifies molecular signatures and cancer markers in real time.',
     points: ['Real-time functionality', 'Automated anomaly detection', 'Clinical reporting dashboard'],
+    Icon: IconAI,
   },
   {
     kicker: 'Standardized Workflow',
@@ -431,6 +461,7 @@ const ECOSYSTEM_ITEMS = [
     body: 'Ready-to-use sample prep kits and buffer solutions, optimized for high signal-to-noise and consistent, repeatable assay workflows.',
     bodyShort: 'Ready-to-use prep kits and buffers for consistent, repeatable assays.',
     points: ['Fast sample prep', 'High stability reagents', 'Lot-to-lot consistency'],
+    Icon: IconKit,
   },
 ]
 
@@ -529,6 +560,7 @@ function EcosystemSection() {
                     )}
                   </div>
                   <div className="ecosystem-col-foot">
+                    <item.Icon className="ecosystem-col-icon" />
                     <p className="ecosystem-col-kicker">{item.kicker}</p>
                     <h3 className="ecosystem-col-title">{item.title}</h3>
                   </div>
@@ -545,31 +577,35 @@ function EcosystemSection() {
 const SENSING_STEPS = [
   {
     num: '01',
-    title: 'Molecular Translocation',
-    body: 'Bio-molecules (DNA, RNA, Proteins) are driven by an electric field through a nanometer-sized aperture.',
-    bodyShort: 'DNA, RNA, and proteins are driven through a nanometer aperture.',
+    title: 'Sample',
+    body: 'A blood or urine sample is prepared for single-molecule readout — no heavy lab chemistry required.',
+    bodyShort: 'Blood or urine prepared for single-molecule readout.',
     place: 'l1',
+    Icon: IconSample,
   },
   {
     num: '02',
-    title: 'Ionic Current Blockade',
-    body: 'As molecules pass through, they partially block the flow of ions, creating a unique current signature.',
-    bodyShort: 'Passing molecules block ions, leaving a unique current signature.',
+    title: 'Nanopore sensing',
+    body: 'Molecules are driven through a nanometer aperture, where each passage creates a unique electrical event.',
+    bodyShort: 'Molecules pass a nanometer pore, creating unique electrical events.',
     place: 'l2',
+    Icon: IconPore,
   },
   {
     num: '03',
-    title: 'Signature Analysis',
-    body: "The magnitude and duration of current changes reveal the molecule's physical and chemical properties.",
-    bodyShort: "Current size and duration reveal each molecule's properties.",
+    title: 'Electrical signal',
+    body: 'Ionic current blockades are captured in real time as clean signatures of molecular identity and structure.',
+    bodyShort: 'Current blockades become clean molecular signatures.',
     place: 'r1',
+    Icon: IconSignal,
   },
   {
     num: '04',
-    title: 'Clinical Diagnosis',
-    body: "Our AI identifies 'cancerous' patterns early, allowing for intervention before symptoms even appear.",
-    bodyShort: 'AI spots cancer patterns before symptoms appear.',
+    title: 'AI analysis',
+    body: 'Models classify cancer-relevant patterns early — so clinics can act before symptoms appear.',
+    bodyShort: 'AI classifies cancer patterns before symptoms appear.',
     place: 'r2',
+    Icon: IconAI,
   },
 ]
 
@@ -630,20 +666,20 @@ function DNAHelix() {
   })
 
   const backboneMat = {
-    color: '#b8a0d8',
-    metalness: 0.12,
+    color: '#F15BB5',
+    metalness: 0.18,
     roughness: 0.28,
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.82,
     depthWrite: false,
   }
 
   const baseMat = {
-    color: '#8B74B8',
-    metalness: 0.08,
+    color: '#00BBF9',
+    metalness: 0.12,
     roughness: 0.32,
     transparent: true,
-    opacity: 0.62,
+    opacity: 0.72,
     depthWrite: false,
   }
 
@@ -655,17 +691,17 @@ function DNAHelix() {
       </mesh>
       <mesh>
         <tubeGeometry args={[strandB, tubular[0], 0.078, tubular[1], false]} />
-        <meshStandardMaterial {...backboneMat} color="#9a84c4" />
+        <meshStandardMaterial {...backboneMat} color="#00BBF9" />
       </mesh>
 
       {sugarsA.map((pos, i) => (
         <mesh key={`sa-${i}`} position={pos} scale={0.095} geometry={GEO_TIP}>
-          <meshStandardMaterial {...baseMat} opacity={0.5} color="#B8A0D8" />
+          <meshStandardMaterial {...baseMat} opacity={0.55} color="#F15BB5" />
         </mesh>
       ))}
       {sugarsB.map((pos, i) => (
         <mesh key={`sb-${i}`} position={pos} scale={0.095} geometry={GEO_TIP}>
-          <meshStandardMaterial {...baseMat} opacity={0.5} color="#8B74B8" />
+          <meshStandardMaterial {...baseMat} opacity={0.55} color="#00BBF9" />
         </mesh>
       ))}
 
@@ -673,16 +709,16 @@ function DNAHelix() {
         <group key={i} position={[p.mx, p.y, p.mz]} rotation={[0, -p.angle, 0]}>
           <mesh position={[-p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
             <capsuleGeometry args={[0.07, p.len * 0.28, 4, 8]} />
-            <meshStandardMaterial {...baseMat} />
+            <meshStandardMaterial {...baseMat} color="#F15BB5" />
           </mesh>
           <mesh position={[p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
             <capsuleGeometry args={[0.07, p.len * 0.28, 4, 8]} />
-            <meshStandardMaterial {...baseMat} color="#7a649e" />
+            <meshStandardMaterial {...baseMat} color="#5BB8E8" />
           </mesh>
           <mesh rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[p.thick * 0.55, p.thick * 0.55, p.len * 0.22, 6]} />
             <meshStandardMaterial
-              color="#EDE4F5"
+              color="#E8F4FC"
               metalness={0}
               roughness={0.2}
               transparent
@@ -734,7 +770,7 @@ function SensingDNAStage({ fill = false }) {
           <group scale={fill ? 1.35 : 1}>
             <DNAHelix />
           </group>
-          <fog attach="fog" args={['#12081f', fill ? 7 : 9, fill ? 16 : 20]} />
+          <fog attach="fog" args={['#050B1A', fill ? 7 : 9, fill ? 16 : 20]} />
         </Canvas>
       ) : null}
     </div>
@@ -839,6 +875,7 @@ function SensingSection() {
                     {step.num}
                   </span>
                   <div className="sensing-card-copy">
+                    <step.Icon className="sensing-card-icon" />
                     <p className="sensing-card-num">{step.num}</p>
                     <h3 className="sensing-card-title">{step.title}</h3>
                     <p className="sensing-card-body">
@@ -1192,85 +1229,14 @@ function ImpactVisionStage({ progressRef, stacked = false }) {
 }
 
 function ImpactSection() {
-  const sectionRef = useRef(null)
-  const progressRef = useRef(0)
-  const [phase, setPhase] = useState(() => impactPhase(0))
-  const [stacked, setStacked] = useState(false)
-  const [introAmt, setIntroAmt] = useState(0)
-  const impactState = useRef({ smoothed: 0, stacked: false, key: '', intro: -1 })
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const syncStack = () => {
-      impactState.current.stacked = mq.matches
-      setStacked(mq.matches)
-    }
-    syncStack()
-    mq.addEventListener?.('change', syncStack)
-    return () => mq.removeEventListener?.('change', syncStack)
-  }, [])
-
-  useVisibleRaf(sectionRef, () => {
-    const el = sectionRef.current
-    if (!el) return
-    const s = impactState.current
-    const vh = window.innerHeight || 1
-    if (s.stacked) {
-      const rect = el.getBoundingClientRect()
-      const start = vh * 0.88
-      const end = -(el.offsetHeight - vh * 0.4)
-      const raw = clamp((start - rect.top) / Math.max(1, start - end))
-      s.smoothed = lerp(s.smoothed, 0.42 + raw * 0.58, 0.22)
-    } else {
-      const span = Math.max(1, el.offsetHeight - vh)
-      const raw = clamp(-el.getBoundingClientRect().top / span)
-      const catchUp = Math.abs(raw - s.smoothed) > 0.12 ? 0.4 : 0.16
-      s.smoothed = lerp(s.smoothed, raw, catchUp)
-    }
-    progressRef.current = s.smoothed
-    const next = impactPhase(s.smoothed)
-    const intro = s.stacked ? 1 : clamp(impactBeat(s.smoothed, 0.02, 0.1))
-    const key = `${next.phase}:${next.step}:${next.form >= 0.78 ? 1 : 0}`
-    if (key !== s.key) {
-      s.key = key
-      setPhase(next)
-    }
-    if (Math.abs(intro - s.intro) > 0.02) {
-      s.intro = intro
-      setIntroAmt(intro)
-    }
-  })
-
-  // Step copy waits until node 01 is actually on the mandala
-  const nodesReady = phase.phase === 'traverse' || (phase.phase === 'form' && phase.form >= 0.78)
-
-  const introDocked = stacked || nodesReady
-  const STEP_CORNERS = ['tr', 'br', 'bl']
-
   return (
-    <section
-      id="impact"
-      className={`impact${stacked ? ' is-stacked' : ''}`}
-      ref={sectionRef}
-      aria-labelledby="impact-heading"
-      data-phase={phase.phase}>
+    <section id="impact" className="impact is-stacked is-simple" aria-labelledby="impact-heading">
       <div className="impact-track">
         <div className="impact-sheet">
-          <ImpactVisionStage progressRef={progressRef} stacked={stacked} />
-
           <div className="impact-copy">
-            <div
-              className={`impact-intro${introDocked ? ' is-docked' : ' is-hero'}`}
-              style={
-                stacked
-                  ? undefined
-                  : {
-                    opacity: introAmt,
-                    visibility: introAmt < 0.02 ? 'hidden' : 'visible',
-                  }
-              }>
+            <div className="impact-intro is-docked">
               <p className="impact-eyebrow" id="impact-heading">
-                Driving Global Impact
+                Why it stands apart
               </p>
               <h2>
                 <Copy
@@ -1280,37 +1246,20 @@ function ImpactSection() {
               </h2>
             </div>
 
-            <div className="impact-copy-stack" aria-live="polite">
-              {IMPACT_STEPS.map((item, i) => {
-                const unlocked = stacked || (nodesReady && phase.step >= i)
-                const active = phase.step === i
-                const settled = unlocked && !active && (stacked || phase.step > i)
-                const show = unlocked ? 1 : 0
-                return (
-                  <article
-                    key={item.num}
-                    className={`impact-step impact-step-corner-${STEP_CORNERS[i]}${active ? ' is-active' : ''}${settled ? ' is-settled' : ''}`}
-                    style={
-                      stacked
-                        ? undefined
-                        : {
-                          opacity: show,
-                          transform: `translate3d(0, ${show ? 0 : 18}px, 0)`,
-                          visibility: show ? 'visible' : 'hidden',
-                        }
-                    }>
-                    <p className="impact-kicker">
-                      <span className="impact-kicker-dot" aria-hidden />
-                      {item.kicker}
-                    </p>
-                    <h3 className="impact-title">{item.title}</h3>
-                    <p className="impact-body">
-                      <Copy full={item.body} short={item.bodyShort} />
-                    </p>
-                    <p className="impact-metric">{item.metric}</p>
-                  </article>
-                )
-              })}
+            <div className="impact-copy-stack">
+              {IMPACT_STEPS.map((item) => (
+                <article key={item.num} className="impact-step is-active is-settled">
+                  <p className="impact-kicker">
+                    <span className="impact-kicker-dot" aria-hidden />
+                    {item.kicker}
+                  </p>
+                  <h3 className="impact-title">{item.title}</h3>
+                  <p className="impact-body">
+                    <Copy full={item.body} short={item.bodyShort} />
+                  </p>
+                  <p className="impact-metric">{item.metric}</p>
+                </article>
+              ))}
             </div>
           </div>
         </div>
@@ -1770,7 +1719,29 @@ function Atmosphere() {
     }
   })
 
-  return <fog ref={fogRef} attach="fog" args={['#12081f', 18, 52]} />
+  return <fog ref={fogRef} attach="fog" args={['#050B1A', 14, 42]} />
+}
+
+/** DNA strand threading the nanopore — calm hero focus (replaces molecule swarm). */
+function HeroDNA() {
+  const group = useRef()
+  useFrame((state, delta) => {
+    if (!group.current) return
+    const p = progressApi.current
+    const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
+    const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
+    const y = lerp(0.35, -1.2, transit) + dive * -2.4
+    group.current.position.y = lerp(group.current.position.y, y, 1 - Math.exp(-delta * 3.2))
+    group.current.rotation.y += delta * 0.12
+    const fade = 1 - smoother(BEATS.brandRevealStart, BEATS.brandRevealEnd, p)
+    group.current.visible = fade > 0.04
+    group.current.scale.setScalar(0.92 + fade * 0.08)
+  })
+  return (
+    <group ref={group} position={[0, 0.35, 0]} scale={0.95}>
+      <DNAHelix />
+    </group>
+  )
 }
 
 /** Keep WebGL buffer matched to the sticky stage — critical on mobile resize / device mode */
@@ -1863,43 +1834,30 @@ function CameraRig() {
   useFrame((_, delta) => {
     const p = progressApi.current
     const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
-    const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
-    const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
     const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
 
-    // Keep the disk filling the sticky frame across portrait / wide ratios
     const aspect = size.width / Math.max(1, size.height)
     let zMul = 1
     let fovExtra = 0
     if (aspect < 0.75) {
-      // Only pull back on very tall phones so the disk still fills width
       const t = clamp((aspect - 0.42) / 0.33)
-      zMul = lerp(1.12, 1.02, t)
-      fovExtra = lerp(4, 1, t)
+      zMul = lerp(1.18, 1.04, t)
+      fovExtra = lerp(5, 2, t)
     } else if (aspect > 1.65) {
       const t = clamp((aspect - 1.65) / 0.55)
-      zMul = lerp(1, 0.88, t)
+      zMul = lerp(1, 0.9, t)
     }
 
-    const camX = lerp(0.15, 2.4, focus) * (1 - brand * 0.7) + brand * 0.55
-    const camY =
-      lerp(3.15, 1.45, focus) * lerp(1, 0.62, transit) * lerp(1, 0.48, dive) * (1 - brand * 0.35) +
-      brand * 0.4
-    const camZ = lerp(11.6, 9.0, focus) * lerp(1, 1.06, brand) * zMul
-
+    // Steady three-quarter view on DNA through pore — less camera drama
+    const camX = lerp(1.6, 0.9, brand)
+    const camY = lerp(2.2, 1.35, focus) * (1 - brand * 0.15)
+    const camZ = lerp(10.2, 9.4, focus) * zMul
     cameraTarget.set(camX, camY, camZ)
-    // Look a touch lower early so the hero reads as emerging under the nav band
-    const lookY =
-      lerp(1.85, 1.2, focus) * (1 - transit) +
-      lerp(1.2, -0.8, transit) * (1 - dive) * (1 - brand) +
-      lerp(-0.8, -1.85, dive) * (1 - brand) +
-      brand * 0.35
-    const lookX = brand * 0.55
-    lookAtTarget.set(lookX, lookY, 0)
+    lookAtTarget.set(0, lerp(0.15, 0.05, brand), 0)
 
-    camera.position.lerp(cameraTarget, 1 - Math.exp(-delta * 2.8))
+    camera.position.lerp(cameraTarget, 1 - Math.exp(-delta * 2.4))
     camera.lookAt(lookAtTarget)
-    camera.fov = lerp(34, 30, focus) + fovExtra
+    camera.fov = 34 + fovExtra
     camera.updateProjectionMatrix()
   })
 
