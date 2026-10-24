@@ -774,6 +774,66 @@ main {
   color: #F15BB5;
 }
 
+.brand-lede {
+  margin: 0.85rem auto 0;
+  max-width: 28rem;
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  line-height: 1.45;
+  color: rgba(232, 240, 248, 0.78);
+  text-wrap: pretty;
+}
+
+.brand-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1.25rem;
+  padding: 0.72rem 1.35rem;
+  border-radius: 999px;
+  background: linear-gradient(120deg, #00BBF9 0%, #1B1465 55%, #F15BB5 120%);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  box-shadow: 0 10px 28px rgba(0, 187, 249, 0.22);
+  pointer-events: auto;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.brand-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 32px rgba(241, 91, 181, 0.28);
+}
+
+.brand-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem 1rem;
+  list-style: none;
+  margin: 1.5rem auto 0;
+  padding: 0;
+  max-width: 40rem;
+  pointer-events: none;
+}
+
+.brand-chips li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(200, 220, 240, 0.72);
+}
+
+.brand-chip-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: #00BBF9;
+}
+
 .scroll-hint {
   position: absolute;
   z-index: 4;
@@ -842,7 +902,14 @@ main {
 }
 
 .ecosystem-track {
-  height: 420vh;
+  height: 220vh;
+}
+
+.ecosystem-col-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.65rem;
+  color: #00BBF9;
 }
 
 .ecosystem-sheet {
@@ -1122,7 +1189,14 @@ main {
 }
 
 .sensing-track {
-  height: 340vh;
+  height: 220vh;
+}
+
+.sensing-card-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-bottom: 0.55rem;
+  color: #00BBF9;
 }
 
 .sensing-sheet {
@@ -1544,7 +1618,39 @@ main {
 }
 
 .impact-track {
-  height: 520vh;
+  height: 160vh;
+}
+
+.impact.is-simple .impact-track {
+  height: auto;
+}
+
+.impact.is-simple .impact-sheet {
+  position: relative;
+  top: auto;
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow: visible;
+  padding: 4.5rem clamp(1.1rem, 4vw, 2.5rem) 3.5rem;
+}
+
+.impact.is-simple .impact-copy,
+.impact.is-simple .impact-copy-stack,
+.impact.is-simple .impact-step {
+  position: relative !important;
+  inset: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+  width: 100%;
+  max-width: 42rem;
+}
+
+.impact.is-simple .impact-step + .impact-step {
+  margin-top: 1.25rem;
+  border-top: 1px solid rgba(0, 187, 249, 0.18);
+  padding-top: 1.25rem;
 }
 
 .impact-sheet {
