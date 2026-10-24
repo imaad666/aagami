@@ -1,4 +1,4 @@
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import {
@@ -14,128 +14,19 @@ import {
   IconSignal,
   IconTarget,
 } from './icons'
-import { QUALITY, useInView, useVisibleRaf } from './perf'
+import { QUALITY, useInView } from './perf'
 
-/**
- * Aagami SEQ — nanopore sequencing scroll hero.
- * HeroSphere threads downward through a flat membrane nanopore as you scroll,
- * then falls away. Brand reveals after the sphere is gone.
- */
-
-// ── scratch vectors (reused, never leaked between frames) ──────────────────
-const cameraTarget = new THREE.Vector3()
-const lookAtTarget = new THREE.Vector3()
-const _up = new THREE.Vector3(0, 1, 0)
-const _dir = new THREE.Vector3()
-const _quat = new THREE.Quaternion()
-const _fogA = new THREE.Color('#050B1A')
-const _fogB = new THREE.Color('#0E2841')
-const _fogC = new THREE.Color('#1B1465')
-const _fogNow = new THREE.Color()
-const _cursorDir = new THREE.Vector3()
-const _heroColor = new THREE.Color()
-const _heroEmissive = new THREE.Color()
-const HERO_COLOR = new THREE.Color('#b59ac8')
-const HERO_COLOR_PULSE = new THREE.Color('#c9a8c4')
-const HERO_EMISSIVE = new THREE.Color('#5a3d8a')
-const HERO_EMISSIVE_PULSE = new THREE.Color('#8B74B8')
-const PORE_RADIUS = 0.72
-const MEMBRANE_Y = 0.0
-const GEO_CORE = new THREE.SphereGeometry(1, 16, 16)
 const GEO_TIP = new THREE.SphereGeometry(1, 12, 12)
-const GEO_BOND = new THREE.CylinderGeometry(0.028, 0.028, 1, 6)
 
-/** Soft round sprite for PointsMaterial (default points are square) */
-function makeDiscTexture() {
-  const size = 128
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-  g.addColorStop(0, 'rgba(255,255,255,1)')
-  g.addColorStop(0.35, 'rgba(255,255,255,0.9)')
-  g.addColorStop(0.7, 'rgba(255,255,255,0.25)')
-  g.addColorStop(1, 'rgba(255,255,255,0)')
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, size, size)
-  const tex = new THREE.CanvasTexture(canvas)
-  tex.needsUpdate = true
-  tex.colorSpace = THREE.SRGBColorSpace
-  return tex
-}
-
-// ── palette — desaturated clinical / graphite ─────────────────────────────
-const C = {
-  steel: '#5a6a72',
-  slate: '#3e4c54',
-  bone: '#a8b2ac',
-  teal: '#F15BB5',
-  deepTeal: '#8B74B8',
-  ice: '#6e8490',
-  mutedBlue: '#3a5470',
-  graphite: '#2e3438',
-  moss: '#4a5640',
-  copper: '#6e5648',
-  ghost: '#7a8c90',
-}
-const BOND_DARK = '#2e383c'
-const BOND_MID = '#4a565c'
-
-// ── helpers ────────────────────────────────────────────────────────────────
-const clamp = (v, min = 0, max = 1) => Math.min(Math.max(v, min), max)
-const smooth = (a, b, v) => {
-  const n = clamp((v - a) / (b - a))
-  return n * n * (3 - 2 * n)
-}
-// Gentler ease — flatter at the start/end for long fades
-const smoother = (a, b, v) => {
-  const n = clamp((v - a) / (b - a))
-  return n * n * n * (n * (n * 6 - 15) + 10)
-}
-const lerp = THREE.MathUtils.lerp
-
-function seededRandom(seed) {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453
-  return x - Math.floor(x)
-}
-
-function bondQuat(dir) {
-  _dir.set(dir[0], dir[1], dir[2]).normalize()
-  return _quat.setFromUnitVectors(_up, _dir).clone()
-}
-
-// ── scroll timeline ────────────────────────────────────────────────────────
-// idle → descend → pore → thread → dive off-screen (no return to brand)
-const BEATS = {
-  focusStart: 0.04,
-  focusEnd: 0.26,
-  poreInStart: 0.08,
-  poreInEnd: 0.36,
-  transitStart: 0.34,
-  transitEnd: 0.54,
-  diveStart: 0.5,
-  diveEnd: 0.7,
-  // Fade nanopore once hero is below and membrane sits at frame top
-  clearStart: 0.48,
-  clearEnd: 0.62,
-  poreOutStart: 0.48,
-  poreOutEnd: 0.62,
-  // Title only after lattice is gone
-  brandRevealStart: 0.7,
-  brandRevealEnd: 0.8,
-  brandStart: 0.82,
-  brandEnd: 0.93,
-  // Manifesto visible (dim) from the start; fill on scroll; out by the drop
-  manifestoFillStart: 0.04,
-  manifestoFillEnd: 0.44,
-  manifestoOutStart: 0.46,
-  manifestoOutEnd: 0.54,
-}
-
-const MANIFESTO_LINES = ['From molecules to answers.', 'Nanopore diagnostics for earlier cancer detection.']
-const MANIFESTO_LINES_COMPACT = ['From molecules to answers.']
-const MANIFESTO = MANIFESTO_LINES.join(' ')
+const NAV_LINKS = [
+  { id: 'hero', label: 'Home' },
+  { id: 'how-it-works', label: 'Technology' },
+  { id: 'ecosystem', label: 'Platform' },
+  { id: 'roadmap', label: 'Roadmap' },
+  { id: 'about', label: 'About' },
+  { id: 'team', label: 'Team' },
+  { id: 'contact', label: 'Contact' },
+]
 
 const VALUE_CHIPS = [
   { label: 'Earlier Detection', Icon: IconTarget },
@@ -144,1487 +35,162 @@ const VALUE_CHIPS = [
   { label: 'Healthier Tomorrow', Icon: IconLeaf },
 ]
 
-const COMPACT_COPY_MQ = '(max-width: 899px), (max-height: 560px)'
-
-function useCompactCopy() {
-  const [compact, setCompact] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia(COMPACT_COPY_MQ).matches : false,
-  )
-  useEffect(() => {
-    const mq = window.matchMedia(COMPACT_COPY_MQ)
-    const sync = () => setCompact(mq.matches)
-    sync()
-    mq.addEventListener?.('change', sync)
-    return () => mq.removeEventListener?.('change', sync)
-  }, [])
-  return compact
-}
-
-function Copy({ full, short }) {
-  const compact = useCompactCopy()
-  return compact ? short : full
-}
-
-const progressApi = { current: 0, target: 0 }
-// Live hero sphere pose — molecules bounce off this instead of clipping through
-const heroApi = { x: 0, y: 7.35, z: -1.35, r: 0.34 }
-
-// ── field molecule blueprints (background) ─────────────────────────────────
-const STRUCTURES = [
-  { kind: 'mono', core: C.steel, coreR: 0.34, tips: [] },
-  { kind: 'di', core: C.slate, coreR: 0.22, tips: [{ pos: [0.55, 0.05, 0], color: C.ice, r: 0.2 }] },
+const PROCESS_STEPS = [
   {
-    kind: 'tri',
-    core: C.teal,
-    coreR: 0.2,
-    tips: [
-      { pos: [0.48, 0.28, 0.1], color: C.bone, r: 0.16 },
-      { pos: [-0.42, 0.22, -0.12], color: C.mutedBlue, r: 0.15 },
-    ],
-  },
-  {
-    kind: 'tetra',
-    core: C.deepTeal,
-    coreR: 0.18,
-    tips: [
-      { pos: [0.42, 0.35, 0.15], color: C.moss, r: 0.14 },
-      { pos: [-0.4, 0.28, 0.2], color: C.ice, r: 0.13 },
-      { pos: [0.05, -0.42, 0.22], color: C.copper, r: 0.15 },
-      { pos: [0.1, 0.08, -0.48], color: C.steel, r: 0.14 },
-    ],
-  },
-  {
-    kind: 'ring',
-    core: C.ghost,
-    coreR: 0.12,
-    tips: [
-      { pos: [0.45, 0, 0], color: C.ice, r: 0.11 },
-      { pos: [0.22, 0, 0.39], color: C.ghost, r: 0.11 },
-      { pos: [-0.22, 0, 0.39], color: C.steel, r: 0.11 },
-      { pos: [-0.45, 0, 0], color: C.ghost, r: 0.11 },
-      { pos: [-0.22, 0, -0.39], color: C.ice, r: 0.11 },
-      { pos: [0.22, 0, -0.39], color: C.slate, r: 0.11 },
-    ],
-  },
-]
-
-const MAT_PRESETS = [
-  { metalness: 0.5, roughness: 0.38, opacity: 1, emissiveIntensity: 0.1 },
-  { metalness: 0.1, roughness: 0.58, opacity: 1, emissiveIntensity: 0.06 },
-  { metalness: 0.25, roughness: 0.28, opacity: 0.55, emissiveIntensity: 0.12 },
-  { metalness: 0.68, roughness: 0.22, opacity: 0.94, emissiveIntensity: 0.14 },
-  { metalness: 0.04, roughness: 0.72, opacity: 0.42, emissiveIntensity: 0.16 },
-]
-
-// ── App ────────────────────────────────────────────────────────────────────
-export default function App() {
-  const [ui, setUi] = useState({ brand: 0, manifesto: 1, fill: 0 })
-  const heroStageRef = useRef(null)
-  const heroLive = useInView(heroStageRef, { rootMargin: '8% 0px', initial: true })
-  const heroLiveRef = useRef(true)
-  const kickRef = useRef(() => {})
-  heroLiveRef.current = heroLive
-
-  useEffect(() => {
-    kickRef.current()
-  }, [heroLive])
-
-  useEffect(() => {
-    const onScroll = () => {
-      const track = document.querySelector('.experience-track') || document.querySelector('.experience-shell')
-      if (!track) return
-      // Rect-based progress stays locked to the sticky hero track across
-      // mobile chrome / aspect changes (scrollY + innerHeight jumps break it).
-      const vh = window.innerHeight || 1
-      const span = Math.max(1, track.offsetHeight - vh)
-      const raw = clamp(-track.getBoundingClientRect().top / span)
-      // Finish disk → transit → name before the end hold (same feel as desktop).
-      const holdFrac = 0.2
-      progressApi.target = clamp(raw / (1 - holdFrac))
-      kick()
-    }
-
-    let raf = 0
-    let lastKey = -1
-    const tick = () => {
-      raf = 0
-      // Keep the 3D beat tight to scroll — lag feels broken on touch / short screens
-      const d = Math.abs(progressApi.target - progressApi.current)
-      const ease = d > 0.12 ? 0.32 : d > 0.04 ? 0.16 : 0.1
-      progressApi.current = lerp(progressApi.current, progressApi.target, ease)
-      const p = progressApi.current
-      const clear = smooth(BEATS.clearStart, BEATS.clearEnd, p)
-      const poreOut = smooth(BEATS.poreOutStart, BEATS.poreOutEnd, p)
-      const reveal = smooth(BEATS.brandRevealStart, BEATS.brandRevealEnd, p)
-      // Never show title while field/nanopore lattice is still up
-      const brand = reveal * clear * poreOut
-      const manifestoOut = smooth(BEATS.manifestoOutStart, BEATS.manifestoOutEnd, p)
-      const manifesto = 1 - manifestoOut
-      const fill = smooth(BEATS.manifestoFillStart, BEATS.manifestoFillEnd, p)
-      const key =
-        Math.round(brand * 100) * 1e4 +
-        Math.round(manifesto * 100) * 100 +
-        Math.round(fill * 2000)
-      if (key !== lastKey) {
-        lastKey = key
-        setUi({ brand, manifesto, fill })
-      }
-      const moving = Math.abs(progressApi.target - progressApi.current) > 0.0008
-      if ((moving || heroLiveRef.current) && !document.hidden) {
-        raf = requestAnimationFrame(tick)
-      }
-    }
-    const kick = () => {
-      if (!raf) raf = requestAnimationFrame(tick)
-    }
-    kickRef.current = kick
-
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true, capture: true })
-    window.addEventListener('resize', onScroll)
-    window.visualViewport?.addEventListener('resize', onScroll)
-    const onVis = () => {
-      if (!document.hidden) kick()
-    }
-    document.addEventListener('visibilitychange', onVis)
-    kick()
-    return () => {
-      window.removeEventListener('scroll', onScroll, { capture: true })
-      window.removeEventListener('resize', onScroll)
-      window.visualViewport?.removeEventListener('resize', onScroll)
-      document.removeEventListener('visibilitychange', onVis)
-      cancelAnimationFrame(raf)
-    }
-  }, [])
-
-  return (
-    <main>
-      <SiteNav />
-
-      <div id="hero" className="experience-shell">
-        <div className="gradient-wash" aria-hidden />
-        <div className="shade-vignette" aria-hidden />
-        <div className="grain-coarse" aria-hidden />
-        <div className="grain-overlay" aria-hidden />
-
-        <div className="experience-track">
-          <div className="canvas-stage" ref={heroStageRef}>
-            <div className="canvas-grain" aria-hidden />
-            <Canvas
-              frameloop="never"
-              dpr={QUALITY.dpr}
-              camera={{ position: [0.3, 3.2, 11.5], fov: 36, near: 0.1, far: 90 }}
-              gl={{
-                antialias: QUALITY.antialias,
-                alpha: false,
-                powerPreference: 'high-performance',
-                preserveDrawingBuffer: false,
-                stencil: false,
-                depth: true,
-              }}
-              onCreated={({ gl, scene, camera }) => {
-                gl.setClearColor(new THREE.Color('#050B1A'), 1)
-                gl.toneMapping = THREE.ACESFilmicToneMapping
-                gl.toneMappingExposure = 1.02
-                window.__aagami = { gl, scene, camera }
-              }}>
-              <color attach="background" args={['#050B1A']} />
-              <Atmosphere />
-              <ambientLight intensity={0.5} color="#c8d8f0" />
-              <directionalLight position={[5, 9, 4]} intensity={1.05} color="#e8f4fc" />
-              <directionalLight position={[-4, 1, -3]} intensity={0.45} color="#00BBF9" />
-              <pointLight position={[0, 2, 5]} intensity={0.5} color="#F15BB5" distance={28} />
-
-              <CameraRig />
-              <CanvasSizeSync />
-              <FrameLoopGuard active={heroLive} />
-              <Starfield />
-              <HeroDNA />
-              <Nanopore />
-            </Canvas>
-
-            <ManifestoFill fill={ui.fill} opacity={ui.manifesto} />
-
-            <div className="brand-reveal" style={{ opacity: ui.brand }}>
-              <div className="brand-name">
-                AAGAMI
-                <span>
-                  SE
-                  <span className="brand-q">Q</span>
-                </span>
-              </div>
-              <p className="brand-tagline">Nanopore Diagnostics</p>
-              <p className="brand-lede">An affordable molecular platform for early cancer detection.</p>
-              <a className="brand-cta" href="#how-it-works">
-                Our Technology
-                <span aria-hidden>→</span>
-              </a>
-              <ul className="brand-chips">
-                {VALUE_CHIPS.map(({ label, Icon }) => (
-                  <li key={label}>
-                    <Icon className="brand-chip-icon" />
-                    <span>{label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <EcosystemSection />
-      <SensingSection />
-      <ImpactSection />
-      <AboutSection />
-      <div className="closing-band">
-        <TrustSection />
-        <TeamSection />
-      </div>
-      <SiteFooter />
-    </main>
-  )
-}
-
-function ManifestoFill({ fill, opacity }) {
-  const compact = useCompactCopy()
-  const source = compact ? MANIFESTO_LINES_COMPACT : MANIFESTO_LINES
-  const label = source.join(' ')
-  const lines = useMemo(() => {
-    let offset = 0
-    return source.map((line) => {
-      const start = offset
-      offset += line.length + 1 // +1 for the joining space
-      return { line, start }
-    })
-  }, [compact])
-  if (opacity < 0.02) return null
-
-  const n = label.length
-  return (
-    <p className="manifesto-fill" style={{ opacity }} aria-label={label}>
-      {lines.map(({ line, start }, li) => (
-        <span key={li} className="manifesto-line">
-          {Array.from(line).map((ch, ci) => {
-            const i = start + ci
-            if (ch === ' ') {
-              return (
-                <span key={`s-${i}`} className="manifesto-space" aria-hidden>
-                  {' '}
-                </span>
-              )
-            }
-            const local = clamp(fill * n - i)
-            return (
-              <span
-                key={`c-${i}`}
-                className="manifesto-char"
-                style={{ '--char-fill': local }}
-                aria-hidden>
-                {ch}
-              </span>
-            )
-          })}
-        </span>
-      ))}
-    </p>
-  )
-}
-
-const ECOSYSTEM_ITEMS = [
-  {
-    kicker: 'The Engine of Discovery',
-    title: 'Core Readout Device',
-    body: 'Ultra-low-noise sensing hardware for high-precision current measurement and consistent signal readout from nanopore chips.',
-    bodyShort: 'Ultra-low-noise hardware for precise current readout from nanopore chips.',
-    points: ['Pico-ampere sensitivity', 'Multi-channel I/O', 'Compact benchtop form factor'],
-    Icon: IconDevice,
-  },
-  {
-    kicker: 'Custom-Engineered Precision',
-    title: 'Solid-State Nanopore Chips',
-    body: 'Silicon-nitride membranes with atomically precise pores, tuned to specific biomarker sizes for reliable, high-fidelity sensing.',
-    bodyShort: 'Silicon-nitride membranes with atomically precise pores, tuned to each biomarker.',
-    points: ['Custom pore diameters', 'High durability', 'Sub-nanometer precision'],
-    Icon: IconChip,
-  },
-  {
-    kicker: 'Intelligent Signal Processing',
-    title: 'AI Analysis Software',
-    body: 'A cloud-native suite using deep learning to classify molecular signatures and identify cancer markers with real-time analysis.',
-    bodyShort: 'Deep learning that classifies molecular signatures and cancer markers in real time.',
-    points: ['Real-time functionality', 'Automated anomaly detection', 'Clinical reporting dashboard'],
-    Icon: IconAI,
-  },
-  {
-    kicker: 'Standardized Workflow',
-    title: 'Consumables & Kits',
-    body: 'Ready-to-use sample prep kits and buffer solutions, optimized for high signal-to-noise and consistent, repeatable assay workflows.',
-    bodyShort: 'Ready-to-use prep kits and buffers for consistent, repeatable assays.',
-    points: ['Fast sample prep', 'High stability reagents', 'Lot-to-lot consistency'],
-    Icon: IconKit,
-  },
-]
-
-function EcosystemSection() {
-  const sectionRef = useRef(null)
-  const [opens, setOpens] = useState(() => ECOSYSTEM_ITEMS.map(() => 0))
-  const [stacked, setStacked] = useState(false)
-  const smoothedRef = useRef(ECOSYSTEM_ITEMS.map(() => 0))
-  const stackedMqRef = useRef(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const sync = () => {
-      stackedMqRef.current = mq.matches
-      setStacked(mq.matches)
-    }
-    sync()
-    mq.addEventListener?.('change', sync)
-    return () => mq.removeEventListener?.('change', sync)
-  }, [])
-
-  useVisibleRaf(sectionRef, () => {
-    const el = sectionRef.current
-    if (!el) return
-    const vh = window.innerHeight
-    const start = el.offsetTop
-    const span = Math.max(1, el.offsetHeight - vh)
-    const isStacked = stackedMqRef.current
-    const smoothed = smoothedRef.current
-
-    let next
-    if (isStacked) {
-      next = ECOSYSTEM_ITEMS.map(() => 1)
-    } else {
-      const revealT = clamp((window.scrollY - start) / span)
-      const slot = 1 / ECOSYSTEM_ITEMS.length
-      next = ECOSYSTEM_ITEMS.map((_, i) => {
-        const a = 0.08 + i * slot * 0.9
-        return smoother(a, a + slot * 0.55, revealT)
-      })
-    }
-    const eased = next.map((v, i) => lerp(smoothed[i], v, isStacked ? 1 : 0.28))
-    eased.forEach((v, i) => {
-      smoothed[i] = v
-    })
-    setOpens((prev) => {
-      const same = prev.every((v, i) => Math.abs(v - eased[i]) < 0.012)
-      return same ? prev : eased
-    })
-  })
-
-  return (
-    <section
-      id="ecosystem"
-      className={`ecosystem${stacked ? ' is-stacked' : ''}`}
-      ref={sectionRef}>
-      <div className="ecosystem-track">
-        <div className="ecosystem-sheet">
-          <div className="ecosystem-intro">
-            <p className="ecosystem-eyebrow">Our Ecosystem</p>
-            <h2 className="ecosystem-heading">
-              <Copy
-                full="We provide a complete, integrated solution for single-molecule sensing, from the physical sensor to the final clinical insight."
-                short="A complete solution for single-molecule sensing — from sensor to clinical insight."
-              />
-            </h2>
-          </div>
-
-          <div className="ecosystem-grid">
-            {ECOSYSTEM_ITEMS.map((item, i) => {
-              const open = stacked ? 1 : opens[i]
-              return (
-                <article
-                  key={item.title}
-                  className={`ecosystem-col${open > 0.55 ? ' is-open' : ''}`}
-                  style={{ '--open': open }}>
-                  <div
-                    className="ecosystem-col-reveal"
-                    style={
-                      stacked
-                        ? undefined
-                        : {
-                          opacity: open,
-                          transform: `translate3d(0, ${(1 - open) * 14}px, 0)`,
-                        }
-                    }>
-                    <p className="ecosystem-col-body">
-                      <Copy full={item.body} short={item.bodyShort} />
-                    </p>
-                    {stacked ? null : (
-                      <ul className="ecosystem-col-points">
-                        {item.points.map((point) => (
-                          <li key={point}>{point}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                  <div className="ecosystem-col-foot">
-                    <item.Icon className="ecosystem-col-icon" />
-                    <p className="ecosystem-col-kicker">{item.kicker}</p>
-                    <h3 className="ecosystem-col-title">{item.title}</h3>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-const SENSING_STEPS = [
-  {
-    num: '01',
     title: 'Sample',
-    body: 'A blood or urine sample is prepared for single-molecule readout — no heavy lab chemistry required.',
-    bodyShort: 'Blood or urine prepared for single-molecule readout.',
-    place: 'l1',
+    body: 'Blood or urine is prepared for single-molecule readout — no heavy lab chemistry.',
     Icon: IconSample,
   },
   {
-    num: '02',
     title: 'Nanopore sensing',
-    body: 'Molecules are driven through a nanometer aperture, where each passage creates a unique electrical event.',
-    bodyShort: 'Molecules pass a nanometer pore, creating unique electrical events.',
-    place: 'l2',
+    body: 'Molecules pass a nanometer aperture, each leaving a unique electrical event.',
     Icon: IconPore,
   },
   {
-    num: '03',
     title: 'Electrical signal',
-    body: 'Ionic current blockades are captured in real time as clean signatures of molecular identity and structure.',
-    bodyShort: 'Current blockades become clean molecular signatures.',
-    place: 'r1',
+    body: 'Ionic current blockades become clean signatures of identity and structure.',
     Icon: IconSignal,
   },
   {
-    num: '04',
     title: 'AI analysis',
-    body: 'Models classify cancer-relevant patterns early — so clinics can act before symptoms appear.',
-    bodyShort: 'AI classifies cancer patterns before symptoms appear.',
-    place: 'r2',
+    body: 'Models classify cancer-relevant patterns so clinics can act before symptoms.',
     Icon: IconAI,
   },
 ]
 
-function DNAHelix() {
-  const group = useRef()
-  const { strandA, strandB, pairs, sugarsA, sugarsB, tubular } = useMemo(() => {
-    // B-DNA-ish proportions: ~10.5 bp/turn, soft major/minor groove
-    const count = QUALITY.dnaCount
-    const height = 9.6
-    const radius = 1.05
-    const turns = count / 10.5
-    const pointsA = []
-    const pointsB = []
-    const sugarsA = []
-    const sugarsB = []
-    const pairData = []
+const PROCESS_POINTS = [
+  'Single-molecule sensitivity',
+  'Label-free & real-time',
+  'DNA / RNA / proteins',
+  'High accuracy with AI',
+]
 
-    for (let i = 0; i < count; i++) {
-      const u = i / (count - 1)
-      const t = u * turns * Math.PI * 2
-      const y = (u - 0.5) * height
-      const rx = radius * (1 + 0.04 * Math.sin(t * 2))
-      const rz = radius * (1 - 0.03 * Math.sin(t * 2))
-      const ax = Math.cos(t) * rx
-      const az = Math.sin(t) * rz
-      const bx = Math.cos(t + Math.PI) * rx
-      const bz = Math.sin(t + Math.PI) * rz
-      pointsA.push(new THREE.Vector3(ax, y, az))
-      pointsB.push(new THREE.Vector3(bx, y, bz))
-      if (QUALITY.dnaSugars) {
-        sugarsA.push([ax * 0.92, y, az * 0.92])
-        sugarsB.push([bx * 0.92, y, bz * 0.92])
-      }
+const PLATFORM_ITEMS = [
+  {
+    kicker: 'Sensor',
+    title: 'Solid-State Nanopore Chips',
+    body: 'Engineered for high sensitivity, durability, and scale.',
+    Icon: IconChip,
+    visual: 'chip',
+  },
+  {
+    kicker: 'Hardware',
+    title: 'Readout System',
+    body: 'Custom electronics for high-speed, high-resolution signal acquisition.',
+    Icon: IconDevice,
+    visual: 'device',
+  },
+  {
+    kicker: 'Software',
+    title: 'AI Analysis Software',
+    body: 'Turns raw signals into actionable insights with real-time scoring.',
+    Icon: IconAI,
+    visual: 'software',
+  },
+  {
+    kicker: 'Workflow',
+    title: 'Reagents & Consumables',
+    body: 'Optimized for performance, consistency, and cost-effectiveness.',
+    Icon: IconKit,
+    visual: 'kits',
+  },
+]
 
-      const mx = (ax + bx) * 0.5
-      const mz = (az + bz) * 0.5
-      const dx = bx - ax
-      const dz = bz - az
-      const len = Math.hypot(dx, dz)
-      const angle = Math.atan2(dz, dx)
-      const thick = i % 2 === 0 ? 0.038 : 0.048
-      pairData.push({ mx, y, mz, len, angle, thick })
-    }
+const STANDS_APART = [
+  { title: 'Ultrasensitive', body: 'Detects low-abundance cancer biomarkers.', Icon: IconTarget },
+  { title: 'Affordable', body: 'Designed for India-first and global markets.', Icon: IconAffordable },
+  { title: 'Portable & scalable', body: 'Fits clinics as well as regional diagnostics.', Icon: IconDevice },
+  { title: 'Sustainable', body: 'Enables early treatment and better outcomes.', Icon: IconLeaf },
+]
 
-    return {
-      strandA: new THREE.CatmullRomCurve3(pointsA),
-      strandB: new THREE.CatmullRomCurve3(pointsB),
-      pairs: pairData,
-      sugarsA,
-      sugarsB,
-      tubular: QUALITY.dnaTubular,
-    }
-  }, [])
-
-  useFrame((_, delta) => {
-    if (!group.current) return
-    group.current.rotation.y += delta * 0.22
-  })
-
-  const backboneMat = {
-    color: '#F15BB5',
-    metalness: 0.18,
-    roughness: 0.28,
-    transparent: true,
-    opacity: 0.82,
-    depthWrite: false,
-  }
-
-  const baseMat = {
-    color: '#00BBF9',
-    metalness: 0.12,
-    roughness: 0.32,
-    transparent: true,
-    opacity: 0.72,
-    depthWrite: false,
-  }
-
-  return (
-    <group ref={group} rotation={[0.2, 0.35, 0.05]} position={[0.1, -0.1, 0]} scale={0.95}>
-      <mesh>
-        <tubeGeometry args={[strandA, tubular[0], 0.078, tubular[1], false]} />
-        <meshStandardMaterial {...backboneMat} />
-      </mesh>
-      <mesh>
-        <tubeGeometry args={[strandB, tubular[0], 0.078, tubular[1], false]} />
-        <meshStandardMaterial {...backboneMat} color="#00BBF9" />
-      </mesh>
-
-      {sugarsA.map((pos, i) => (
-        <mesh key={`sa-${i}`} position={pos} scale={0.095} geometry={GEO_TIP}>
-          <meshStandardMaterial {...baseMat} opacity={0.55} color="#F15BB5" />
-        </mesh>
-      ))}
-      {sugarsB.map((pos, i) => (
-        <mesh key={`sb-${i}`} position={pos} scale={0.095} geometry={GEO_TIP}>
-          <meshStandardMaterial {...baseMat} opacity={0.55} color="#00BBF9" />
-        </mesh>
-      ))}
-
-      {pairs.map((p, i) => (
-        <group key={i} position={[p.mx, p.y, p.mz]} rotation={[0, -p.angle, 0]}>
-          <mesh position={[-p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <capsuleGeometry args={[0.07, p.len * 0.28, 4, 8]} />
-            <meshStandardMaterial {...baseMat} color="#F15BB5" />
-          </mesh>
-          <mesh position={[p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <capsuleGeometry args={[0.07, p.len * 0.28, 4, 8]} />
-            <meshStandardMaterial {...baseMat} color="#5BB8E8" />
-          </mesh>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[p.thick * 0.55, p.thick * 0.55, p.len * 0.22, 6]} />
-            <meshStandardMaterial
-              color="#E8F4FC"
-              metalness={0}
-              roughness={0.2}
-              transparent
-              opacity={0.38}
-              depthWrite={false}
-            />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  )
-}
-
-function SensingDNAStage({ fill = false }) {
-  const wrap = useRef(null)
-  const near = useInView(wrap, { rootMargin: '55% 0px', initial: false })
-  const live = useInView(wrap, { rootMargin: '10% 0px', initial: false })
-
-  return (
-    <div ref={wrap} className="sensing-dna" aria-hidden>
-      {near ? (
-        <Canvas
-          frameloop={live ? 'always' : 'never'}
-          dpr={QUALITY.dpr}
-          camera={{
-            position: fill ? [0, 0.15, 6.2] : [0, 0.35, 8.4],
-            fov: fill ? 46 : 38,
-            near: 0.1,
-            far: 40,
-          }}
-          gl={{
-            antialias: QUALITY.antialias,
-            alpha: true,
-            powerPreference: 'high-performance',
-            stencil: false,
-          }}
-          onCreated={({ gl }) => {
-            gl.setClearColor(0x000000, 0)
-            gl.toneMapping = THREE.ACESFilmicToneMapping
-            gl.toneMappingExposure = 1.12
-          }}>
-          <ambientLight intensity={0.42} color="#c4b0e0" />
-          <directionalLight position={[5, 7, 4]} intensity={1.05} color="#ede4f5" />
-          <directionalLight position={[-4, -1, -3]} intensity={0.35} color="#1B1465" />
-          <pointLight position={[1.2, 0.5, 3.5]} intensity={0.7} color="#F15BB5" distance={14} />
-          {!QUALITY.low ? (
-            <pointLight position={[-2, -1.5, -2]} intensity={0.3} color="#F15BB5" distance={12} />
-          ) : null}
-          <group scale={fill ? 1.35 : 1}>
-            <DNAHelix />
-          </group>
-          <fog attach="fog" args={['#050B1A', fill ? 7 : 9, fill ? 16 : 20]} />
-        </Canvas>
-      ) : null}
-    </div>
-  )
-}
-
-function SensingSection() {
-  const sectionRef = useRef(null)
-  const [progress, setProgress] = useState(0)
-  const [intro, setIntro] = useState(0)
-  const [stacked, setStacked] = useState(false)
-  const senseRef = useRef({ smoothed: 0, intro: 0, stacked: false })
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const sync = () => {
-      senseRef.current.stacked = mq.matches
-      setStacked(mq.matches)
-    }
-    sync()
-    mq.addEventListener?.('change', sync)
-    return () => mq.removeEventListener?.('change', sync)
-  }, [])
-
-  useVisibleRaf(sectionRef, () => {
-    const el = sectionRef.current
-    if (!el) return
-    const s = senseRef.current
-    if (s.stacked) {
-      if (s.smoothed !== 1 || s.intro !== 1) {
-        s.smoothed = 1
-        s.intro = 1
-        setProgress(1)
-        setIntro(1)
-      }
-      return
-    }
-    const vh = window.innerHeight || 1
-    const span = Math.max(1, el.offsetHeight - vh)
-    const raw = clamp(-el.getBoundingClientRect().top / span)
-    s.smoothed = lerp(s.smoothed, raw, 0.12)
-    const rect = el.getBoundingClientRect()
-    const introRaw = clamp((vh * 0.72 - rect.top) / (vh * 0.45))
-    s.intro = lerp(s.intro, introRaw, 0.1)
-    setProgress((prev) => (Math.abs(prev - s.smoothed) < 0.01 ? prev : s.smoothed))
-    setIntro((prev) => (Math.abs(prev - s.intro) < 0.012 ? prev : s.intro))
-  })
-
-  return (
-    <section
-      id="how-it-works"
-      className={`sensing${stacked ? ' is-stacked' : ''}`}
-      ref={sectionRef}
-      aria-labelledby="sensing-heading">
-      <div className="sensing-track">
-        <div className="sensing-sheet">
-          <SensingDNAStage fill={stacked} />
-
-          <div
-            className="sensing-intro"
-            style={
-              stacked
-                ? undefined
-                : {
-                  opacity: clamp(intro),
-                  transform: `translate3d(0, ${(1 - intro) * 28}px, 0)`,
-                }
-            }>
-            <p className="sensing-eyebrow">How Nanopore Sensing Works</p>
-            <h2 id="sensing-heading" className="sensing-heading">
-              <Copy
-                full='Solid-state nanopores act as high-resolution “smart” filters.'
-                short="Nanopores that act as high-resolution smart filters."
-              />
-            </h2>
-            <p className="sensing-lede">
-              <Copy
-                full="Unlike traditional chemical assays, our technology measures individual molecules physically, providing unparalleled sensitivity for detecting trace amounts of cancer biomarkers in blood or urine."
-                short="We measure individual molecules physically — catching trace cancer biomarkers in blood or urine."
-              />
-            </p>
-          </div>
-
-          <div className="sensing-cards">
-            {SENSING_STEPS.map((step, i) => {
-              const start = 0.12 + i * 0.18
-              const show = stacked ? 1 : smoother(start, start + 0.14, progress)
-              return (
-                <article
-                  key={step.num}
-                  className={`sensing-card sensing-card-${step.place}${show > 0.55 ? ' is-shown' : ''}`}
-                  style={
-                    stacked
-                      ? undefined
-                      : {
-                        opacity: show,
-                        '--reveal-y': `${(1 - show) * 28}px`,
-                        visibility: show < 0.02 ? 'hidden' : 'visible',
-                      }
-                  }>
-                  <span className="sensing-card-index" aria-hidden>
-                    {step.num}
-                  </span>
-                  <div className="sensing-card-copy">
-                    <step.Icon className="sensing-card-icon" />
-                    <p className="sensing-card-num">{step.num}</p>
-                    <h3 className="sensing-card-title">{step.title}</h3>
-                    <p className="sensing-card-body">
-                      <Copy full={step.body} short={step.bodyShort} />
-                    </p>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-const IMPACT_STEPS = [
+const ROADMAP = [
   {
     num: '01',
-    kicker: 'Clinical Clinics',
-    title: 'Point-of-Care Diagnosis',
-    body: 'Our compact readout device allows small clinics to perform liquid biopsy tests without sending samples to centralized labs, reducing wait times from weeks to hours.',
-    bodyShort: 'Compact readout lets clinics run liquid biopsies in hours, not weeks.',
-    metric: '90% Faster Results',
+    title: 'Chip Engineering',
+    points: ['Pore geometry', 'Membrane durability', 'Wafer-level characterization'],
   },
   {
     num: '02',
-    kicker: 'Research Labs',
-    title: 'Single Molecule Precision',
-    body: 'Empowering biophysicists and oncologists with the tools to study molecular dynamics, epigenetics, and protein folding in real-time at unprecedented resolution.',
-    bodyShort: 'Study molecular dynamics, epigenetics, and protein folding in real time.',
-    metric: 'Sub-nm Resolution',
+    title: 'Readout Integration',
+    points: ['Current electronics', 'Noise floor', 'Signal acquisition'],
   },
   {
     num: '03',
-    kicker: 'Hospitals',
-    title: 'Large-Scale Screening',
-    body: 'Standardized chips and AI software enable high-throughput screening of entire populations, making early detection a routine part of annual health checkups.',
-    bodyShort: 'Standardized chips and AI make early detection part of routine checkups.',
-    metric: 'Cost Reduction: 60%',
+    title: 'Assay + AI',
+    points: ['Sample workflow', 'Signature models', 'Clinical reporting'],
+  },
+  {
+    num: '04',
+    title: 'Validation & Scale',
+    points: ['Analytical validation', 'Pilot manufacturing', 'Clinic partners'],
   },
 ]
-
-// Flower-of-life mandala (Amaterasu .ecosystem-svg)
-const MANDALA_PETALS = [
-  [336, 123],
-  [458, 209],
-  [549, 328],
-  [458, 453],
-  [336, 532],
-  [215, 453],
-  [123, 328],
-  [214, 209],
-]
-const MANDALA_CORE = [336, 328]
-const MANDALA_R = 122
-
-// Amaterasu .nature-svg circles — settle at (cx,cy); scatter offsets from live transforms
-const NATURE_CIRCLES = [
-  { cls: 'c-1', cx: 889.27, cy: 2617.27, r: 35.77, ox: 308, oy: 501 },
-  { cls: 'c-2', cx: 852.65, cy: 2642.65, r: 97.15, ox: 508, oy: -106 },
-  { cls: 'c-3', cx: 888.5, cy: 2642.5, r: 61, ox: -206, oy: -62 },
-  { cls: 'c-4', cx: 854.215, cy: 2577.22, r: 162.715, ox: -194, oy: 645 },
-  { cls: 'c-5', cx: 960.235, cy: 2577.24, r: 268.735, ox: 203, oy: 187 },
-  { cls: 'c-6', cx: 960.5, cy: 2742.5, r: 434, ox: -879, oy: 164 },
-  { cls: 'c-7', cx: 697.5, cy: 2742.5, r: 697, ox: -251, oy: -399 },
-  { cls: 'c-8', cx: 1350, cy: 1116, r: 1115.5, ox: 446, oy: 1389 },
-]
-
-// Morph settled nature circles into flower-of-life in the same SVG space
-const NATURE_CLUSTER = (() => {
-  const small = NATURE_CIRCLES.slice(0, 5)
-  const w = small.reduce((s, c) => s + 1 / c.r, 0)
-  return [
-    small.reduce((s, c) => s + (c.cx / c.r), 0) / w,
-    small.reduce((s, c) => s + (c.cy / c.r), 0) / w,
-  ]
-})()
-const NATURE_MANDALA_SCALE = 1.55
-const NATURE_MANDALA_R = MANDALA_R * NATURE_MANDALA_SCALE
-
-const NATURE_PETAL_TARGETS = MANDALA_PETALS.map(([x, y]) => [
-  NATURE_CLUSTER[0] + (x - MANDALA_CORE[0]) * NATURE_MANDALA_SCALE,
-  NATURE_CLUSTER[1] + (y - MANDALA_CORE[1]) * NATURE_MANDALA_SCALE,
-])
-
-// Pair each nature circle to a petal by angle so the regroup travels cleanly
-const NATURE_MORPH = (() => {
-  const ang = (x, y) => Math.atan2(y - NATURE_CLUSTER[1], x - NATURE_CLUSTER[0])
-  const petalOrder = [...NATURE_PETAL_TARGETS.keys()].sort(
-    (a, b) => ang(...NATURE_PETAL_TARGETS[a]) - ang(...NATURE_PETAL_TARGETS[b]),
-  )
-  const natOrder = [...NATURE_CIRCLES.keys()].sort(
-    (a, b) => ang(NATURE_CIRCLES[a].cx, NATURE_CIRCLES[a].cy) - ang(NATURE_CIRCLES[b].cx, NATURE_CIRCLES[b].cy),
-  )
-  const petalOf = Array(NATURE_CIRCLES.length)
-  natOrder.forEach((ni, i) => {
-    petalOf[ni] = petalOrder[i]
-  })
-  return NATURE_CIRCLES.map((c, i) => {
-    const [tx, ty] = NATURE_PETAL_TARGETS[petalOf[i]]
-    return { ...c, tx, ty, tr: NATURE_MANDALA_R }
-  })
-})()
-
-const NATURE_NODES = [-90, 30, 150].map((deg, i) => {
-  const a = (deg * Math.PI) / 180
-  return {
-    ...IMPACT_STEPS[i],
-    x: NATURE_CLUSTER[0] + NATURE_MANDALA_R * Math.cos(a),
-    y: NATURE_CLUSTER[1] + NATURE_MANDALA_R * Math.sin(a),
-  }
-})
-
-const NATURE_LINK_PATH = [
-  `M${NATURE_NODES[0].x.toFixed(2)} ${NATURE_NODES[0].y.toFixed(2)}`,
-  `A${NATURE_MANDALA_R} ${NATURE_MANDALA_R} 0 0 1 ${NATURE_NODES[1].x.toFixed(2)} ${NATURE_NODES[1].y.toFixed(2)}`,
-  `A${NATURE_MANDALA_R} ${NATURE_MANDALA_R} 0 0 1 ${NATURE_NODES[2].x.toFixed(2)} ${NATURE_NODES[2].y.toFixed(2)}`,
-  `A${NATURE_MANDALA_R} ${NATURE_MANDALA_R} 0 0 1 ${NATURE_NODES[0].x.toFixed(2)} ${NATURE_NODES[0].y.toFixed(2)}`,
-].join('')
-
-// Tight crop around the formed mandala for mobile full-bleed
-const MANDALA_MOBILE_VIEW = (() => {
-  const pad = NATURE_MANDALA_R * 2.55
-  return [
-    (NATURE_CLUSTER[0] - pad).toFixed(1),
-    (NATURE_CLUSTER[1] - pad).toFixed(1),
-    (pad * 2).toFixed(1),
-    (pad * 2).toFixed(1),
-  ].join(' ')
-})()
-
-function impactBeat(progress, a, b) {
-  return smoother(a, b, progress)
-}
-
-function impactPhase(progress) {
-  // Nature settles, then the same circles morph into the mandala (no crossfade)
-  const natureEnd = 0.34
-  const formEnd = 0.56
-  if (progress < natureEnd) {
-    return { phase: 'nature', step: progress > 0.18 ? 0 : -1, local: clamp((progress - 0.18) / 0.14), form: 0 }
-  }
-  if (progress < formEnd) {
-    return {
-      phase: 'form',
-      step: 0,
-      local: 1,
-      form: impactBeat(progress, natureEnd, formEnd),
-    }
-  }
-  const usable = clamp((progress - formEnd) / (1 - formEnd))
-  const f = usable * IMPACT_STEPS.length
-  const step = Math.min(IMPACT_STEPS.length - 1, Math.floor(f))
-  return { phase: 'traverse', step, local: clamp(f - step), form: 1 }
-}
-
-function ImpactVisionStage({ progressRef, stacked = false }) {
-  const stageRef = useRef(null)
-  const sphereRef = useRef(null)
-  const svgRef = useRef(null)
-  const circleRefs = useRef([])
-  const coreRef = useRef(null)
-  const overlayRef = useRef(null)
-  const linkRef = useRef(null)
-  const nodeRefs = useRef([])
-  const fillRefs = useRef([])
-  const vizRef = useRef({
-    settles: NATURE_MORPH.map(() => 0),
-    morph: 0,
-    natureOp: 0,
-    sphere: 0,
-    linkDraw: 0,
-    nodes: NATURE_NODES.map(() => 0),
-    fills: NATURE_NODES.map(() => 0),
-    core: 0,
-  })
-  const stackedRef = useRef(stacked)
-  stackedRef.current = stacked
-
-  useVisibleRaf(stageRef, () => {
-    const progress = progressRef.current
-    const phase = impactPhase(progress)
-    const step = phase.step
-    const local = phase.local
-    const sphereTarget = impactBeat(progress, 0, 0.22)
-    const circleBase = impactBeat(progress, 0.04, 0.32)
-    const morphTarget = phase.form
-    const natureOpTarget = 0.42 + impactBeat(progress, 0.03, 0.2) * 0.58
-    let linkDrawTarget = 0
-    if (phase.phase === 'form') linkDrawTarget = morphTarget > 0.72 ? ((morphTarget - 0.72) / 0.28) * 0.02 : 0
-    else if (phase.phase === 'traverse') linkDrawTarget = clamp((step + local) / NATURE_NODES.length)
-
-    const v = vizRef.current
-    const easeSlow = 0.08
-    const safeLerp = (a, b, t) => {
-      const from = Number.isFinite(a) ? a : 0
-      const to = Number.isFinite(b) ? b : from
-      return lerp(from, to, t)
-    }
-
-    NATURE_MORPH.forEach((_, i) => {
-      const start = (i / NATURE_MORPH.length) * 0.55
-      v.settles[i] = safeLerp(v.settles[i], smoother(start, start + 0.62, circleBase), easeSlow)
-    })
-    NATURE_NODES.forEach((_, i) => {
-      v.nodes[i] = safeLerp(v.nodes[i], smoother(0.55 + i * 0.06, 0.82 + i * 0.05, morphTarget), easeSlow)
-      const done = phase.phase === 'traverse' && step > i
-      const isActive = phase.phase !== 'nature' && step === i
-      v.fills[i] = safeLerp(v.fills[i], done ? 1 : isActive ? Math.max(local, 0.08) : 0, 0.15)
-    })
-    v.morph = safeLerp(v.morph, morphTarget, easeSlow)
-    v.natureOp = safeLerp(v.natureOp, natureOpTarget, easeSlow)
-    v.sphere = safeLerp(v.sphere, sphereTarget, easeSlow)
-    v.linkDraw = safeLerp(v.linkDraw, linkDrawTarget, 0.14)
-    v.core = safeLerp(v.core, smoother(0.15, 0.65, morphTarget), easeSlow)
-
-    const morph = v.morph
-    const isStacked = stackedRef.current
-    if (sphereRef.current) {
-      sphereRef.current.style.setProperty('--mask-radius', `${16 + v.sphere * 110}vmax`)
-      sphereRef.current.style.setProperty('--mask-y', `${122 - v.sphere * 78}%`)
-      sphereRef.current.style.opacity = String(0.35 + v.sphere * 0.65)
-    }
-    if (svgRef.current) svgRef.current.style.opacity = String(v.natureOp)
-    NATURE_MORPH.forEach((c, i) => {
-      const el = circleRefs.current[i]
-      if (!el) return
-      const settle = v.settles[i]
-      const fromX = c.cx + c.ox * (1 - settle)
-      const fromY = c.cy + c.oy * (1 - settle)
-      el.setAttribute('cx', String(fromX + (c.tx - fromX) * morph))
-      el.setAttribute('cy', String(fromY + (c.ty - fromY) * morph))
-      el.setAttribute('r', String(c.r + (c.tr - c.r) * morph))
-      el.setAttribute('opacity', String(0.22 + settle * 0.78))
-      el.style.strokeWidth = String(isStacked ? 3.2 - morph * 0.9 : 2.2 - morph * 0.85)
-      const lit =
-        step >= 0 &&
-        phase.phase !== 'nature' &&
-        morph > 0.55 &&
-        i === (step * 3) % NATURE_MORPH.length
-      el.classList.toggle('is-lit', lit)
-    })
-    if (coreRef.current) coreRef.current.setAttribute('opacity', String(0.08 + v.core * 0.42))
-    if (overlayRef.current) overlayRef.current.setAttribute('opacity', String(clamp((morph - 0.55) / 0.35)))
-    if (linkRef.current) linkRef.current.style.strokeDashoffset = String(1 - v.linkDraw)
-    NATURE_NODES.forEach((item, i) => {
-      const el = nodeRefs.current[i]
-      if (!el) return
-      const nodeIn = v.nodes[i]
-      const isActive = phase.phase !== 'nature' && step === i
-      const done = phase.phase === 'traverse' && step > i
-      const scale = 0.82 + nodeIn * 0.18 + (isActive ? 0.08 : 0)
-      el.setAttribute('transform', `translate(${item.x} ${item.y}) scale(${scale})`)
-      el.setAttribute('opacity', String(nodeIn))
-      el.classList.toggle('is-active', isActive)
-      el.classList.toggle('is-done', done)
-      const fillEl = fillRefs.current[i]
-      if (fillEl) fillEl.style.strokeDashoffset = String(1 - v.fills[i])
-    })
-  })
-
-  const v0 = vizRef.current
-
-  return (
-    <div className="impact-stage" ref={stageRef} aria-hidden>
-      <div
-        ref={sphereRef}
-        className="impact-sphere"
-        style={{
-          '--mask-radius': `${16 + v0.sphere * 110}vmax`,
-          '--mask-y': `${122 - v0.sphere * 78}%`,
-          opacity: 0.35 + v0.sphere * 0.65,
-        }}
-      />
-
-      <div className="impact-graphics">
-        <svg
-          ref={svgRef}
-          className="impact-nature-svg"
-          viewBox={stacked ? MANDALA_MOBILE_VIEW : '150 1900 1700 1400'}
-          fill="none"
-          preserveAspectRatio="xMidYMid meet"
-          style={{ opacity: v0.natureOp }}>
-          {NATURE_MORPH.map((c, i) => (
-            <circle
-              key={c.cls}
-              ref={(el) => {
-                circleRefs.current[i] = el
-              }}
-              className={`impact-nature-circle ${c.cls}`}
-              cx={c.cx + c.ox}
-              cy={c.cy + c.oy}
-              r={c.r}
-              opacity={0.22}
-              style={{ strokeWidth: stacked ? 3.2 : 2.2 }}
-            />
-          ))}
-
-          <circle
-            ref={coreRef}
-            className="impact-mandala-core"
-            cx={NATURE_CLUSTER[0]}
-            cy={NATURE_CLUSTER[1]}
-            r={NATURE_MANDALA_R}
-            opacity={0.08}
-          />
-
-          <g ref={overlayRef} className="impact-mandala-overlay" opacity={0}>
-            <path className="impact-link-track" d={NATURE_LINK_PATH} />
-            <path
-              ref={linkRef}
-              className="impact-link-progress"
-              d={NATURE_LINK_PATH}
-              pathLength="1"
-              style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
-            />
-
-            {NATURE_NODES.map((item, i) => (
-              <g
-                key={item.num}
-                ref={(el) => {
-                  nodeRefs.current[i] = el
-                }}
-                className="impact-node-svg"
-                transform={`translate(${item.x} ${item.y}) scale(0.82)`}
-                opacity={0}>
-                <circle className="impact-node-halo-svg" r="46" />
-                <circle className="impact-node-disc" r="34" />
-                <circle className="impact-node-ring-track" r="34" />
-                <circle
-                  ref={(el) => {
-                    fillRefs.current[i] = el
-                  }}
-                  className="impact-node-ring-fill"
-                  r="34"
-                  pathLength="1"
-                  style={{ strokeDasharray: 1, strokeDashoffset: 1 }}
-                  transform="rotate(-90)"
-                />
-                <text className="impact-node-label" textAnchor="middle" dominantBaseline="central">
-                  {item.num}
-                </text>
-              </g>
-            ))}
-          </g>
-        </svg>
-      </div>
-    </div>
-  )
-}
-
-function ImpactSection() {
-  return (
-    <section id="impact" className="impact is-stacked is-simple" aria-labelledby="impact-heading">
-      <div className="impact-track">
-        <div className="impact-sheet">
-          <div className="impact-copy">
-            <div className="impact-intro is-docked">
-              <p className="impact-eyebrow" id="impact-heading">
-                Why it stands apart
-              </p>
-              <h2>
-                <Copy
-                  full="We are bridging the gap between cutting-edge biophysics and everyday medical practice."
-                  short="Bridging cutting-edge biophysics and everyday medical practice."
-                />
-              </h2>
-            </div>
-
-            <div className="impact-copy-stack">
-              {IMPACT_STEPS.map((item) => (
-                <article key={item.num} className="impact-step is-active is-settled">
-                  <p className="impact-kicker">
-                    <span className="impact-kicker-dot" aria-hidden />
-                    {item.kicker}
-                  </p>
-                  <h3 className="impact-title">{item.title}</h3>
-                  <p className="impact-body">
-                    <Copy full={item.body} short={item.bodyShort} />
-                  </p>
-                  <p className="impact-metric">{item.metric}</p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
 
 const TRUST_PARTNERS = [
-  {
-    name: 'C-CAMP',
-    role: 'Life Sciences Innovation Hub',
-    src: '/partners/ccamp.jpg',
-  },
-  {
-    name: 'MeitY Startup Hub',
-    role: 'Government Innovation Support',
-    src: '/partners/meity.png',
-  },
-  {
-    name: 'SID-IISc',
-    role: 'Technology Transfer & Incubation',
-    src: '/partners/sid-iisc.jpg',
-  },
-  {
-    name: 'INCENSE',
-    role: 'Deep Tech Incubator',
-    src: '/partners/incense.png',
-  },
+  { name: 'C-CAMP', role: 'Life Sciences Innovation Hub', src: '/partners/ccamp.jpg' },
+  { name: 'MeitY Startup Hub', role: 'Government Innovation Support', src: '/partners/meity.png' },
+  { name: 'SID-IISc', role: 'Technology Transfer & Incubation', src: '/partners/sid-iisc.jpg' },
+  { name: 'INCENSE', role: 'Deep Tech Incubator', src: '/partners/incense.png' },
 ]
-
-function TrustSection() {
-  return (
-    <section id="trust" className="trust" aria-labelledby="trust-heading">
-      <div className="trust-inner">
-        <header className="trust-header">
-          <p className="trust-eyebrow">Network of Trust</p>
-          <h2 id="trust-heading">
-            <Copy
-              full="Backed by leading research institutions and innovation hubs"
-              short="Backed by leading research and innovation hubs"
-            />
-          </h2>
-        </header>
-
-        <ul className="trust-grid">
-          {TRUST_PARTNERS.map((partner) => (
-            <li key={partner.name} className="trust-item">
-              <div className="trust-logo">
-                <img src={partner.src} alt={partner.name} loading="lazy" decoding="async" />
-              </div>
-              <p className="trust-name">{partner.name}</p>
-              <p className="trust-role">{partner.role}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  )
-}
-
-function AboutSection() {
-  const sectionRef = useRef(null)
-  const sheetRef = useRef(null)
-  const [stacked, setStacked] = useState(false)
-  const aboutMq = useRef(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 899px), (max-height: 560px)')
-    const sync = () => {
-      aboutMq.current = mq.matches
-      setStacked(mq.matches)
-    }
-    sync()
-    mq.addEventListener?.('change', sync)
-    return () => mq.removeEventListener?.('change', sync)
-  }, [])
-
-  useVisibleRaf(sectionRef, () => {
-    const el = sectionRef.current
-    const sheet = sheetRef.current
-    if (!el || !sheet) return
-    if (aboutMq.current) {
-      sheet.style.setProperty('--about-orb-x', '50%')
-      sheet.style.setProperty('--about-orb-y', '28%')
-      sheet.style.setProperty('--about-orb-s', '58%')
-      sheet.style.setProperty('--about-orb-o', '0.38')
-      return
-    }
-    const vh = window.innerHeight || 1
-    const span = Math.max(1, el.offsetHeight - vh)
-    const raw = clamp(-el.getBoundingClientRect().top / span)
-    const t = smoother(0, 1, raw)
-    sheet.style.setProperty('--about-orb-x', `${50 + Math.sin(t * Math.PI) * 10}%`)
-    sheet.style.setProperty('--about-orb-y', `${90 - t * 62}%`)
-    sheet.style.setProperty('--about-orb-s', `${34 + t * 52}%`)
-    sheet.style.setProperty('--about-orb-o', String(0.2 + t * 0.42))
-  })
-
-  return (
-    <section
-      id="about"
-      className={`about${stacked ? ' is-stacked' : ''}`}
-      ref={sectionRef}
-      aria-labelledby="about-heading">
-      <div className="about-track">
-        <div className="about-sheet" ref={sheetRef}>
-          <div className="about-orb" aria-hidden />
-          <div className="about-glow" aria-hidden />
-          <div className="about-grain" aria-hidden />
-
-          <div className="about-shell">
-            <div className="about-pane about-pane-left">
-              <p className="about-eyebrow">About Us</p>
-              <h2 id="about-heading">
-                {stacked ? (
-                  <>
-                    Pioneering the next generation of <span>genetic diagnostics.</span>
-                  </>
-                ) : (
-                  <>
-                    Pioneering the next{' '}
-                    <br />
-                    generation of{' '}
-                    <br />
-                    <span>genetic diagnostics.</span>
-                  </>
-                )}
-              </h2>
-              <p className="about-copy">
-                <Copy
-                  full="AAGAMISEQ is pioneering the next generation of genetic diagnostics by leveraging advanced Solid-State Nanopore Technology (SSNT). We provide a fully integrated, end-to-end platform designed to deliver rapid, cost-effective, and highly accurate single-molecule analysis of nucleic acids and proteins. By moving beyond conventional sequencing limitations, AAGAMISEQ enables earlier detection, personalized medicine, and superior research outcomes."
-                  short="AAGAMISEQ uses solid-state nanopore technology for rapid, accurate single-molecule analysis of nucleic acids and proteins — enabling earlier detection and personalized medicine."
-                />
-              </p>
-            </div>
-
-            <div className="about-divider" aria-hidden>
-              <svg className="about-divider-svg about-divider-svg-vert" viewBox="0 0 40 1000" preserveAspectRatio="none">
-                <path
-                  className="about-divider-path"
-                  d="M20 0 C20 220, 20 280, 20 360 C20 430, 4 470, 4 500 C4 530, 20 570, 20 640 C20 720, 20 780, 20 1000"
-                />
-                <path
-                  className="about-divider-glow"
-                  d="M20 0 C20 220, 20 280, 20 360 C20 430, 4 470, 4 500 C4 530, 20 570, 20 640 C20 720, 20 780, 20 1000"
-                  pathLength="1"
-                  strokeDasharray="0.04 0.96"
-                />
-              </svg>
-              <svg className="about-divider-svg about-divider-svg-horiz" viewBox="0 0 1000 40" preserveAspectRatio="none">
-                <path
-                  className="about-divider-path"
-                  d="M0 20 C220 20, 280 20, 360 20 C430 20, 470 4, 500 4 C530 4, 570 20, 640 20 C720 20, 780 20, 1000 20"
-                />
-                <path
-                  className="about-divider-glow"
-                  d="M0 20 C220 20, 280 20, 360 20 C430 20, 470 4, 500 4 C530 4, 570 20, 640 20 C720 20, 780 20, 1000 20"
-                  pathLength="1"
-                  strokeDasharray="0.04 0.96"
-                />
-              </svg>
-            </div>
-
-            <div className="about-pane about-pane-right">
-              <p className="about-eyebrow">Mission</p>
-              <h3 className="about-mission-title">
-                <Copy
-                  full="To democratize genetic insights for a healthier world."
-                  short="Democratize genetic insights for a healthier world."
-                />
-              </h3>
-              <p className="about-copy">
-                <Copy
-                  full="The future of medicine is personal, and at its core lies rapid, accurate, and accessible genetic information. However, current sequencing technologies face limitations in speed, cost, and complexity—creating a bottleneck for widespread clinical adoption. AAGAMISEQ was founded to break this barrier. Our mission is to democratize genetic diagnostics by pioneering a fully integrated solid-state nanopore sequencing platform, delivering actionable insights from sample to result with unprecedented efficiency."
-                  short="Current sequencing is too slow, costly, and complex for the clinic. We built an integrated nanopore platform to make genetic insights fast, accurate, and accessible."
-                />
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
 
 const TEAM_MEMBERS = [
   {
     name: 'Prof. Manoj Varma',
     role: 'Founder | R&D Advisor',
-    bio: 'Leading research and development initiatives, bringing decades of expertise in nanoscale engineering and semiconductor physics to drive innovation at AAGAMISEQ.',
-    bioShort: 'Nanoscale engineering and semiconductor physics, leading R&D.',
+    bio: 'Nanoscale engineering and semiconductor physics, leading R&D.',
     src: '/team/manoj.jpg',
   },
   {
     name: 'Divya Mohan Yadav, PhD',
     role: 'Founder | CEO',
-    bio: "Spearheading the company's vision and strategic direction, combining deep scientific expertise with entrepreneurial leadership to revolutionize cancer diagnostics.",
-    bioShort: 'Scientific expertise and entrepreneurial leadership as CEO.',
+    bio: 'Scientific expertise and entrepreneurial leadership as CEO.',
     src: '/team/divya.jpg',
   },
   {
     name: 'Muddukrishna P',
     role: 'Founder | CPO',
-    bio: 'Driving product development and engineering excellence, translating cutting-edge research into practical, scalable diagnostic solutions.',
-    bioShort: 'Product and engineering — from research to scalable diagnostics.',
+    bio: 'Product and engineering — from research to scalable diagnostics.',
     src: '/team/muddu.jpeg',
   },
   {
     name: 'Anumol Dominic, PhD',
     role: 'Lead Fabrication Engg',
-    bio: 'Driving nanopore chip development and process optimization end-to-end, ensuring reliable fabrication, reproducibility, and scalable, production-ready performance.',
-    bioShort: 'Nanopore chip fabrication, reproducibility, and scale.',
+    bio: 'Nanopore chip fabrication, reproducibility, and scale.',
     src: '/team/anumol.jpeg',
   },
 ]
 
-function TeamSection() {
-  const [active, setActive] = useState(-1)
-
-  return (
-    <section id="team" className="team" aria-labelledby="team-heading">
-      <div className="team-inner">
-        <header className="team-header">
-          <div className="team-header-copy">
-            <p className="team-eyebrow">The Team</p>
-            <h2 id="team-heading">
-              <Copy
-                full={
-                  <>
-                    The Minds
-                    <br />
-                    Behind
-                    <br />
-                    <span>the Innovation.</span>
-                  </>
-                }
-                short={
-                  <>
-                    The minds behind
-                    <br />
-                    <span>the innovation.</span>
-                  </>
-                }
-              />
-            </h2>
-          </div>
-          <p className="team-lede">
-            <Copy
-              full="Our interdisciplinary team combines expertise in quantum physics, semiconductor engineering, and clinical oncology to redefine the future of diagnostics."
-              short="Quantum physics, semiconductor engineering, and clinical oncology — together to redefine diagnostics."
-            />
-          </p>
-        </header>
-
-        <ul className={`team-grid${active >= 0 ? ' is-active' : ''}`}>
-          {TEAM_MEMBERS.map((member, i) => (
-            <li key={member.name}>
-              <article
-                className={`team-card${active === i ? ' is-hot' : ''}${active >= 0 && active !== i ? ' is-dim' : ''}`}
-                tabIndex={0}
-                onMouseEnter={() => setActive(i)}
-                onMouseLeave={() => setActive(-1)}
-                onFocus={() => setActive(i)}
-                onBlur={() => setActive(-1)}>
-                <div className="team-card-photo">
-                  <img src={member.src} alt={member.name} loading="lazy" decoding="async" />
-                </div>
-                <p className="team-card-name">{member.name}</p>
-                <p className="team-card-role">{member.role}</p>
-                <p className="team-card-bio">
-                  <Copy full={member.bio} short={member.bioShort} />
-                </p>
-              </article>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  )
+function scrollToId(id) {
+  if (id === 'hero') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
-const NAV_LINKS = [
-  { id: 'hero', label: 'Home' },
-  { id: 'ecosystem', label: 'Ecosystem' },
-  { id: 'how-it-works', label: 'Sensing' },
-  { id: 'impact', label: 'Impact' },
-  { id: 'about', label: 'About' },
-  { id: 'trust', label: 'Network' },
-  { id: 'team', label: 'Team' },
-]
-
-function SiteFooter() {
+export default function App() {
   return (
-    <footer id="contact" className="site-footer">
-      <div className="site-footer-inner">
-        <div className="site-footer-cta">
-          <h2 className="site-footer-title">
-            Let&apos;s solve
-            <br />
-            <span>Cancer together.</span>
-          </h2>
-          <p className="site-footer-lede">
-            <Copy
-              full="Interested in learning more about our technology or exploring partnership opportunities? We'd love to hear from you."
-              short="Want to learn more or partner with us? We'd love to hear from you."
-            />
-          </p>
-        </div>
-
-        <div className="site-footer-grid">
-          <div className="site-footer-block">
-            <p className="site-footer-label">Email Us</p>
-            <a className="site-footer-link" href="mailto:contact@aagamiseq.com">
-              contact@aagamiseq.com
-            </a>
-          </div>
-          <div className="site-footer-block">
-            <p className="site-footer-label">Our Headquarters</p>
-            <p className="site-footer-address">
-              INCeNSE Office, CeNSE, IISc,
-              <br />
-              Bengaluru, Karnataka 560012
-            </p>
-          </div>
-          <div className="site-footer-block site-footer-brand">
-            <p className="site-footer-brand-name">AAGAMISEQ</p>
-            <p className="site-footer-brand-copy">
-              <Copy
-                full="Pioneering early cancer detection through advanced nanopore DNA sequencing technology."
-                short="Early cancer detection through nanopore DNA sequencing."
-              />
-            </p>
-          </div>
-        </div>
-
-        <div className="site-footer-bottom">
-          <p className="site-footer-legal">© 2026 AagamiSEQ Technologies. All rights reserved.</p>
-          <p className="site-footer-credit">
-            Website crafted by{' '}
-            <a href="https://imaad6.vercel.app" target="_blank" rel="noopener noreferrer">
-              Imaad
-            </a>
-          </p>
-        </div>
-      </div>
-
-      <div className="site-footer-mark" aria-hidden="true">
-        <p className="site-footer-mark-text">AAGAMISEQ</p>
-      </div>
-    </footer>
+    <main>
+      <SiteNav />
+      <HeroSection />
+      <HowItWorksSection />
+      <PlatformSection />
+      <ArchitectureSection />
+      <StandsApartSection />
+      <RoadmapSection />
+      <AboutSection />
+      <TrustSection />
+      <TeamSection />
+      <SiteFooter />
+    </main>
   )
 }
 
 function SiteNav() {
   const [open, setOpen] = useState(false)
-
   const go = (id) => {
     setOpen(false)
-    if (id === 'hero') {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
-      return
-    }
-    const el = document.getElementById(id)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    scrollToId(id)
   }
 
   useEffect(() => {
@@ -1661,6 +227,10 @@ function SiteNav() {
           ))}
         </nav>
 
+        <a className="site-nav-cta" href="#contact" onClick={(e) => { e.preventDefault(); go('contact') }}>
+          Partner with us
+        </a>
+
         <button
           type="button"
           className={`site-nav-toggle${open ? ' is-open' : ''}`}
@@ -1677,10 +247,7 @@ function SiteNav() {
         </button>
       </div>
 
-      <div
-        id="site-nav-menu"
-        className={`site-nav-panel${open ? ' is-open' : ''}`}
-        aria-hidden={!open}>
+      <div id="site-nav-menu" className={`site-nav-panel${open ? ' is-open' : ''}`} aria-hidden={!open}>
         <button type="button" className="site-nav-backdrop" aria-label="Close menu" tabIndex={open ? 0 : -1} onClick={() => setOpen(false)} />
         <nav className="site-nav-drawer" aria-label="Mobile">
           <p className="site-nav-drawer-kicker">Navigate</p>
@@ -1700,890 +267,438 @@ function SiteNav() {
   )
 }
 
-// ── Atmosphere ─────────────────────────────────────────────────────────────
-function Atmosphere() {
-  const fogRef = useRef()
-  const fogTick = useRef(0)
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime * 0.08
-    const w1 = (Math.sin(t) + 1) * 0.5
-    const w2 = (Math.sin(t * 0.7 + 1.2) + 1) * 0.5
-    _fogNow.copy(_fogA).lerp(_fogB, w1).lerp(_fogC, w2 * 0.45)
-    if (fogRef.current) fogRef.current.color.copy(_fogNow)
-    fogTick.current += 1
-    if (fogTick.current % 8 === 0) {
-      document.documentElement.style.setProperty('--fog-r', String(Math.round(_fogNow.r * 255)))
-      document.documentElement.style.setProperty('--fog-g', String(Math.round(_fogNow.g * 255)))
-      document.documentElement.style.setProperty('--fog-b', String(Math.round(_fogNow.b * 255)))
-    }
-  })
-
-  return <fog ref={fogRef} attach="fog" args={['#050B1A', 14, 42]} />
-}
-
-/** DNA strand threading the nanopore — calm hero focus (replaces molecule swarm). */
-function HeroDNA() {
-  const group = useRef()
-  useFrame((state, delta) => {
-    if (!group.current) return
-    const p = progressApi.current
-    const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
-    const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
-    const y = lerp(0.35, -1.2, transit) + dive * -2.4
-    group.current.position.y = lerp(group.current.position.y, y, 1 - Math.exp(-delta * 3.2))
-    group.current.rotation.y += delta * 0.12
-    const fade = 1 - smoother(BEATS.brandRevealStart, BEATS.brandRevealEnd, p)
-    group.current.visible = fade > 0.04
-    group.current.scale.setScalar(0.92 + fade * 0.08)
-  })
+function HeroSection() {
   return (
-    <group ref={group} position={[0, 0.35, 0]} scale={0.95}>
-      <DNAHelix />
-    </group>
+    <section id="hero" className="hero">
+      <div className="hero-inner">
+        <div className="hero-copy">
+          <p className="hero-kicker">Solid-state nanopore platform</p>
+          <h1>
+            From Molecules
+            <br />
+            <span>to Answers.</span>
+          </h1>
+          <p className="hero-lede">
+            Building an affordable molecular diagnostics platform for earlier cancer detection.
+          </p>
+          <div className="hero-actions">
+            <a
+              className="btn-primary"
+              href="#how-it-works"
+              onClick={(e) => {
+                e.preventDefault()
+                scrollToId('how-it-works')
+              }}>
+              Our Technology
+              <span aria-hidden>→</span>
+            </a>
+          </div>
+          <ul className="hero-chips">
+            {VALUE_CHIPS.map(({ label, Icon }) => (
+              <li key={label}>
+                <Icon className="hero-chip-icon" />
+                {label}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="hero-visual">
+          <PoreStage />
+          <aside className="hero-callout">
+            <span className="hero-callout-dot" aria-hidden />
+            Detecting cancer biomarkers in single-molecule time.
+          </aside>
+        </div>
+      </div>
+    </section>
   )
 }
 
-/** Keep WebGL buffer matched to the sticky stage — critical on mobile resize / device mode */
-function CanvasSizeSync() {
-  const gl = useThree((s) => s.gl)
-  const setSize = useThree((s) => s.setSize)
-  const size = useThree((s) => s.size)
+function DNAHelix({ tilt = 0.35 }) {
+  const group = useRef()
+  const { strandA, strandB, pairs, sugarsA, sugarsB, tubular } = useMemo(() => {
+    const count = QUALITY.dnaCount
+    const height = 9.6
+    const radius = 1.05
+    const turns = count / 10.5
+    const pointsA = []
+    const pointsB = []
+    const sugarsA = []
+    const sugarsB = []
+    const pairData = []
 
-  useEffect(() => {
-    const el = gl.domElement?.parentElement
-    if (!el) return undefined
-    const sync = () => {
-      const w = el.clientWidth
-      const h = el.clientHeight
-      if (w < 2 || h < 2) return
-      if (Math.abs(w - size.width) > 1 || Math.abs(h - size.height) > 1) {
-        setSize(w, h)
+    for (let i = 0; i < count; i++) {
+      const u = i / (count - 1)
+      const t = u * turns * Math.PI * 2
+      const y = (u - 0.5) * height
+      const rx = radius * (1 + 0.04 * Math.sin(t * 2))
+      const rz = radius * (1 - 0.03 * Math.sin(t * 2))
+      const ax = Math.cos(t) * rx
+      const az = Math.sin(t) * rz
+      const bx = Math.cos(t + Math.PI) * rx
+      const bz = Math.sin(t + Math.PI) * rz
+      pointsA.push(new THREE.Vector3(ax, y, az))
+      pointsB.push(new THREE.Vector3(bx, y, bz))
+      if (QUALITY.dnaSugars) {
+        sugarsA.push([ax * 0.92, y, az * 0.92])
+        sugarsB.push([bx * 0.92, y, bz * 0.92])
       }
-    }
-    sync()
-    const ro = new ResizeObserver(sync)
-    ro.observe(el)
-    window.addEventListener('resize', sync)
-    window.visualViewport?.addEventListener('resize', sync)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', sync)
-      window.visualViewport?.removeEventListener('resize', sync)
-    }
-  }, [gl, setSize, size.width, size.height])
-
-  return null
-}
-
-/** Own rAF loop — avoids blank canvas when the host stalls r3f's internal frameloop */
-function FrameLoopGuard({ active = true }) {
-  const gl = useThree((s) => s.gl)
-  const scene = useThree((s) => s.scene)
-  const camera = useThree((s) => s.camera)
-  const advance = useThree((s) => s.advance)
-
-  useEffect(() => {
-    if (!active) return undefined
-    let raf = 0
-    let running = true
-    const tick = (now) => {
-      raf = 0
-      if (!running || document.hidden) return
-      try {
-        advance(now / 1000, true)
-        gl.render(scene, camera)
-      } catch (_) {
-        try {
-          gl.render(scene, camera)
-        } catch (__) {
-          /* ignore */
-        }
-      }
-      raf = requestAnimationFrame(tick)
-    }
-    const start = () => {
-      if (!raf && running && !document.hidden) raf = requestAnimationFrame(tick)
-    }
-    const onVis = () => {
-      if (document.hidden) {
-        if (raf) {
-          cancelAnimationFrame(raf)
-          raf = 0
-        }
-      } else {
-        start()
-      }
-    }
-    document.addEventListener('visibilitychange', onVis)
-    start()
-    return () => {
-      running = false
-      if (raf) cancelAnimationFrame(raf)
-      document.removeEventListener('visibilitychange', onVis)
-    }
-  }, [advance, gl, scene, camera, active])
-
-  return null
-}
-
-// ── CameraRig — elevated side view; tracks hero descending from top ────────
-function CameraRig() {
-  const { camera, size } = useThree()
-
-  useFrame((_, delta) => {
-    const p = progressApi.current
-    const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
-    const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
-
-    const aspect = size.width / Math.max(1, size.height)
-    let zMul = 1
-    let fovExtra = 0
-    if (aspect < 0.75) {
-      const t = clamp((aspect - 0.42) / 0.33)
-      zMul = lerp(1.18, 1.04, t)
-      fovExtra = lerp(5, 2, t)
-    } else if (aspect > 1.65) {
-      const t = clamp((aspect - 1.65) / 0.55)
-      zMul = lerp(1, 0.9, t)
+      const mx = (ax + bx) * 0.5
+      const mz = (az + bz) * 0.5
+      const dx = bx - ax
+      const dz = bz - az
+      const len = Math.hypot(dx, dz)
+      pairData.push({ mx, y, mz, len, angle: Math.atan2(dz, dx), thick: i % 2 === 0 ? 0.038 : 0.048 })
     }
 
-    // Steady three-quarter view on DNA through pore — less camera drama
-    const camX = lerp(1.6, 0.9, brand)
-    const camY = lerp(2.2, 1.35, focus) * (1 - brand * 0.15)
-    const camZ = lerp(10.2, 9.4, focus) * zMul
-    cameraTarget.set(camX, camY, camZ)
-    lookAtTarget.set(0, lerp(0.15, 0.05, brand), 0)
-
-    camera.position.lerp(cameraTarget, 1 - Math.exp(-delta * 2.4))
-    camera.lookAt(lookAtTarget)
-    camera.fov = 34 + fovExtra
-    camera.updateProjectionMatrix()
-  })
-
-  return null
-}
-
-// Soft glow that follows the cursor — stronger toward the top of the frame
-function CursorGlow() {
-  const light = useRef()
-  const soft = useRef()
-  const target = useRef(new THREE.Vector3(0, 2.5, 2))
-  const { camera } = useThree()
-  const pointer = useRef({ x: 0, y: 0 })
-
-  useEffect(() => {
-    const onMove = (e) => {
-      pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1
-      pointer.current.y = -(e.clientY / window.innerHeight) * 2 + 1
+    return {
+      strandA: new THREE.CatmullRomCurve3(pointsA),
+      strandB: new THREE.CatmullRomCurve3(pointsB),
+      pairs: pairData,
+      sugarsA,
+      sugarsB,
+      tubular: QUALITY.dnaTubular,
     }
-    window.addEventListener('pointermove', onMove, { passive: true })
-    return () => window.removeEventListener('pointermove', onMove)
   }, [])
 
   useFrame((_, delta) => {
-    if (!light.current || !soft.current) return
-    const px = pointer.current.x
-    const py = pointer.current.y
-
-    _cursorDir.set(px, py, 0.32).unproject(camera)
-    _cursorDir.sub(camera.position).normalize()
-    target.current.copy(camera.position).addScaledVector(_cursorDir, 6.5)
-    // Pull the glow up when cursor is in the upper region of the screen
-    const topBias = Math.max(0, py)
-    target.current.y += 0.6 + topBias * 2.4
-
-    const ease = 1 - Math.exp(-delta * 9)
-    light.current.position.lerp(target.current, ease)
-    soft.current.position.lerp(target.current, ease * 0.85)
-
-    // Stronger when aiming toward the top
-    light.current.intensity = 2.2 + topBias * 2.0
-    soft.current.intensity = 1.1 + topBias * 1.4
+    if (group.current) group.current.rotation.y += delta * 0.18
   })
 
   return (
-    <>
-      <pointLight ref={light} color="#F15BB5" intensity={1.6} distance={14} decay={1.7} />
-      <pointLight ref={soft} color="#8B74B8" intensity={0.8} distance={18} decay={1.5} />
-    </>
-  )
-}
-
-// ── AtomMaterial ───────────────────────────────────────────────────────────
-function AtomMaterial({ color, preset, emissiveBoost = 0 }) {
-  const p = MAT_PRESETS[preset % MAT_PRESETS.length]
-  return (
-    <meshStandardMaterial
-      color={color}
-      emissive={color}
-      emissiveIntensity={p.emissiveIntensity + emissiveBoost}
-      metalness={p.metalness}
-      roughness={p.roughness}
-      transparent={p.opacity < 0.98}
-      opacity={p.opacity}
-      depthWrite={p.opacity > 0.7}
-    />
-  )
-}
-
-// ── StructureMesh ──────────────────────────────────────────────────────────
-function StructureMesh({ structureIndex, matPreset }) {
-  const def = STRUCTURES[structureIndex % STRUCTURES.length]
-  const bondColor = matPreset % 2 === 0 ? BOND_DARK : BOND_MID
-
-  return (
-    <group>
-      <mesh scale={def.coreR} geometry={GEO_CORE}>
-        <AtomMaterial color={def.core} preset={matPreset} />
+    <group ref={group} rotation={[0.18, tilt, 0.08]} scale={0.92}>
+      <mesh>
+        <tubeGeometry args={[strandA, tubular[0], 0.078, tubular[1], false]} />
+        <meshStandardMaterial color="#F15BB5" metalness={0.2} roughness={0.28} />
       </mesh>
-      {def.tips.map((tip, i) => {
-        const mid = [tip.pos[0] * 0.5, tip.pos[1] * 0.5, tip.pos[2] * 0.5]
-        const length = Math.hypot(tip.pos[0], tip.pos[1], tip.pos[2]) * 0.68
-        const tipPreset = (matPreset + i) % MAT_PRESETS.length
-        return (
-          <group key={i}>
-            <mesh position={mid} quaternion={bondQuat(tip.pos)} scale={[1, length, 1]} geometry={GEO_BOND}>
-              <meshStandardMaterial
-                color={bondColor}
-                metalness={0.4}
-                roughness={0.5}
-                transparent={MAT_PRESETS[matPreset].opacity < 0.9}
-                opacity={Math.min(1, MAT_PRESETS[matPreset].opacity + 0.15)}
-              />
-            </mesh>
-            <mesh position={tip.pos} scale={tip.r} geometry={GEO_TIP}>
-              <AtomMaterial color={tip.color} preset={tipPreset} />
-            </mesh>
-          </group>
-        )
-      })}
-    </group>
-  )
-}
-
-// ── FieldMolecules ─────────────────────────────────────────────────────────
-const COUNT = QUALITY.molecules
-
-function FieldMolecules() {
-  const fadeRef = useRef(1)
-
-  // current world-space XZ positions for every molecule — written each frame
-  // by HoverMolecule, then the separation pass reads + adjusts them
-  const posXZ = useRef(null)  // Float32Array [x0,z0, x1,z1, ...]
-  const posY = useRef(null)  // Float32Array [y0, y1, ...]
-
-  const layout = useMemo(() => {
-    posXZ.current = new Float32Array(COUNT * 2)
-    posY.current = new Float32Array(COUNT)
-    const items = []
-    for (let i = 0; i < COUNT; i += 1) {
-      const scale = 0.35 + seededRandom(i + 51) * 0.45
-      const structure = Math.floor(seededRandom(i + 99) * STRUCTURES.length)
-      const coreR = STRUCTURES[structure].coreR
-      const boundR = (coreR + 0.45) * scale
-      items.push({
-        base: [
-          (seededRandom(i + 2) - 0.5) * 16,
-          // Keep field molecules above the membrane — only the hero threads the pore
-          0.95 + seededRandom(i + 19) * 4.8,
-          -1 + (seededRandom(i + 37) - 0.5) * 10,
-        ],
-        scale,
-        drift: 0.18 + seededRandom(i + 67) * 0.44,
-        phase: seededRandom(i + 83) * Math.PI * 2,
-        structure,
-        matPreset: Math.floor(seededRandom(i + 111) * MAT_PRESETS.length),
-        boundR,
-        idx: i,
-        // Own-axis tumble rates (rad/sec) — each molecule spins differently
-        spinX: (seededRandom(i + 130) - 0.5) * 1.4,
-        spinY: (0.35 + seededRandom(i + 140) * 1.1) * (seededRandom(i + 141) > 0.5 ? 1 : -1),
-        spinZ: (seededRandom(i + 150) - 0.5) * 1.2,
-      })
-    }
-    return items
-  }, [])
-
-  useFrame((_state) => {
-    // Runs at default priority 0 with HeroSphere; molecules resolve after (priority 1)
-    const p = progressApi.current
-    const clear = smooth(BEATS.clearStart, BEATS.clearEnd, p)
-    const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
-    fadeRef.current = (1 - focus * 0.25) * (1 - clear)
-
-    if (!posXZ.current || fadeRef.current <= 0.04) return
-    const px = posXZ.current
-    const n = COUNT
-
-    const passes = QUALITY.low ? 1 : 2
-    for (let iter = 0; iter < passes; iter++) {
-      for (let a = 0; a < n; a++) {
-        const ax = px[a * 2]
-        const az = px[a * 2 + 1]
-        const ra = layout[a].boundR
-        for (let b = a + 1; b < n; b++) {
-          const bx = px[b * 2]
-          const bz = px[b * 2 + 1]
-          const rb = layout[b].boundR
-          const dx = ax - bx
-          const dz = az - bz
-          const distSq = dx * dx + dz * dz
-          const minDist = ra + rb
-          if (distSq < minDist * minDist && distSq > 0.0001) {
-            const dist = Math.sqrt(distSq)
-            const push = (minDist - dist) * 0.5
-            const nx = (dx / dist) * push
-            const nz = (dz / dist) * push
-            px[a * 2] += nx
-            px[a * 2 + 1] += nz
-            px[b * 2] -= nx
-            px[b * 2 + 1] -= nz
-          }
-        }
-      }
-    }
-  })
-
-  return (
-    <>
-      {layout.map((item) => (
-        <HoverMolecule key={item.idx} item={item} fadeRef={fadeRef} posXZ={posXZ} posY={posY} />
-      ))}
-    </>
-  )
-}
-
-// ── HoverMolecule ──────────────────────────────────────────────────────────
-function HoverMolecule({ item, fadeRef, posXZ, posY }) {
-  const group = useRef()
-  const hovered = useRef(false)
-  const swayX = useRef(0)
-  const swayY = useRef(0)
-  const swayZ = useRef(0)
-  const velX = useRef(0)
-  const velY = useRef(0)
-  const velZ = useRef(0)
-  const wasHovered = useRef(false)
-
-  useFrame((state, delta) => {
-    if (!group.current) return
-    const t = state.clock.elapsedTime
-    const fade = fadeRef.current
-    const idx = item.idx
-
-    if (fade <= 0.04) {
-      group.current.visible = false
-      return
-    }
-    group.current.visible = true
-
-    const isHov = hovered.current
-
-    // Fresh hover → kick in a random 3D direction (unlocked sway only — no color/scale)
-    if (isHov && !wasHovered.current) {
-      const a = Math.random() * Math.PI * 2
-      const b = (Math.random() - 0.5) * Math.PI
-      const strength = 1.1 + Math.random() * 0.8
-      velX.current += Math.cos(a) * Math.cos(b) * strength
-      velY.current += Math.sin(b) * strength * 0.65
-      velZ.current += Math.sin(a) * Math.cos(b) * strength
-    }
-    wasHovered.current = isHov
-
-    const drag = Math.pow(0.02, delta)
-    velX.current *= drag
-    velY.current *= drag
-    velZ.current *= drag
-    swayX.current += velX.current * delta
-    swayY.current += velY.current * delta
-    swayZ.current += velZ.current * delta
-
-    const sdist = Math.hypot(swayX.current, swayY.current, swayZ.current)
-    if (sdist > 2.8) {
-      const pull = (sdist - 2.8) * 0.35 * delta
-      swayX.current -= (swayX.current / sdist) * pull
-      swayY.current -= (swayY.current / sdist) * pull
-      swayZ.current -= (swayZ.current / sdist) * pull
-    }
-
-    const orbX = item.base[0] + Math.cos(t * item.drift * 0.65 + item.phase) * 0.3 + swayX.current
-    const orbY = item.base[1] + Math.sin(t * item.drift + item.phase) * 0.22 + swayY.current
-    const orbZ = item.base[2] + Math.sin(t * item.drift * 0.5 + item.phase) * 0.25 + swayZ.current
-    if (posXZ.current) {
-      posXZ.current[idx * 2] = orbX
-      posXZ.current[idx * 2 + 1] = orbZ
-    }
-
-    const finalX = posXZ.current ? posXZ.current[idx * 2] : orbX
-    const finalZ = posXZ.current ? posXZ.current[idx * 2 + 1] : orbZ
-
-    let y = orbY
-
-    // Bounce off the nanopore membrane — field molecules never pass through
-    // (only the hero sphere may thread the pore)
-    const floor = MEMBRANE_Y + item.boundR * 0.85 + 0.05
-    const xzDist = Math.hypot(finalX, finalZ)
-    if (y < floor) {
-      y = floor + Math.abs(floor - y) * 0.15
-      if (velY.current < 0) velY.current = Math.abs(velY.current) * 0.55 + 0.15
-      if (swayY.current < 0) swayY.current *= -0.4
-      // Nudge away from the pore opening so they don't nest in the hole
-      if (xzDist < PORE_RADIUS * 1.35 && xzDist > 0.001) {
-        const push = (PORE_RADIUS * 1.35 - xzDist) * 0.08
-        const nx = finalX / xzDist
-        const nz = finalZ / xzDist
-        if (posXZ.current) {
-          posXZ.current[idx * 2] += nx * push
-          posXZ.current[idx * 2 + 1] += nz * push
-        }
-      }
-    }
-
-    let px = posXZ.current ? posXZ.current[idx * 2] : finalX
-    let py = y
-    let pz = posXZ.current ? posXZ.current[idx * 2 + 1] : finalZ
-
-    // Bounce off the hero — resolve position only (safe, no kick spam)
-    const hdx = px - heroApi.x
-    const hdy = py - heroApi.y
-    const hdz = pz - heroApi.z
-    const hDistSq = hdx * hdx + hdy * hdy + hdz * hdz
-    const minHero = item.boundR + heroApi.r * 1.05
-    if (Number.isFinite(hDistSq) && hDistSq < minHero * minHero) {
-      let hDist = Math.sqrt(Math.max(hDistSq, 1e-8))
-      let nx = hdx / hDist
-      let ny = hdy / hDist
-      let nz = hdz / hDist
-      if (hDist < 1e-4) {
-        nx = 1
-        ny = 0.25
-        nz = 0
-        hDist = 1e-4
-      }
-      const push = minHero - hDist
-      px += nx * push
-      py += ny * push
-      pz += nz * push
-
-      const rawX = item.base[0] + Math.cos(t * item.drift * 0.65 + item.phase) * 0.3
-      const rawY = item.base[1] + Math.sin(t * item.drift + item.phase) * 0.22
-      const rawZ = item.base[2] + Math.sin(t * item.drift * 0.5 + item.phase) * 0.25
-      swayX.current = px - rawX
-      swayY.current = py - rawY
-      swayZ.current = pz - rawZ
-
-      const vn = velX.current * nx + velY.current * ny + velZ.current * nz
-      if (vn < 0) {
-        velX.current -= nx * vn
-        velY.current -= ny * vn
-        velZ.current -= nz * vn
-      }
-      if (posXZ.current) {
-        posXZ.current[idx * 2] = px
-        posXZ.current[idx * 2 + 1] = pz
-      }
-    }
-
-    if (!Number.isFinite(px) || !Number.isFinite(py) || !Number.isFinite(pz)) {
-      px = item.base[0]
-      py = item.base[1]
-      pz = item.base[2]
-      swayX.current = 0
-      swayY.current = 0
-      swayZ.current = 0
-    }
-
-    group.current.position.set(px, py, pz)
-    // Continuous tumble on own axes (not camera-locked)
-    group.current.rotation.x += (item.spinX || 0) * delta
-    group.current.rotation.y += (item.spinY || 0) * delta
-    group.current.rotation.z += (item.spinZ || 0) * delta
-    group.current.scale.setScalar(item.scale * (0.5 + fade * 0.5))
-  }, 1)
-
-  return (
-    <group
-      ref={group}
-      onPointerOver={(e) => {
-        e.stopPropagation()
-        hovered.current = true
-        document.body.style.cursor = 'pointer'
-      }}
-      onPointerOut={() => {
-        hovered.current = false
-        document.body.style.cursor = 'auto'
-      }}>
-      <StructureMesh structureIndex={item.structure} matPreset={item.matPreset} />
-    </group>
-  )
-}
-
-// ── HeroSphere — pore → dive off-screen (stays gone; never returns to brand)
-const heroTarget = new THREE.Vector3()
-
-function heroSizeAt(p, focus, transit, dive) {
-  const sIdle = 0.34
-  const sFocus = 0.5
-  const sPost = 0.44
-  const sOff = 0.4
-  if (p <= BEATS.focusEnd) return lerp(sIdle, sFocus, focus)
-  if (p <= BEATS.transitEnd) return lerp(sFocus, sPost, transit)
-  if (p <= BEATS.diveEnd) return lerp(sPost, sOff, dive)
-  return sOff
-}
-
-function HeroSphere() {
-  const mesh = useRef()
-  const mat = useRef()
-  const scaleRef = useRef(0.34)
-
-  useFrame((state, delta) => {
-    if (!mesh.current || !mat.current) return
-    const p = progressApi.current
-    const t = state.clock.elapsedTime
-    const focus = smooth(BEATS.focusStart, BEATS.focusEnd, p)
-    const poreReady = smooth(BEATS.poreInStart, BEATS.poreInEnd, p)
-    const transit = smooth(BEATS.transitStart, BEATS.transitEnd, p)
-    const dive = smoother(BEATS.diveStart, BEATS.diveEnd, p)
-    const brand = smooth(BEATS.brandStart, BEATS.brandEnd, p)
-    const offDown = { x: 0, y: -7.8, z: 0.04 }
-    // Soft exit once the dive finishes — never reappear at the title
-    const exitFade = p <= BEATS.diveEnd ? 0 : clamp((p - BEATS.diveEnd) / 0.06)
-
-    if (p < BEATS.transitStart) {
-      // Fully into the field by half of the manifesto's first "D"
-      const halfD = BEATS.manifestoFillStart + (0.5 / MANIFESTO.length) * (BEATS.manifestoFillEnd - BEATS.manifestoFillStart)
-      const fromNav = smooth(0, halfD, p)
-      const reveal = Math.max(fromNav, focus)
-      const hoverY = lerp(7.35, lerp(4.55, lerp(2.4, 1.45, poreReady), focus), reveal)
-      const hoverZ = lerp(-1.35, 0.06, reveal)
-      heroTarget.set(
-        Math.sin(t * 0.28) * 0.05 * reveal * (1 - focus * 0.5),
-        hoverY + Math.cos(t * 0.32) * 0.035 * reveal * (1 - focus * 0.7),
-        hoverZ,
-      )
-    } else if (p < BEATS.diveEnd) {
-      // Single ease only — double smoothstep made the mid-drop race
-      const through = transit
-      const down = dive
-      const yThrough = lerp(1.45, -1.55, through)
-      const yOff = lerp(-1.55, offDown.y, down)
-      heroTarget.set(Math.sin(t * 0.1) * 0.015 * (1 - down), lerp(yThrough, yOff, down), 0.04)
-    } else {
-      heroTarget.set(offDown.x, offDown.y, offDown.z)
-    }
-
-    const follow = 1 - Math.exp(-delta * 5)
-    mesh.current.position.lerp(heroTarget, follow)
-
-    mesh.current.rotation.x += delta * 0.55
-    mesh.current.rotation.y += delta * 0.85
-    mesh.current.rotation.z += delta * 0.28
-
-    const sizeTarget = heroSizeAt(p, focus, transit, dive)
-    scaleRef.current = lerp(scaleRef.current, sizeTarget, 1 - Math.exp(-delta * 8))
-    mesh.current.scale.setScalar(scaleRef.current)
-
-    mat.current.transparent = true
-    mat.current.opacity = 1 - exitFade
-    mat.current.depthWrite = exitFade < 0.85
-
-    // Soft mauve pulse — muted, never hot pink
-    const pulse = (Math.sin(t * 1.6) + 1) * 0.5
-    _heroColor.copy(HERO_COLOR).lerp(HERO_COLOR_PULSE, pulse * 0.4)
-    _heroEmissive.copy(HERO_EMISSIVE).lerp(HERO_EMISSIVE_PULSE, pulse * 0.45)
-    mat.current.color.copy(_heroColor)
-    mat.current.emissive.copy(_heroEmissive)
-    mat.current.emissiveIntensity = 0.1 + pulse * 0.06 + focus * 0.08 + brand * 0.05
-    mesh.current.visible = exitFade < 0.98
-
-    heroApi.x = mesh.current.position.x
-    heroApi.y = mesh.current.position.y
-    heroApi.z = mesh.current.position.z
-    heroApi.r = scaleRef.current * (1 - exitFade)
-  })
-
-  return (
-    <mesh ref={mesh} position={[0, 7.35, -1.35]}>
-      <sphereGeometry args={[1, 32, 32]} />
-      <meshStandardMaterial
-        ref={mat}
-        color="#b59ac8"
-        emissive="#5a3d8a"
-        emissiveIntensity={0.1}
-        metalness={0.58}
-        roughness={0.32}
-        transparent
-      />
-    </mesh>
-  )
-}
-
-// Shared fade bands — disc + lattice dissolve together
-const MEMBRANE_FADE_BANDS = [
-  { inner: 0, outer: 3.15, opacity: 0.94 },
-  { inner: 3.15, outer: 3.55, opacity: 0.62 },
-  { inner: 3.55, outer: 3.95, opacity: 0.34 },
-  { inner: 3.95, outer: 4.3, opacity: 0.14 },
-  { inner: 4.3, outer: 4.55, opacity: 0.05 },
-]
-
-function bandIndexForRadius(r) {
-  for (let i = 0; i < MEMBRANE_FADE_BANDS.length; i += 1) {
-    if (r < MEMBRANE_FADE_BANDS[i].outer) return i
-  }
-  return -1
-}
-
-// ── Nanopore — clean concentric lattice + soft faded disc
-function Nanopore() {
-  const group = useRef()
-  const discMats = useRef([])
-  const latticeMats = useRef([])
-  const latticeMeshes = useRef([])
-  const dummy = useMemo(() => new THREE.Object3D(), [])
-
-  const PORE = PORE_RADIUS
-
-  const discBands = useMemo(
-    () => [
-      { inner: PORE, outer: 3.15, opacity: 0.88, color: '#1B1465' },
-      { inner: 3.15, outer: 3.55, opacity: 0.55, color: '#2a1f6e' },
-      { inner: 3.55, outer: 3.95, opacity: 0.3, color: '#1B1465' },
-      { inner: 3.95, outer: 4.3, opacity: 0.14, color: '#3a2868' },
-      { inner: 4.3, outer: 4.55, opacity: 0.05, color: '#1a1038' },
-    ],
-    [],
-  )
-
-  const atomBands = useMemo(() => {
-    const bands = MEMBRANE_FADE_BANDS.map(() => [])
-    const spacing = QUALITY.latticeStep
-    const atomR = 0.058
-    let ring = 0
-    for (let r = PORE + 0.12; r <= 4.5; r += spacing) {
-      const bi = bandIndexForRadius(r)
-      if (bi < 0) {
-        ring += 1
-        continue
-      }
-      const count = Math.max(8, Math.round((Math.PI * 2 * r) / spacing))
-      const stagger = (ring % 2) * (Math.PI / count)
-      for (let k = 0; k < count; k += 1) {
-        const a = (k / count) * Math.PI * 2 + stagger
-        bands[bi].push({
-          x: Math.cos(a) * r,
-          y: 0.052,
-          z: Math.sin(a) * r,
-          r: atomR,
-        })
-      }
-      ring += 1
-    }
-    return bands
-  }, [])
-
-  useEffect(() => {
-    atomBands.forEach((atoms, bandIdx) => {
-      const mesh = latticeMeshes.current[bandIdx]
-      if (!mesh || atoms.length === 0) return
-      atoms.forEach((n, i) => {
-        dummy.position.set(n.x, n.y, n.z)
-        dummy.scale.setScalar(n.r)
-        dummy.updateMatrix()
-        mesh.setMatrixAt(i, dummy.matrix)
-      })
-      mesh.instanceMatrix.needsUpdate = true
-      mesh.count = atoms.length
-    })
-  }, [atomBands, dummy])
-
-  useFrame((state) => {
-    if (!group.current) return
-    const p = progressApi.current
-    const t = state.clock.elapsedTime
-    const fadeIn = smoother(BEATS.poreInStart, BEATS.poreInEnd, p)
-    const fadeOut = smooth(BEATS.poreOutStart, BEATS.poreOutEnd, p)
-    const vis = fadeIn * (1 - fadeOut)
-
-    group.current.visible = vis > 0.004
-    group.current.position.y = 0
-    group.current.rotation.y = Math.sin(t * 0.05) * 0.012
-
-    discBands.forEach((band, i) => {
-      const mat = discMats.current[i]
-      if (mat) mat.opacity = vis * band.opacity
-    })
-    MEMBRANE_FADE_BANDS.forEach((band, i) => {
-      const mat = latticeMats.current[i]
-      if (mat) mat.opacity = vis * band.opacity
-    })
-  })
-
-  return (
-    <group ref={group}>
-      {/* Disc — solid core → soft rim fade */}
-      {discBands.map((band, i) => (
-        <mesh key={`disc-${band.inner}`} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.018, 0]}>
-          <ringGeometry args={[band.inner, band.outer, QUALITY.ringSegs]} />
-          <meshStandardMaterial
-            ref={(m) => {
-              discMats.current[i] = m
-            }}
-            color={band.color}
-            emissive="#5a3d8a"
-            emissiveIntensity={0.16}
-            metalness={0.2}
-            roughness={0.55}
-            transparent
-            opacity={band.opacity}
-            side={THREE.DoubleSide}
-            depthWrite={i === 0}
-          />
+      <mesh>
+        <tubeGeometry args={[strandB, tubular[0], 0.078, tubular[1], false]} />
+        <meshStandardMaterial color="#00BBF9" metalness={0.2} roughness={0.28} />
+      </mesh>
+      {sugarsA.map((pos, i) => (
+        <mesh key={`sa-${i}`} position={pos} scale={0.09} geometry={GEO_TIP}>
+          <meshStandardMaterial color="#F15BB5" />
         </mesh>
       ))}
-
-      {/* Lattice — same radial fade bands as the disc */}
-      {atomBands.map((atoms, i) =>
-        atoms.length === 0 ? null : (
-          <instancedMesh
-            key={`lat-${i}`}
-            ref={(m) => {
-              latticeMeshes.current[i] = m
-            }}
-            args={[undefined, undefined, atoms.length]}>
-            <sphereGeometry args={[1, QUALITY.low ? 6 : 8, QUALITY.low ? 6 : 8]} />
-            <meshStandardMaterial
-              ref={(m) => {
-                latticeMats.current[i] = m
-              }}
-              color="#b59ac8"
-              emissive="#5a3d8a"
-              emissiveIntensity={0.1}
-              metalness={0.32}
-              roughness={0.42}
-              transparent
-              opacity={MEMBRANE_FADE_BANDS[i].opacity}
-              depthWrite={false}
-            />
-          </instancedMesh>
-        ),
-      )}
+      {sugarsB.map((pos, i) => (
+        <mesh key={`sb-${i}`} position={pos} scale={0.09} geometry={GEO_TIP}>
+          <meshStandardMaterial color="#00BBF9" />
+        </mesh>
+      ))}
+      {pairs.map((p, i) => (
+        <group key={i} position={[p.mx, p.y, p.mz]} rotation={[0, -p.angle, 0]}>
+          <mesh position={[-p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <capsuleGeometry args={[0.065, p.len * 0.28, 4, 8]} />
+            <meshStandardMaterial color="#F15BB5" />
+          </mesh>
+          <mesh position={[p.len * 0.22, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <capsuleGeometry args={[0.065, p.len * 0.28, 4, 8]} />
+            <meshStandardMaterial color="#5BB8E8" />
+          </mesh>
+        </group>
+      ))}
     </group>
   )
 }
 
-// ── Starfield — round soft discs, mixed speeds, flicker ────────────────────
-function Starfield() {
-  const points = useRef()
-  const data = useRef(null)
-  const discMap = useMemo(() => makeDiscTexture(), [])
+function PoreChip() {
+  return (
+    <group rotation={[-1.12, 0.35, 0.18]} position={[0.15, -0.05, 0.2]}>
+      <mesh>
+        <ringGeometry args={[0.62, 2.55, 4, 1]} />
+        <meshStandardMaterial color="#8fd4f8" metalness={0.55} roughness={0.22} />
+      </mesh>
+      <mesh position={[0, 0, -0.04]}>
+        <ringGeometry args={[0.62, 2.55, 4, 1]} />
+        <meshStandardMaterial color="#1B4F8A" metalness={0.4} roughness={0.35} />
+      </mesh>
+    </group>
+  )
+}
 
-  if (!data.current) {
-    const count = QUALITY.stars
-    const positions = new Float32Array(count * 3)
-    const colors = new Float32Array(count * 3)
-    const baseColors = new Float32Array(count * 3)
-    const speeds = new Float32Array(count)
-    const flickers = new Float32Array(count)
-    const phases = new Float32Array(count)
-
-    for (let i = 0; i < count; i += 1) {
-      const o = i * 3
-      positions[o] = (seededRandom(i + 1) - 0.5) * 54
-      positions[o + 1] = seededRandom(i + 2) * 26 - 8
-      positions[o + 2] = (seededRandom(i + 3) - 0.5) * 40 - 5
-
-      const tier = seededRandom(i + 6)
-      if (tier < 0.5) speeds[i] = 0.0003 + seededRandom(i + 7) * 0.0008
-      else if (tier < 0.8) speeds[i] = 0.002 + seededRandom(i + 7) * 0.004
-      else speeds[i] = 0.01 + seededRandom(i + 7) * 0.032
-
-      flickers[i] = 0.4 + seededRandom(i + 8) * 4.5
-      phases[i] = seededRandom(i + 9) * Math.PI * 2
-
-      const shade = 0.52 + seededRandom(i + 4) * 0.55
-      const tone = seededRandom(i + 5)
-      let r
-      let g
-      let b
-      if (tone < 0.4) {
-        r = shade * 0.55
-        g = shade * 0.88
-        b = shade * 1.05
-      } else if (tone < 0.78) {
-        r = shade * 0.38
-        g = shade * 1.0
-        b = shade * 0.78
-      } else {
-        r = shade * 0.95
-        g = shade * 1.0
-        b = shade * 0.96
-      }
-      baseColors[o] = r
-      baseColors[o + 1] = g
-      baseColors[o + 2] = b
-      colors[o] = r
-      colors[o + 1] = g
-      colors[o + 2] = b
-    }
-
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
-    data.current = { geometry, speeds, flickers, phases, baseColors, count }
-  }
-
-  const starFrame = useRef(0)
-
-  useFrame((state) => {
-    if (!points.current || !data.current) return
-    const p = progressApi.current
-    const clear = smooth(BEATS.clearStart, BEATS.clearEnd, p)
-    const t = state.clock.elapsedTime
-    const { geometry, speeds, flickers, phases, baseColors, count } = data.current
-    const positions = geometry.attributes.position.array
-    const colors = geometry.attributes.color.array
-    starFrame.current += 1
-    const paintColor = !QUALITY.low || starFrame.current % 2 === 0
-
-    for (let i = 0; i < count; i += 1) {
-      const o = i * 3
-      const spd = speeds[i]
-      positions[o] += spd
-      positions[o + 1] += Math.sin(t * (0.05 + spd * 8) + phases[i]) * spd * 0.35
-      positions[o + 2] += Math.cos(t * 0.04 + phases[i]) * spd * 0.15
-      if (positions[o] > 25) positions[o] = -25
-      if (positions[o + 1] > 16) positions[o + 1] = -8
-      if (positions[o + 1] < -8) positions[o + 1] = 16
-
-      if (paintColor) {
-        const flick = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(t * flickers[i] + phases[i]))
-        colors[o] = baseColors[o] * flick
-        colors[o + 1] = baseColors[o + 1] * flick
-        colors[o + 2] = baseColors[o + 2] * flick
-      }
-    }
-
-    geometry.attributes.position.needsUpdate = true
-    if (paintColor) geometry.attributes.color.needsUpdate = true
-    points.current.material.opacity = 0.72 * (1 - clear * 0.55) + 0.18
-  })
+function PoreStage({ compact = false }) {
+  const wrap = useRef(null)
+  const near = useInView(wrap, { rootMargin: '40% 0px', initial: true })
 
   return (
-    <points ref={points} geometry={data.current.geometry} frustumCulled={false}>
-      <pointsMaterial
-        map={discMap}
-        vertexColors
-        size={0.055}
-        sizeAttenuation
-        transparent
-        opacity={0.72}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        alphaTest={0.01}
-      />
-    </points>
+    <div ref={wrap} className={`pore-stage${compact ? ' is-compact' : ''}`} aria-hidden>
+      {near ? (
+        <Canvas
+          frameloop="always"
+          dpr={QUALITY.dpr}
+          camera={{ position: compact ? [0, 0.2, 7.2] : [1.4, 1.1, 8.2], fov: compact ? 42 : 36, near: 0.1, far: 40 }}
+          gl={{ antialias: QUALITY.antialias, alpha: true, powerPreference: 'high-performance' }}
+          onCreated={({ gl }) => {
+            gl.setClearColor(0x000000, 0)
+          }}>
+          <ambientLight intensity={0.55} color="#d7e8f8" />
+          <directionalLight position={[6, 8, 4]} intensity={1.15} color="#ffffff" />
+          <pointLight position={[-2, 1, 3]} intensity={0.8} color="#00BBF9" distance={16} />
+          <pointLight position={[2, -1, 2]} intensity={0.55} color="#F15BB5" distance={14} />
+          <DNAHelix tilt={compact ? 0.1 : 0.42} />
+          {compact ? null : <PoreChip />}
+        </Canvas>
+      ) : null}
+    </div>
+  )
+}
+
+function HowItWorksSection() {
+  return (
+    <section id="how-it-works" className="science" aria-labelledby="science-heading">
+      <div className="science-inner">
+        <div className="science-intro">
+          <p className="eyebrow">The science</p>
+          <h2 id="science-heading">How it works</h2>
+          <p className="science-lede">
+            Our solid-state nanopore reads the unique electrical signatures of cancer biomarkers
+            (DNA / RNA / proteins) as they pass through a nanometer-scale pore.
+          </p>
+        </div>
+
+        <div className="science-grid">
+          <ol className="science-steps">
+            {PROCESS_STEPS.map((step, i) => (
+              <li key={step.title} className="science-step">
+                <span className="science-step-num">{String(i + 1).padStart(2, '0')}</span>
+                <step.Icon className="science-step-icon" />
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="science-visual">
+            <PoreStage compact />
+          </div>
+
+          <ul className="science-points">
+            {PROCESS_POINTS.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function PlatformSection() {
+  return (
+    <section id="ecosystem" className="platform" aria-labelledby="platform-heading">
+      <div className="platform-inner">
+        <header className="platform-header">
+          <p className="eyebrow">Our platform</p>
+          <h2 id="platform-heading">An integrated ecosystem for early cancer screening</h2>
+          <p>Four core products. One complete path from sensor to clinical insight.</p>
+        </header>
+
+        <div className="platform-grid">
+          {PLATFORM_ITEMS.map((item) => (
+            <article key={item.title} className="platform-card">
+              <div className={`platform-art platform-art-${item.visual}`} aria-hidden>
+                <item.Icon className="platform-art-icon" />
+              </div>
+              <p className="platform-kicker">{item.kicker}</p>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ArchitectureSection() {
+  return (
+    <section id="architecture" className="arch" aria-labelledby="arch-heading">
+      <div className="arch-inner">
+        <header>
+          <p className="eyebrow">The complete solution</p>
+          <h2 id="arch-heading">Product architecture</h2>
+          <p>A seamless stack of hardware, electronics, and AI — from sample to insight.</p>
+        </header>
+
+        <div className="arch-board">
+          {PLATFORM_ITEMS.map((item) => (
+            <div key={item.title} className="arch-node">
+              <item.Icon className="arch-node-icon" />
+              <p>{item.title}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function StandsApartSection() {
+  return (
+    <section id="impact" className="apart" aria-labelledby="apart-heading">
+      <div className="apart-inner">
+        <header>
+          <p className="eyebrow">Why us</p>
+          <h2 id="apart-heading">Why our platform stands apart</h2>
+        </header>
+        <div className="apart-grid">
+          {STANDS_APART.map((item) => (
+            <article key={item.title} className="apart-card">
+              <item.Icon className="apart-icon" />
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+        <aside className="apart-panel">
+          <p className="apart-panel-kicker">Liquid biopsy. Real-time answers.</p>
+          <p>A compact clinic-ready stack that reads what matters most — molecule by molecule.</p>
+        </aside>
+      </div>
+    </section>
+  )
+}
+
+function RoadmapSection() {
+  return (
+    <section id="roadmap" className="roadmap" aria-labelledby="roadmap-heading">
+      <div className="roadmap-inner">
+        <header>
+          <p className="eyebrow">Our roadmap</p>
+          <h2 id="roadmap-heading">Development roadmap</h2>
+          <p>From R&amp;D to real-world impact — in a focused, phased approach.</p>
+        </header>
+        <ol className="roadmap-list">
+          {ROADMAP.map((item) => (
+            <li key={item.num} className="roadmap-item">
+              <span>{item.num}</span>
+              <h3>{item.title}</h3>
+              <ul>
+                {item.points.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  )
+}
+
+function AboutSection() {
+  return (
+    <section id="about" className="about" aria-labelledby="about-heading">
+      <div className="about-inner">
+        <div>
+          <p className="eyebrow">Mission</p>
+          <h2 id="about-heading">To democratize genetic insights for a healthier world.</h2>
+        </div>
+        <p>
+          We are building India’s first solid-state nanopore platform for cancer screening —
+          combining chip technology, intelligent software, and affordable diagnostics to make
+          earlier detection accessible.
+        </p>
+      </div>
+    </section>
+  )
+}
+
+function TrustSection() {
+  return (
+    <section id="trust" className="trust" aria-labelledby="trust-heading">
+      <div className="trust-inner">
+        <header className="trust-header">
+          <p className="eyebrow">Network of Trust</p>
+          <h2 id="trust-heading">Backed by leading research and innovation hubs</h2>
+        </header>
+        <ul className="trust-grid">
+          {TRUST_PARTNERS.map((partner) => (
+            <li key={partner.name} className="trust-item">
+              <div className="trust-logo">
+                <img src={partner.src} alt={partner.name} loading="lazy" decoding="async" />
+              </div>
+              <p className="trust-name">{partner.name}</p>
+              <p className="trust-role">{partner.role}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+function TeamSection() {
+  return (
+    <section id="team" className="team" aria-labelledby="team-heading">
+      <div className="team-inner">
+        <header className="team-header">
+          <div>
+            <p className="eyebrow">The Team</p>
+            <h2 id="team-heading">
+              The minds behind <span>the innovation.</span>
+            </h2>
+          </div>
+          <p className="team-lede">
+            Quantum physics, semiconductor engineering, and clinical oncology — together to redefine diagnostics.
+          </p>
+        </header>
+        <ul className="team-grid">
+          {TEAM_MEMBERS.map((member) => (
+            <li key={member.name}>
+              <article className="team-card">
+                <div className="team-card-photo">
+                  <img src={member.src} alt={member.name} loading="lazy" decoding="async" />
+                </div>
+                <p className="team-card-name">{member.name}</p>
+                <p className="team-card-role">{member.role}</p>
+                <p className="team-card-bio">{member.bio}</p>
+              </article>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+function SiteFooter() {
+  return (
+    <footer id="contact" className="site-footer">
+      <div className="site-footer-inner">
+        <div className="site-footer-cta">
+          <h2>
+            Let’s solve
+            <br />
+            <span>cancer together.</span>
+          </h2>
+          <p>Want to learn more or partner with us? We’d love to hear from you.</p>
+        </div>
+        <div className="site-footer-grid">
+          <div>
+            <p className="site-footer-label">Email us</p>
+            <a href="mailto:contact@aagamiseq.com">contact@aagamiseq.com</a>
+          </div>
+          <div>
+            <p className="site-footer-label">Headquarters</p>
+            <p>
+              INCeNSE Office, CeNSE, IISc,
+              <br />
+              Bengaluru, Karnataka 560012
+            </p>
+          </div>
+        </div>
+        <div className="site-footer-bottom">
+          <p>© 2026 AagamiSEQ Technologies. All rights reserved.</p>
+          <p>
+            Website crafted by{' '}
+            <a href="https://imaad6.vercel.app" target="_blank" rel="noopener noreferrer">
+              Imaad
+            </a>
+          </p>
+        </div>
+      </div>
+    </footer>
   )
 }
