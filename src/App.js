@@ -1,22 +1,4 @@
-import { Canvas, useFrame } from '@react-three/fiber'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import * as THREE from 'three'
-import {
-  ArtArchitecture,
-  ArtBody,
-  ArtChip,
-  ArtDevice,
-  ArtHelixStrip,
-  ArtLaptop,
-  ArtVials,
-  IconBrain,
-  IconDrop,
-  IconGridPore,
-  IconWave,
-} from './art'
-import { QUALITY, useInView } from './perf'
-
-const GEO_TIP = new THREE.SphereGeometry(1, 12, 12)
+import { useEffect, useState } from 'react'
 
 const NAV_LINKS = [
   { id: 'hero', label: 'Home' },
@@ -132,14 +114,14 @@ function SiteNav() {
 
 function HeroSection() {
   return (
-    <section id="hero" className="hero">
-      <div className="hero-shell">
+    <section id="hero" className="hero panel">
+      <div className="wrap hero-shell">
         <div className="hero-copy">
           <p className="hero-kicker">Solid-state nanopore platform</p>
           <h1>
             From Molecules
             <br />
-            to <em>Answers.</em>
+            to Answers.
           </h1>
           <p className="hero-lede">
             Building an affordable molecular diagnostics platform for earlier cancer detection.
@@ -155,168 +137,59 @@ function HeroSection() {
             <span aria-hidden>→</span>
           </a>
           <ul className="hero-chips">
-            <li>Earlier Detection</li>
-            <li>Affordable</li>
-            <li>Accessible Labs</li>
-            <li>Healthier Tomorrow</li>
+            <li>
+              <span className="hero-chip-icon" aria-hidden />
+              Earlier Detection
+            </li>
+            <li>
+              <span className="hero-chip-icon" aria-hidden />
+              Affordable
+            </li>
+            <li>
+              <span className="hero-chip-icon" aria-hidden />
+              Accessible Labs
+            </li>
+            <li>
+              <span className="hero-chip-icon" aria-hidden />
+              Healthier Tomorrow
+            </li>
           </ul>
         </div>
         <div className="hero-visual">
-          <PoreStage />
-          <aside className="hero-callout">
-            Detecting cancer biomarkers in single-molecule time.
-          </aside>
+          <img src="/products/hero.jpg" alt="DNA strand passing through a solid-state nanopore" decoding="async" />
+          <aside className="hero-callout">Detecting cancer biomarkers</aside>
         </div>
       </div>
     </section>
   )
 }
 
-function DNAHelix() {
-  const group = useRef()
-  const { strandA, strandB, pairs, sugarsA, sugarsB, tubular } = useMemo(() => {
-    const count = QUALITY.dnaCount
-    const height = 10.4
-    const radius = 1.08
-    const turns = count / 10.5
-    const pointsA = []
-    const pointsB = []
-    const sugarsA = []
-    const sugarsB = []
-    const pairData = []
-    for (let i = 0; i < count; i++) {
-      const u = i / (count - 1)
-      const t = u * turns * Math.PI * 2
-      const y = (u - 0.5) * height
-      const ax = Math.cos(t) * radius
-      const az = Math.sin(t) * radius
-      const bx = Math.cos(t + Math.PI) * radius
-      const bz = Math.sin(t + Math.PI) * radius
-      pointsA.push(new THREE.Vector3(ax, y, az))
-      pointsB.push(new THREE.Vector3(bx, y, bz))
-      if (QUALITY.dnaSugars) {
-        sugarsA.push([ax * 0.92, y, az * 0.92])
-        sugarsB.push([bx * 0.92, y, bz * 0.92])
-      }
-      const dx = bx - ax
-      const dz = bz - az
-      pairData.push({
-        mx: (ax + bx) * 0.5,
-        y,
-        mz: (az + bz) * 0.5,
-        len: Math.hypot(dx, dz),
-        angle: Math.atan2(dz, dx),
-      })
-    }
-    return {
-      strandA: new THREE.CatmullRomCurve3(pointsA),
-      strandB: new THREE.CatmullRomCurve3(pointsB),
-      pairs: pairData,
-      sugarsA,
-      sugarsB,
-      tubular: QUALITY.dnaTubular,
-    }
-  }, [])
-
-  useFrame((_, delta) => {
-    if (group.current) group.current.rotation.y += delta * 0.16
-  })
-
-  return (
-    <group ref={group} rotation={[0.12, 0.55, 0.18]} position={[0.4, 0.15, 0]}>
-      <mesh>
-        <tubeGeometry args={[strandA, tubular[0], 0.09, tubular[1], false]} />
-        <meshStandardMaterial color="#4CC9F0" metalness={0.25} roughness={0.22} />
-      </mesh>
-      <mesh>
-        <tubeGeometry args={[strandB, tubular[0], 0.09, tubular[1], false]} />
-        <meshStandardMaterial color="#F15BB5" metalness={0.25} roughness={0.22} />
-      </mesh>
-      {sugarsA.map((pos, i) => (
-        <mesh key={`a-${i}`} position={pos} scale={0.1} geometry={GEO_TIP}>
-          <meshStandardMaterial color="#4CC9F0" />
-        </mesh>
-      ))}
-      {sugarsB.map((pos, i) => (
-        <mesh key={`b-${i}`} position={pos} scale={0.1} geometry={GEO_TIP}>
-          <meshStandardMaterial color="#F15BB5" />
-        </mesh>
-      ))}
-      {pairs.map((p, i) => (
-        <mesh key={i} position={[p.mx, p.y, p.mz]} rotation={[0, -p.angle, Math.PI / 2]}>
-          <capsuleGeometry args={[0.055, p.len * 0.55, 4, 8]} />
-          <meshStandardMaterial color={i % 2 ? '#7ad3f2' : '#ff8cc8'} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
-
-function PoreChip() {
-  return (
-    <group rotation={[-1.05, 0.42, 0.22]} position={[0.55, -0.35, 0.35]}>
-      <mesh>
-        <ringGeometry args={[0.7, 2.7, 4, 1]} />
-        <meshStandardMaterial color="#9ad8f8" metalness={0.62} roughness={0.18} />
-      </mesh>
-      <mesh position={[0, 0, -0.05]}>
-        <ringGeometry args={[0.7, 2.7, 4, 1]} />
-        <meshStandardMaterial color="#163a63" metalness={0.4} roughness={0.32} />
-      </mesh>
-    </group>
-  )
-}
-
-function PoreStage() {
-  const wrap = useRef(null)
-  const near = useInView(wrap, { rootMargin: '30% 0px', initial: true })
-  return (
-    <div ref={wrap} className="pore-stage" aria-hidden>
-      {near ? (
-        <Canvas
-          frameloop="always"
-          dpr={QUALITY.dpr}
-          camera={{ position: [2.1, 1.15, 8.4], fov: 34, near: 0.1, far: 40 }}
-          gl={{ antialias: QUALITY.antialias, alpha: true, powerPreference: 'high-performance' }}
-          onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}>
-          <ambientLight intensity={0.62} color="#d5ecff" />
-          <directionalLight position={[6, 8, 5]} intensity={1.25} color="#ffffff" />
-          <pointLight position={[-2, 2, 4]} intensity={1.1} color="#00BBF9" distance={18} />
-          <pointLight position={[3, -1, 2]} intensity={0.7} color="#F15BB5" distance={16} />
-          <DNAHelix />
-          <PoreChip />
-        </Canvas>
-      ) : null}
-    </div>
-  )
-}
-
 function HowItWorksSection() {
   const steps = [
-    { title: 'Sample', Icon: IconDrop },
-    { title: 'Nanopore sensing', Icon: IconGridPore },
-    { title: 'Electrical signal', Icon: IconWave },
-    { title: 'AI analysis', Icon: IconBrain },
+    { title: 'Sample', note: 'blood / urine' },
+    { title: 'Nanopore sensing', note: '' },
+    { title: 'Electrical signal', note: '' },
+    { title: 'AI analysis', note: '' },
   ]
   const points = [
     'Single-molecule sensitivity',
     'Label-free & real-time',
-    'Detects ssDNA / RNA / biomarkers',
+    'Detects ctDNA / RNA biomarkers',
     'High accuracy with AI',
   ]
 
   return (
-    <section id="how-it-works" className="science">
+    <section id="how-it-works" className="science panel">
       <div className="wrap science-wrap">
         <div className="science-left">
           <p className="eyebrow">The science</p>
           <h2>How It Works</h2>
-          <p>
-            Our solid-state nanopore senses the unique electrical signatures of cancer biomarkers (DNA/RNA) as they
+          <p className="lede">
+            Our solid-state nanopore senses the unique electrical signatures of cancer biomarkers (ctDNA/RNA) as they
             pass through a nanometer-scale pore.
           </p>
           <a
-            className="btn-cyan"
+            className="btn-navy"
             href="#ecosystem"
             onClick={(e) => {
               e.preventDefault()
@@ -328,14 +201,17 @@ function HowItWorksSection() {
         </div>
         <div className="science-mid">
           <div className="science-steps">
-            {steps.map((step) => (
+            {steps.map((step, i) => (
               <div key={step.title} className="science-step">
-                <step.Icon />
-                <p>{step.title}</p>
+                <span className={`science-step-icon step-${i + 1}`} aria-hidden />
+                <p>
+                  {step.title}
+                  {step.note ? <small>{step.note}</small> : null}
+                </p>
               </div>
             ))}
           </div>
-          <ArtHelixStrip className="science-helix" />
+          <img className="science-helix" src="/products/science.jpg" alt="Nanopore membrane with DNA passing through" decoding="async" />
         </div>
         <ul className="science-points">
           {points.map((point) => (
@@ -351,40 +227,47 @@ function PlatformSection() {
   const items = [
     {
       title: 'Solid-State Nanopore Chips',
-      body: 'Engineered for high sensitivity, durability and scale.',
-      Art: ArtChip,
+      body: 'Engineered for high sensitivity, reliability and scale.',
+      src: '/products/chip.jpg',
     },
     {
       title: 'Readout System',
       body: 'Custom electronics for high-speed, high-resolution signal acquisition.',
-      Art: ArtDevice,
+      src: '/products/device.jpg',
     },
     {
       title: 'AI Analysis Software',
-      body: 'Turns raw signals into actionable insights with real-time scoring.',
-      Art: ArtLaptop,
+      body: 'Turns raw signals into actionable insights with machine learning.',
+      src: '/products/laptop.jpg',
     },
     {
       title: 'Reagents & Consumables',
       body: 'Optimized for performance, consistency and cost-effectiveness.',
-      Art: ArtVials,
+      src: '/products/vials.jpg',
     },
   ]
 
   return (
-    <section id="ecosystem" className="platform">
+    <section id="ecosystem" className="platform panel">
       <div className="wrap">
-        <p className="eyebrow light">Our platform</p>
-        <h2>An Integrated Ecosystem for Early Cancer Screening</h2>
-        <p className="lede-light">
-          Four core products. One powerful platform. Designed for affordability, scalability and local discovery use.
-        </p>
+        <div className="section-head">
+          <p className="eyebrow light">Our platform</p>
+          <h2>An Integrated Ecosystem for Early Cancer Screening</h2>
+          <p className="lede-light">
+            Four core products. One powerful platform. Designed for affordability, scalability and local laboratory use.
+          </p>
+        </div>
         <div className="platform-grid">
           {items.map((item) => (
             <article key={item.title}>
-              <item.Art className="platform-art" />
+              <div className="platform-art-wrap">
+                <img className="platform-art" src={item.src} alt={item.title} decoding="async" />
+              </div>
               <h3>{item.title}</h3>
               <p>{item.body}</p>
+              <span className="platform-arrow" aria-hidden>
+                →
+              </span>
             </article>
           ))}
         </div>
@@ -395,12 +278,12 @@ function PlatformSection() {
 
 function ArchitectureSection() {
   return (
-    <section className="arch">
+    <section className="arch panel">
       <div className="wrap arch-wrap">
-        <div>
+        <div className="arch-copy">
           <p className="eyebrow">The complete solution</p>
           <h2>Product Architecture</h2>
-          <p>A seamless integration of hardware, electronics and AI — from sample to insight.</p>
+          <p>A seamless integration of hardware, chemistry and AI — from sample to insight.</p>
           <a
             className="btn-cyan"
             href="#ecosystem"
@@ -413,11 +296,13 @@ function ArchitectureSection() {
           </a>
         </div>
         <div className="arch-visual">
-          <ArtArchitecture className="arch-svg" />
-          <span className="arch-label arch-label-a">Readout System &amp; Electronics</span>
-          <span className="arch-label arch-label-b">AI Analysis Software</span>
-          <span className="arch-label arch-label-c">Nanopore Chip Cartridge</span>
-          <span className="arch-label arch-label-d">Reagents &amp; Consumables</span>
+          <img className="arch-photo" src="/products/architecture.jpg" alt="Readout system, AI software, chip cartridge and reagents" decoding="async" />
+          <ul className="arch-labels">
+            <li>Readout System &amp; Electronics</li>
+            <li>AI Analysis Software</li>
+            <li>Nanopore Chip Cartridge</li>
+            <li>Reagents &amp; Consumables</li>
+          </ul>
         </div>
       </div>
     </section>
@@ -426,20 +311,23 @@ function ArchitectureSection() {
 
 function StandsApartSection() {
   const items = [
-    { title: 'Ultrasensitive', body: 'Detects low-abundance cancer biomarkers.' },
+    { title: 'Ultra-sensitive', body: 'Detects low-abundance cancer biomarkers.' },
     { title: 'Affordable', body: 'Designed for India-first and global markets.' },
     { title: 'Portable & scalable', body: 'From clinics to regional diagnostics.' },
     { title: 'Sustainable', body: 'Enables early treatment and better outcomes.' },
   ]
   return (
-    <section id="impact" className="apart">
+    <section id="impact" className="apart panel">
       <div className="wrap apart-wrap">
         <div>
-          <p className="eyebrow">Why us</p>
-          <h2>Why Our Platform Stands Apart</h2>
+          <div className="section-head">
+            <p className="eyebrow">Why us</p>
+            <h2>Why Our Platform Stands Apart</h2>
+          </div>
           <div className="apart-grid">
             {items.map((item) => (
               <article key={item.title}>
+                <span className="apart-dot" aria-hidden />
                 <h3>{item.title}</h3>
                 <p>{item.body}</p>
               </article>
@@ -447,10 +335,10 @@ function StandsApartSection() {
           </div>
         </div>
         <aside className="apart-panel">
-          <ArtBody className="apart-art" />
+          <img className="apart-art" src="/products/why.jpg" alt="Liquid biopsy visualization" decoding="async" />
           <div>
             <h3>Liquid biopsy. Real-time answers.</h3>
-            <p>A compact clinic-ready system that reads what matters most.</p>
+            <p>A simple blood or urine sample could reveal what matters most.</p>
           </div>
         </aside>
       </div>
@@ -463,37 +351,42 @@ function RoadmapSection() {
     {
       num: '1',
       title: 'Chip Engineering',
-      points: ['Pore geometry', 'Membrane durability (SiN/2D)', 'Electrical characterization'],
+      time: '0–3 months',
+      points: ['100 nm nanopore chip', 'Packaging & flow cell design', 'Electrical characterization'],
     },
     {
       num: '2',
       title: 'Readout Integration',
-      points: ['Current electronics', 'Noise reduction', 'Signal acquisition'],
+      time: '3–6 months',
+      points: ['Custom electronics', 'Cartridge development', 'Signal acquisition'],
     },
     {
       num: '3',
       title: 'Assay + AI Development',
-      points: ['Sample workflow', 'Signature software', 'Data validation'],
+      time: '6–9 months',
+      points: ['Biomarker panels', 'AI models & software', 'Data validation'],
     },
     {
       num: '4',
       title: 'Validation & Scale-up',
-      points: ['Analytical validation', 'Pilot manufacturing', 'Clinic partnerships'],
+      time: '9–12 months',
+      points: ['Analytical validation', 'Reproducibility & QC', 'Pilot manufacturing'],
     },
   ]
   return (
-    <section id="roadmap" className="roadmap">
+    <section id="roadmap" className="roadmap panel">
       <div className="wrap">
-        <p className="eyebrow">Our roadmap</p>
-        <h2>Development Roadmap</h2>
-        <p className="lede">From R&amp;D to real-world impact — in a focused, phased approach.</p>
+        <div className="section-head">
+          <p className="eyebrow light">Our journey</p>
+          <h2>Development Roadmap</h2>
+          <p className="lede-light">From R&amp;D to real-world impact — in a focused, phased approach.</p>
+        </div>
         <ol className="roadmap-list">
           {items.map((item) => (
             <li key={item.num}>
-              <i aria-hidden />
-              <strong>
-                {item.num}. {item.title}
-              </strong>
+              <i aria-hidden>{item.num}</i>
+              <strong>{item.title}</strong>
+              <span className="roadmap-time">{item.time}</span>
               <ul>
                 {item.points.map((point) => (
                   <li key={point}>{point}</li>
@@ -509,8 +402,10 @@ function RoadmapSection() {
 
 function MissionSection() {
   return (
-    <section id="about" className="mission">
+    <section id="about" className="mission panel">
+      <img className="mission-bg" src="/products/mission.jpg" alt="" decoding="async" />
       <div className="wrap mission-wrap">
+        <p className="eyebrow">Our mission</p>
         <h2>To democratize genetic insights for a healthier world.</h2>
         <p>
           We are building India’s first solid-state nanopore platform for cancer screening — combining cutting-edge
@@ -528,12 +423,21 @@ const TRUST_PARTNERS = [
   { name: 'INCENSE', role: 'Deep Tech Incubator', src: '/partners/incense.png' },
 ]
 
+const TEAM_MEMBERS = [
+  { name: 'Prof. Manoj Varma', role: 'Founder | R&D Advisor', src: '/team/manoj.jpg' },
+  { name: 'Divya Mohan Yadav, PhD', role: 'Founder | CEO', src: '/team/divya.jpg' },
+  { name: 'Muddukrishna P', role: 'Founder | CPO', src: '/team/muddu.jpeg' },
+  { name: 'Anumol Dominic, PhD', role: 'Lead Fabrication Engg', src: '/team/anumol.jpeg' },
+]
+
 function TrustSection() {
   return (
-    <section id="trust" className="trust">
+    <section id="trust" className="trust panel">
       <div className="wrap">
-        <p className="eyebrow">Network of Trust</p>
-        <h2>Backed by leading research and innovation hubs</h2>
+        <div className="section-head">
+          <p className="eyebrow">Network of Trust</p>
+          <h2>Backed by leading research and innovation hubs</h2>
+        </div>
         <ul className="logo-grid">
           {TRUST_PARTNERS.map((partner) => (
             <li key={partner.name}>
@@ -548,19 +452,14 @@ function TrustSection() {
   )
 }
 
-const TEAM_MEMBERS = [
-  { name: 'Prof. Manoj Varma', role: 'Founder | R&D Advisor', src: '/team/manoj.jpg' },
-  { name: 'Divya Mohan Yadav, PhD', role: 'Founder | CEO', src: '/team/divya.jpg' },
-  { name: 'Muddukrishna P', role: 'Founder | CPO', src: '/team/muddu.jpeg' },
-  { name: 'Anumol Dominic, PhD', role: 'Lead Fabrication Engg', src: '/team/anumol.jpeg' },
-]
-
 function TeamSection() {
   return (
-    <section id="team" className="team">
+    <section id="team" className="team panel">
       <div className="wrap">
-        <p className="eyebrow">The Team</p>
-        <h2>The minds behind the innovation.</h2>
+        <div className="section-head">
+          <p className="eyebrow">The Team</p>
+          <h2>The minds behind the innovation.</h2>
+        </div>
         <ul className="logo-grid team-grid">
           {TEAM_MEMBERS.map((member) => (
             <li key={member.name}>
@@ -581,8 +480,15 @@ function SiteFooter() {
       <div className="wrap footer-wrap">
         <div>
           <img src="/aagamiseq-logo.png" alt="" className="footer-logo" />
-          <p>AagamiSEQ · Nanopore Diagnostics</p>
+          <p className="footer-tag">Early Detection. Greater Possibilities.</p>
         </div>
+        <nav className="footer-links" aria-label="Footer">
+          {NAV_LINKS.map((link) => (
+            <button key={link.id} type="button" onClick={() => scrollToId(link.id)}>
+              {link.label}
+            </button>
+          ))}
+        </nav>
         <div>
           <p className="footer-label">Get in Touch</p>
           <a href="mailto:contact@aagamiseq.com">contact@aagamiseq.com</a>
