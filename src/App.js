@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useInView } from './perf'
 
 const NAV_LINKS = [
   { id: 'hero', label: 'Home' },
@@ -15,6 +16,16 @@ function scrollToId(id) {
     return
   }
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function useReveal(initial = false) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { rootMargin: '-8% 0px', initial })
+  const [shown, setShown] = useState(initial)
+  useEffect(() => {
+    if (inView) setShown(true)
+  }, [inView])
+  return [ref, shown]
 }
 
 export default function App() {
@@ -37,6 +48,7 @@ export default function App() {
 
 function SiteNav() {
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const go = (id) => {
     setOpen(false)
     scrollToId(id)
@@ -55,8 +67,17 @@ function SiteNav() {
     }
   }, [open])
 
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > window.innerHeight * 0.55)
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <header className="site-nav">
+    <header className={`site-nav${scrolled ? ' is-scrolled' : ''}`}>
       <div className="site-nav-inner">
         <a
           className="site-nav-logo"
@@ -113,9 +134,10 @@ function SiteNav() {
 }
 
 function HeroSection() {
+  const [ref, inView] = useReveal(true)
   return (
-    <section id="hero" className="hero panel">
-      <div className="wrap hero-shell">
+    <section id="hero" ref={ref} className={`hero panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap hero-shell reveal-content">
         <div className="hero-copy">
           <p className="hero-kicker">Solid-state nanopore platform</p>
           <h1>
@@ -165,6 +187,7 @@ function HeroSection() {
 }
 
 function HowItWorksSection() {
+  const [ref, inView] = useReveal()
   const steps = [
     { title: 'Sample', note: 'blood / urine' },
     { title: 'Nanopore sensing', note: '' },
@@ -179,8 +202,8 @@ function HowItWorksSection() {
   ]
 
   return (
-    <section id="how-it-works" className="science panel">
-      <div className="wrap science-wrap">
+    <section id="how-it-works" ref={ref} className={`science panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap science-wrap reveal-content">
         <div className="science-left">
           <p className="eyebrow">The science</p>
           <h2>How It Works</h2>
@@ -247,9 +270,10 @@ function PlatformSection() {
     },
   ]
 
+  const [ref, inView] = useReveal()
   return (
-    <section id="ecosystem" className="platform panel">
-      <div className="wrap">
+    <section id="ecosystem" ref={ref} className={`platform panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap reveal-content">
         <div className="section-head">
           <p className="eyebrow light">Our platform</p>
           <h2>An Integrated Ecosystem for Early Cancer Screening</h2>
@@ -277,9 +301,10 @@ function PlatformSection() {
 }
 
 function ArchitectureSection() {
+  const [ref, inView] = useReveal()
   return (
-    <section className="arch panel">
-      <div className="wrap arch-wrap">
+    <section ref={ref} className={`arch panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap arch-wrap reveal-content">
         <div className="arch-copy">
           <p className="eyebrow">The complete solution</p>
           <h2>Product Architecture</h2>
@@ -316,9 +341,10 @@ function StandsApartSection() {
     { title: 'Portable & scalable', body: 'From clinics to regional diagnostics.' },
     { title: 'Sustainable', body: 'Enables early treatment and better outcomes.' },
   ]
+  const [ref, inView] = useReveal()
   return (
-    <section id="impact" className="apart panel">
-      <div className="wrap apart-wrap">
+    <section id="impact" ref={ref} className={`apart panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap apart-wrap reveal-content">
         <div>
           <div className="section-head">
             <p className="eyebrow">Why us</p>
@@ -373,9 +399,10 @@ function RoadmapSection() {
       points: ['Analytical validation', 'Reproducibility & QC', 'Pilot manufacturing'],
     },
   ]
+  const [ref, inView] = useReveal()
   return (
-    <section id="roadmap" className="roadmap panel">
-      <div className="wrap">
+    <section id="roadmap" ref={ref} className={`roadmap panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap reveal-content">
         <div className="section-head">
           <p className="eyebrow light">Our journey</p>
           <h2>Development Roadmap</h2>
@@ -401,10 +428,11 @@ function RoadmapSection() {
 }
 
 function MissionSection() {
+  const [ref, inView] = useReveal()
   return (
-    <section id="about" className="mission panel">
+    <section id="about" ref={ref} className={`mission panel${inView ? ' is-in' : ''}`}>
       <img className="mission-bg" src="/products/mission.jpg" alt="" decoding="async" />
-      <div className="wrap mission-wrap">
+      <div className="wrap mission-wrap reveal-content">
         <p className="eyebrow">Our mission</p>
         <h2>To democratize genetic insights for a healthier world.</h2>
         <p>
@@ -431,9 +459,10 @@ const TEAM_MEMBERS = [
 ]
 
 function TrustSection() {
+  const [ref, inView] = useReveal()
   return (
-    <section id="trust" className="trust panel">
-      <div className="wrap">
+    <section id="trust" ref={ref} className={`trust panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap reveal-content">
         <div className="section-head">
           <p className="eyebrow">Network of Trust</p>
           <h2>Backed by leading research and innovation hubs</h2>
@@ -453,9 +482,10 @@ function TrustSection() {
 }
 
 function TeamSection() {
+  const [ref, inView] = useReveal()
   return (
-    <section id="team" className="team panel">
-      <div className="wrap">
+    <section id="team" ref={ref} className={`team panel${inView ? ' is-in' : ''}`}>
+      <div className="wrap reveal-content">
         <div className="section-head">
           <p className="eyebrow">The Team</p>
           <h2>The minds behind the innovation.</h2>
