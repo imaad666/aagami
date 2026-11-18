@@ -18,6 +18,3 @@ yarn-error.log*
 # caches
 .cache/
 *.tsbuildinfo
-
-# local tooling
-.tools/
