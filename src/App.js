@@ -1701,7 +1701,7 @@ function SiteNav() {
             e.preventDefault()
             go('hero')
           }}>
-          <img src="/aagamiseq-logo.png" alt="AagamiSEQ Technologies" width="160" height="64" decoding="async" />
+          <img src="/aagamaseq-logo-mark.png" alt="AagamiSEQ" width="48" height="48" decoding="async" />
         </a>
 
         <nav className="site-nav-links" aria-label="Primary">

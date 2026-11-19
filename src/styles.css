@@ -162,19 +162,20 @@ main {
   line-height: 0;
   padding: 0;
   background: transparent;
-  opacity: 0.58;
+  opacity: 0.92;
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
 .site-nav-logo:hover {
   transform: translateY(-1px);
-  opacity: 0.78;
+  opacity: 1;
 }
 
 .site-nav-logo img {
-  height: 3.35rem;
-  width: auto;
+  height: 2.75rem;
+  width: 2.75rem;
   display: block;
+  object-fit: contain;
 }
 
 /* Keep logo from sitting on top of the open drawer */
