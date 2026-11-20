@@ -47,6 +47,16 @@
     });
   }
 
+  // The wordmark sits in a sticky header, so a plain #top link never moves
+  // the page. Send every "back to top" link to the document start.
+  document.querySelectorAll('a[href="#top"]').forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      event.preventDefault();
+      closeMenu();
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    });
+  });
+
   // Desktop sections are one viewport tall; shrink a section's content
   // uniformly when it would not fit (paired with --fit in theme.css).
   var fitQuery = window.matchMedia("(min-width: 901px) and (min-height: 560px)");
