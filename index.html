@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#123B70" />
+  <meta name="description" content="AagamiSEQ is developing an integrated solid-state nanopore platform for next-generation molecular analysis and cancer screening research." />
+  <meta property="og:title" content="AagamiSEQ — Advancing Molecular Detection" />
+  <meta property="og:description" content="One connected platform. From biological sample to molecular insight." />
+  <meta property="og:type" content="website" />
+  <title>AagamiSEQ — Advancing Molecular Detection</title>
+  <link rel="icon" type="image/png" href="aagamaseq-logo-mark.png" sizes="512x512" />
+  <link rel="preconnect" href="https://images.unsplash.com" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=20261120w" />
+  <link rel="stylesheet" href="theme.css?v=20261121a" />
+</head>
+<body>
+  <svg class="icon-sprite" aria-hidden="true" width="0" height="0" style="position:absolute">
+    <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M2 12h4.5l2.2-5.5 4.1 11 2.3-5.5H22"/></symbol>
+    <symbol id="i-label-off" viewBox="0 0 24 24"><path d="M3.5 11.6V4.5a1 1 0 0 1 1-1h7.1l8.9 8.9-8.1 8.1z"/><circle cx="8" cy="8" r="1.3"/><path d="M3 21 21 3"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 4.8-9 4.8-9-4.8z"/><path d="m3 12.2 9 4.8 9-4.8"/><path d="m3 16.4 9 4.8 9-4.8"/></symbol>
+    <symbol id="i-vial" viewBox="0 0 24 24"><path d="M8.5 3h7"/><path d="M10 3v14.5a2 2 0 0 0 4 0V3"/><path d="M10 12h4"/></symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.2"/><circle cx="12" cy="12" r="2.2"/><path d="M9.5 2.5V6M14.5 2.5V6M9.5 18v3.5M14.5 18v3.5M2.5 9.5H6M2.5 14.5H6M18 9.5h3.5M18 14.5h3.5"/></symbol>
+    <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M6.5 10.5h2.8l1.4-2.8 2.6 5.6 1.4-2.8h2.8"/><path d="M9 20.5h6M12 16.5v4"/></symbol>
+    <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 3.5 12.9 8l4.6 1.9-4.6 1.9L11 16.5l-1.9-4.7L4.5 9.9 9.1 8z"/><path d="m18.5 14.5.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9.2 18h5.6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.5 1.1 1.3 1.1 2.1v.1h5v-.1c0-.8.4-1.6 1.1-2.1A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.2L4.6 18.4A1.7 1.7 0 0 0 6.1 21h11.8a1.7 1.7 0 0 0 1.5-2.6L14 9.2V3"/><path d="M7.2 15h9.6"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M3.5 3.5v17h17"/><path d="m7.5 15 3.8-4.2 3 2.8 5.2-6.1"/></symbol>
+    <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1z"/></symbol>
+    <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3.2s6 6.4 6 10.9a6 6 0 0 1-12 0C6 9.6 12 3.2 12 3.2z"/><path d="M9.4 14.4a2.6 2.6 0 0 0 2.6 2.6"/></symbol>
+    <symbol id="i-dna" viewBox="0 0 24 24"><path d="M8 3c0 4.5 8 4.5 8 9s-8 4.5-8 9"/><path d="M16 3c0 4.5-8 4.5-8 9s8 4.5 8 9"/><path d="M9.6 6.2h4.8M9.6 17.8h4.8"/></symbol>
+    <symbol id="i-cell" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12.5" cy="12.5" r="3"/><circle cx="7.6" cy="8.4" r="1"/><circle cx="16.4" cy="16.6" r="0.9"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.4 15.4 5.1 5.1"/><circle cx="10.5" cy="10.5" r="2"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.2M12 7.8h.01"/></symbol>
+    <symbol id="i-nodes" viewBox="0 0 24 24"><circle cx="6" cy="6.5" r="2.5"/><circle cx="18" cy="6.5" r="2.5"/><circle cx="12" cy="17.5" r="2.5"/><path d="M8.5 6.5h7M7.3 8.7l3.4 6.6M16.7 8.7l-3.4 6.6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M8.5 7H17v8.5"/></symbol>
+    <symbol id="i-pore" viewBox="0 0 24 24"><path d="M3 8.5h6.5L12 12l2.5-3.5H21"/><path d="M3 15.5h6.5L12 12l2.5 3.5H21"/><circle cx="12" cy="12" r="1.2"/></symbol>
+  </svg>
+  <header class="site-header" id="top">
+    <div class="container nav-wrap">
+      <a class="brand" href="#top" aria-label="AagamiSEQ home">
+        <img class="brand-symbol" src="aagamaseq-logo-mark.png" alt="" aria-hidden="true" />
+        <span class="brand-text">Aagami<b>SEQ</b></span>
+      </a>
+      <nav class="main-nav" id="mainNav" aria-label="Main navigation">
+        <a href="#technology">Technology</a>
+        <a href="#platform">Platform</a>
+        <a href="#applications">Applications</a>
+        <a href="#about">Approach</a>
+        <a href="#team">Team</a>
+        <a href="#founders">Founders</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="menu-toggle" id="menuToggle" aria-label="Open navigation" aria-expanded="false"><span></span><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-glyph-clip" aria-hidden="true">
+        <canvas id="glyphField"></canvas>
+      </div>
+      <div class="container hero-grid hero-grid-text-only">
+        <div class="hero-copy reveal">
+          <div class="eyebrow">Deep-tech · Molecular sensing</div>
+          <h1>See the signals<br />biology <em>leaves behind.</em></h1>
+          <p class="hero-lead"><span class="wordmark">Aagami<b>SEQ</b></span> is developing an integrated solid-state nanopore platform to make advanced molecular analysis more connected, adaptable and accessible.</p>
+          <div class="hero-actions">
+            <a class="button" href="#platform">Explore the platform</a>
+            <a class="button ghost" href="#technology">How nanopores work</a>
+          </div>
+        </div>
+      </div>
+      <div class="hero-bottom">
+        <span>Engineered at the intersection of</span>
+        <div class="hero-disciplines" aria-label="Disciplines">
+          <b>Nanotechnology</b><i aria-hidden="true"></i>
+          <b>Electronics</b><i aria-hidden="true"></i>
+          <b>Data science</b><i aria-hidden="true"></i>
+          <b>Molecular biology</b>
+        </div>
+      </div>
+    </section>
+
+    <section class="problem section-pad" id="why">
+      <div class="container problem-grid">
+        <div class="problem-image problem-image-sketch reveal">
+          <img src="why-this-matters-light.webp" alt="Illustration of a gloved researcher pipetting a biological sample, with a DNA helix, molecular structures and a chip-based assay device" loading="lazy" />
+        </div>
+        <div class="problem-lead reveal">
+          <div class="eyebrow"><span class="eyebrow-line"></span> WHY THIS MATTERS</div>
+          <h2>Every early signal<br />deserves a <em>closer look.</em></h2>
+          <p class="section-intro">Biology is constantly generating information. The challenge is capturing the right molecular signals and turning complex measurements into useful insight.</p>
+        </div>
+        <div class="problem-copy reveal reveal-delay">
+          <div class="challenge-list">
+            <div class="challenge-item"><span class="challenge-num">01</span><div><h3>Complex workflows</h3><p>Advanced molecular analysis can depend on multiple instruments, preparation steps and specialized infrastructure.</p></div></div>
+            <div class="challenge-item"><span class="challenge-num">02</span><div><h3>Disconnected systems</h3><p>Sample handling, measurement and data interpretation are often spread across separate tools and processes.</p></div></div>
+            <div class="challenge-item"><span class="challenge-num">03</span><div><h3>Access and adaptability</h3><p>Research needs flexible technologies that can evolve across targets, workflows and laboratory settings.</p></div></div>
+          </div>
+          <p class="problem-closing">We are working to bring these layers together — around the molecule, the measurement and the meaning.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="technology section-pad" id="technology">
+      <div class="container">
+        <div class="section-heading centered reveal">
+          <div class="eyebrow"><span class="eyebrow-line"></span> THE TECHNOLOGY</div>
+          <h2>Reading biology<br /><em>one molecule at a time.</em></h2>
+          <p>A solid-state nanopore turns molecular passage into an electrical signal — creating a new way to study the building blocks of biology.</p>
+        </div>
+        <div class="tech-feature reveal">
+          <div class="tech-visual">
+            <div class="tech-visual-top"><span>HOW A SOLID-STATE NANOPORE WORKS</span><span class="tech-tag">ANIMATED PRINCIPLE</span></div>
+            <svg class="tech-svg tech-animation-svg" viewBox="0 0 760 360" role="img" aria-labelledby="nanoporeAnimTitle nanoporeAnimDesc">
+              <title id="nanoporeAnimTitle">Animated solid-state nanopore sensing principle</title>
+              <desc id="nanoporeAnimDesc">A biomolecule moves through a nanopore in a solid-state membrane. Charged ions flow through the pore, and the passage of the molecule produces a temporary downward blockade in the measured ionic-current trace.</desc>
+              <defs>
+                <linearGradient id="techChamber" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#102b45"/><stop offset="1" stop-color="#0a1b2d"/></linearGradient>
+                <linearGradient id="techMembrane" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#7899b8"/><stop offset=".48" stop-color="#3c5d7c"/><stop offset="1" stop-color="#233f5c"/></linearGradient>
+                <linearGradient id="techPore" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#173c5a"/><stop offset=".5" stop-color="#071525"/><stop offset="1" stop-color="#173c5a"/></linearGradient>
+                <linearGradient id="techDna" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ff9cc5"/><stop offset=".5" stop-color="#ea5f9b"/><stop offset="1" stop-color="#bd4d91"/></linearGradient>
+                <linearGradient id="techSignal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#4b9ce8"/><stop offset=".55" stop-color="#7dc6ff"/><stop offset="1" stop-color="#e979ad"/></linearGradient>
+                <radialGradient id="techGlow"><stop stop-color="#5ab6ff" stop-opacity=".28"/><stop offset="1" stop-color="#5ab6ff" stop-opacity="0"/></radialGradient>
+                <pattern id="techGrid" width="26" height="26" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#78addb" opacity=".18"/></pattern>
+                <clipPath id="techStageClip"><rect x="24" y="24" width="712" height="312" rx="12"/></clipPath>
+                <filter id="techSoftGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <filter id="techSmallGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="2" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+
+              <!-- Dark scientific stage and electrolyte chambers -->
+              <rect x="8" y="8" width="744" height="344" rx="18" fill="#071525" stroke="#25435f"/>
+              <rect x="24" y="24" width="712" height="121" rx="12" fill="url(#techChamber)"/>
+              <rect x="24" y="222" width="712" height="114" rx="12" fill="url(#techChamber)"/>
+              <rect x="24" y="24" width="712" height="312" rx="12" fill="url(#techGrid)" opacity=".72"/>
+              <circle cx="300" cy="104" r="108" fill="url(#techGlow)"/>
+              <circle cx="300" cy="263" r="92" fill="url(#techGlow)" opacity=".45"/>
+
+              <g fill="#91aeca" font-family="Space Grotesk, sans-serif" font-size="10" font-weight="700" letter-spacing="1.5">
+                <text x="45" y="47">CIS CHAMBER</text>
+                <text x="45" y="320">TRANS CHAMBER</text>
+              </g>
+              <g fill="#6f91b2" opacity=".55">
+                <circle cx="82" cy="83" r="3"/><circle cx="132" cy="116" r="2.4"/><circle cx="188" cy="72" r="3"/><circle cx="225" cy="124" r="2.2"/><circle cx="404" cy="74" r="2.8"/><circle cx="458" cy="116" r="2.4"/><circle cx="522" cy="79" r="3"/><circle cx="663" cy="112" r="2.5"/>
+                <circle cx="78" cy="270" r="2.6"/><circle cx="145" cy="295" r="2.2"/><circle cx="207" cy="258" r="2.8"/><circle cx="395" cy="293" r="2.5"/><circle cx="434" cy="258" r="2.2"/>
+              </g>
+
+              <!-- Dark channel sits behind the molecule; the membrane cut-out reveals the passage -->
+              <rect x="270" y="145" width="60" height="77" fill="url(#techPore)"/>
+
+              <!-- Biomolecule: repeated helix pattern moves down through the pore -->
+              <g clip-path="url(#techStageClip)">
+                <g class="dna-moving" filter="url(#techSmallGlow)">
+                  <path d="M288 -180 C312 -165 312 -135 288 -120 C264 -105 264 -75 288 -60 C312 -45 312 -15 288 0 C264 15 264 45 288 60 C312 75 312 105 288 120 C264 135 264 165 288 180 C312 195 312 225 288 240 C264 255 264 285 288 300 C312 315 312 345 288 360 C264 375 264 405 288 420" fill="none" stroke="url(#techDna)" stroke-width="5" stroke-linecap="round"/>
+                  <path d="M312 -180 C288 -165 288 -135 312 -120 C336 -105 336 -75 312 -60 C288 -45 288 -15 312 0 C336 15 336 45 312 60 C288 75 288 105 312 120 C336 135 336 165 312 180 C288 195 288 225 312 240 C336 255 336 285 312 300 C288 315 288 345 312 360 C336 375 336 405 312 420" fill="none" stroke="#f7a5ca" stroke-width="4" stroke-linecap="round" opacity=".94"/>
+                  <path d="M288 -180H312 M300 -150H300 M288 -120H312 M276 -90H324 M288 -60H312 M300 -30H300 M288 0H312 M276 30H324 M288 60H312 M300 90H300 M288 120H312 M276 150H324 M288 180H312 M300 210H300 M288 240H312 M276 270H324 M288 300H312 M300 330H300 M288 360H312 M276 390H324 M288 420H312" stroke="#ffc5dc" stroke-width="2.3" stroke-linecap="round" opacity=".86"/>
+                </g>
+              </g>
+
+              <!-- Ion particles: stream through the opening in the membrane -->
+              <g class="ion-stream" filter="url(#techSmallGlow)">
+                <circle class="ion-particle ion-one" cx="294" cy="113" r="4" fill="#79c8ff"/>
+                <circle class="ion-particle ion-two" cx="307" cy="126" r="3.3" fill="#a2dcff"/>
+                <circle class="ion-particle ion-three" cx="298" cy="99" r="2.8" fill="#5caef4"/>
+                <circle class="ion-particle ion-four" cx="305" cy="240" r="3.4" fill="#79c8ff"/>
+                <circle class="ion-particle ion-five" cx="293" cy="253" r="2.8" fill="#a2dcff"/>
+              </g>
+
+              <!-- Solid-state membrane with a cut-out nanopore -->
+              <path d="M26 145 H734 V222 H26 Z M270 145 H330 V222 H270 Z" fill="url(#techMembrane)" fill-rule="evenodd" stroke="#789ab9" stroke-width="1.5"/>
+              <path d="M270 145 V222 M330 145 V222" stroke="#a9c8e4" stroke-width="2" opacity=".72"/>
+              <path d="M270 145 Q300 139 330 145 M270 222 Q300 228 330 222" fill="none" stroke="#a9c8e4" stroke-width="1.5" opacity=".6"/>
+              <path d="M282 151 V216 M318 151 V216" stroke="#4f87b6" stroke-width="1" stroke-dasharray="3 5" opacity=".65"/>
+
+              <!-- Labels and callouts -->
+              <g font-family="Space Grotesk, sans-serif" font-size="9" font-weight="700" letter-spacing="1.1">
+                <text x="58" y="101" fill="#f29ac0">BIOMOLECULE</text>
+                <path d="M160 98 H244 L276 118" fill="none" stroke="#d87aa6" stroke-width="1.2" stroke-dasharray="3 4"/>
+                <text x="382" y="132" fill="#a9c6e0">SOLID-STATE MEMBRANE</text>
+                <path d="M380 137 L355 153" stroke="#83a9ca" stroke-width="1.2"/>
+                <text x="382" y="183" fill="#f3a4c7">NANOPORE</text>
+                <path d="M376 180 L333 183" stroke="#e17cac" stroke-width="1.2"/>
+                <text x="60" y="247" fill="#82c8fa">IONIC FLOW</text>
+                <path d="M144 244 L252 244 L281 217" fill="none" stroke="#69b8f2" stroke-width="1.2" stroke-dasharray="3 4"/>
+              </g>
+
+              <!-- Current response inset: a temporary downward blockade event -->
+              <g class="current-panel">
+                <rect x="452" y="244" width="254" height="78" rx="9" fill="#0b2035" stroke="#2b4d6c"/>
+                <text x="466" y="262" fill="#a8c0d9" font-family="Space Grotesk, sans-serif" font-size="8" font-weight="700" letter-spacing="1.2">IONIC CURRENT</text>
+                <text x="692" y="262" text-anchor="end" fill="#f18bb7" font-family="Space Grotesk, sans-serif" font-size="7" font-weight="700" letter-spacing=".8">BLOCKADE</text>
+                <path d="M466 299 H692" stroke="#355674" stroke-width="1" stroke-dasharray="3 4"/>
+                <path class="signal-wave" d="M466 284 H510 Q519 284 525 290 L536 311 Q542 318 553 311 L565 290 Q571 284 580 284 H692" fill="none" stroke="url(#techSignal)" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle class="blockade-pulse" cx="545" cy="314" r="5" fill="#f18bb7" filter="url(#techSoftGlow)"/>
+                <text x="466" y="313" fill="#7796b4" font-family="Space Grotesk, sans-serif" font-size="7">TIME →</text>
+              </g>
+            </svg>
+            <div class="tech-legend"><span><i class="legend-pink"></i> Moving biomolecule</span><span><i class="legend-blue"></i> Ionic flow</span><span><i class="legend-line"></i> Current blockade</span></div>
+          </div>
+          <div class="tech-description">
+            <div class="tech-step"><span>01</span><div><h3>A tiny opening in a membrane</h3><p>A nanopore is formed in a thin solid-state membrane, creating a nanoscale pathway between two electrolyte chambers.</p></div></div>
+            <div class="tech-step"><span>02</span><div><h3>Molecules change the ion flow</h3><p>As a molecule moves through or interacts with the pore, it can disturb the flow of ions through the opening.</p></div></div>
+            <div class="tech-step"><span>03</span><div><h3>Electrical events become data</h3><p>The readout system measures changes in ionic current. Software can then help process and visualize those signal events.</p></div></div>
+            <div class="science-note"><span><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg></span><p>Illustrative principle only. Actual signal characteristics depend on pore geometry, analyte, electrolyte, surface chemistry and operating conditions.</p></div>
+          </div>
+        </div>
+        <div class="tech-pillars reveal">
+          <div><span class="pillar-icon icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-pulse"/></svg></span><h3>Single-molecule sensing</h3><p>Study electrical events associated with individual molecular interactions.</p></div>
+          <div><span class="pillar-icon icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-label-off"/></svg></span><h3>Label-free potential</h3><p>Explore electrical measurements without relying on fluorescent labels.</p></div>
+          <div><span class="pillar-icon icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg></span><h3>Adaptable architecture</h3><p>Customize chip configurations for different research applications.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="platform section-pad" id="platform">
+      <div class="container">
+        <div class="platform-heading reveal"><div><div class="eyebrow"><span class="eyebrow-line"></span> THE AAGAMISEQ PLATFORM</div><h2>Four technologies.<br /><em>One connected workflow.</em></h2></div><p>We are bringing the essential layers of nanopore analysis into a coordinated platform — designed to move from sample handling to data interpretation.</p></div>
+        <div class="workflow reveal">
+          <div class="workflow-line"></div>
+          <div class="workflow-step"><span class="workflow-num icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-vial"/></svg></span><span class="workflow-index">01</span><h3>Prepare</h3><p>Biological sample</p></div>
+          <div class="workflow-step"><span class="workflow-num icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-chip"/></svg></span><span class="workflow-index">02</span><h3>Capture</h3><p>Nanopore chip</p></div>
+          <div class="workflow-step"><span class="workflow-num icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></span><span class="workflow-index">03</span><h3>Measure</h3><p>Readout system</p></div>
+          <div class="workflow-step"><span class="workflow-num icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-sparkle"/></svg></span><span class="workflow-index">04</span><h3>Interpret</h3><p>AI-enabled software</p></div>
+          <div class="workflow-step"><span class="workflow-num icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-bulb"/></svg></span><span class="workflow-index">05</span><h3>Understand</h3><p>Molecular insight</p></div>
+        </div>
+        <div class="workflow-caption"><span class="caption-dot"></span> Reagents and consumables support the workflow from sample preparation through measurement.</div>
+        <div class="products-grid">
+          <article class="product-card reveal">
+            
+            <div class="product-content"><div class="product-topline"><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-chip"/></svg></span><span>01 / CHIP ENGINEERING</span></div><h3>Solid-state nanopore chips</h3><p>Customizable membrane chips designed for molecular sensing research, with flexibility to explore pore geometry and chip architecture.</p><a href="#contact" class="product-link">Discuss chip development</a></div>
+          </article>
+          <article class="product-card reveal reveal-delay">
+            
+            <div class="product-content"><div class="product-topline"><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></span><span>02 / INSTRUMENTATION</span></div><h3>Benchtop readout system</h3><p>A dedicated measurement instrument being developed to acquire and display the electrical signals generated at the nanopore.</p><a href="#contact" class="product-link">Explore instrumentation</a></div>
+          </article>
+          <article class="product-card reveal">
+            
+            <div class="product-content"><div class="product-topline"><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg></span><span>03 / DATA & SOFTWARE</span></div><h3>AI-enabled analysis software</h3><p>A software layer for signal acquisition, processing, event visualization and data interpretation — built around nanopore measurements.</p><a href="#contact" class="product-link">Explore the software vision</a></div>
+          </article>
+          <article class="product-card reveal reveal-delay">
+            
+            <div class="product-content"><div class="product-topline"><span class="icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-flask"/></svg></span><span>04 / ASSAY ECOSYSTEM</span></div><h3>Reagents & consumables</h3><p>Application-specific chemistry and consumables intended to support sample preparation, molecular capture and repeatable workflows.</p><a href="#contact" class="product-link">Discuss assay development</a></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="applications section-pad" id="applications">
+      <div class="container">
+        <div class="applications-head reveal"><div><div class="eyebrow"><span class="eyebrow-line"></span> RESEARCH DIRECTIONS</div><h2>Designed to explore<br /><em>what molecules can tell us.</em></h2></div><p>Our platform is being developed with a range of molecular research applications in mind. Each area will require its own assay development and validation.</p></div>
+        <div class="application-grid application-grid-text-only">
+          <article class="application-card reveal"><div class="app-content"><span class="app-icon icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-drop"/></svg></span><span>01 · LIQUID BIOPSY RESEARCH</span><h3>Early cancer screening research</h3><p>Exploring molecular signals that may inform future research approaches to early detection.</p></div></article>
+          <article class="application-card reveal reveal-delay"><div class="app-content"><span class="app-icon icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-dna"/></svg></span><span>02 · NUCLEIC ACIDS</span><h3>ctDNA & RNA biomarkers</h3><p>Investigating electrical signatures associated with DNA and RNA targets.</p></div></article>
+          <article class="application-card reveal"><div class="app-content"><span class="app-icon icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-cell"/></svg></span><span>03 · CELL-DERIVED MATERIAL</span><h3>Exosome & extracellular vesicle research</h3><p>Exploring nanopore-based approaches to study nanoscale biological particles.</p></div></article>
+          <article class="application-card reveal reveal-delay"><div class="app-content"><span class="app-icon icon-badge"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg></span><span>04 · DISCOVERY & TRANSLATION</span><h3>Academic & translational research</h3><p>Enabling new experiments across molecular biology, materials science and diagnostics research.</p></div></article>
+        </div>
+        <p class="application-disclaimer">These are research and development directions, not claims of validated clinical performance or approved diagnostic use.</p>
+      </div>
+    </section>
+
+    <section class="approach section-pad" id="about">
+      <div class="container approach-grid approach-grid-text-only">
+        <div class="approach-copy reveal">
+          <div class="eyebrow eyebrow-light"><span class="eyebrow-line"></span> OUR APPROACH</div>
+          <h2>Deep science.<br /><em>Designed for real-world use.</em></h2>
+          <p>We believe the next leap in molecular analysis will come from connecting advances in materials, electronics, chemistry and computation — not treating them as separate problems.</p>
+          <div class="approach-points"><div><span>01</span> Engineer at the device level</div><div><span>02</span> Build around the complete workflow</div><div><span>03</span> Validate through rigorous research</div></div>
+          <a class="button button-white" href="#contact">Build with us</a>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="team section-pad" id="team">
+      <div class="container">
+        <div class="team-heading reveal">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> THE TEAM</div>
+            <h2>Different disciplines.<br /><em>One shared direction.</em></h2>
+          </div>
+          <p><span class="wordmark">Aagami<b>SEQ</b></span> brings together the thinking needed to move from a nanoscale sensing concept to an integrated molecular analysis platform — spanning biology, materials, electronics and computation.</p>
+        </div>
+        <div class="team-grid">
+          <article class="team-card reveal">
+            <div class="team-card-top"><span class="team-number">01</span><span class="team-icon team-icon-lead icon-badge" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-compass"/></svg></span></div>
+            <span class="team-category">DIRECTION & INTEGRATION</span>
+            <h3>Leadership & product</h3>
+            <p>Connecting the vision, product roadmap and development priorities to build a coherent sample-to-answer platform.</p>
+            <span class="team-focus">STRATEGY · PRODUCT DEVELOPMENT</span>
+          </article>
+          <article class="team-card reveal reveal-delay">
+            <div class="team-card-top"><span class="team-number">02</span><span class="team-icon team-icon-nano icon-badge" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-pore"/></svg></span></div>
+            <span class="team-category">CHIP & ASSAY DEVELOPMENT</span>
+            <h3>Nanopore research</h3>
+            <p>Exploring membrane and pore architectures, chip performance, sample interactions and application-specific assay workflows.</p>
+            <span class="team-focus">NANOFABRICATION · MOLECULAR BIOLOGY</span>
+          </article>
+          <article class="team-card reveal">
+            <div class="team-card-top"><span class="team-number">03</span><span class="team-icon team-icon-instrument icon-badge" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-monitor"/></svg></span></div>
+            <span class="team-category">HARDWARE & ELECTRONICS</span>
+            <h3>Instrumentation engineering</h3>
+            <p>Developing the readout electronics, signal acquisition and instrument architecture required for reliable nanopore measurements.</p>
+            <span class="team-focus">READOUT SYSTEMS · SIGNAL ACQUISITION</span>
+          </article>
+          <article class="team-card reveal reveal-delay">
+            <div class="team-card-top"><span class="team-number">04</span><span class="team-icon team-icon-data icon-badge" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg></span></div>
+            <span class="team-category">SOFTWARE & DATA</span>
+            <h3>Analysis & intelligence</h3>
+            <p>Building tools to acquire, process and visualize electrical signals, with AI-enabled analysis as a key development direction.</p>
+            <span class="team-focus">SIGNAL PROCESSING · DATA ANALYSIS</span>
+          </article>
+        </div>
+        <div class="team-footnote"><span class="team-footnote-mark"><svg class="icon" aria-hidden="true"><use href="#i-nodes"/></svg></span><p>Our strength lies in connecting these disciplines — so that chip design, measurement, chemistry and software are developed as parts of one platform.</p></div>
+      </div>
+    </section>
+
+    <section class="founders section-pad" id="founders">
+      <div class="container">
+        <div class="section-heading reveal"><div class="eyebrow">Founders &amp; team</div><h2>The people guiding <em><span class="wordmark">Aagami<b>SEQ</b></span>.</em></h2></div>
+        <div class="founders-grid">
+          <article class="founder-card reveal">
+            <img class="founder-photo" src="founder-manoj-varma.png" alt="Prof. Manoj Varma" loading="lazy" />
+            <div class="founder-info">
+              <h4>Prof. Manoj Varma</h4>
+              <span class="founder-role">Research &amp; Development Advisor</span>
+              <p class="founder-bio">Leading research and development initiatives, bringing decades of experience in nanoscale engineering and semiconductor physics to drive innovation at <span class="wordmark">Aagami<b>SEQ</b></span>.</p>
+            </div>
+          </article>
+          <article class="founder-card reveal reveal-delay">
+            <img class="founder-photo" src="founder-divya-mohan-yadav.png" alt="Dr. Divya Mohan Yadav" loading="lazy" />
+            <div class="founder-info">
+              <h4>Dr. Divya Mohan Yadav</h4>
+              <span class="founder-role">Chief Executive Officer</span>
+              <p class="founder-bio">Spearheading the company's vision and strategic direction, combining deep scientific expertise with entrepreneurial leadership to revolutionize cancer diagnostics.</p>
+            </div>
+          </article>
+          <article class="founder-card reveal">
+            <img class="founder-photo" src="founder-muddukrishna-p.jpeg" alt="Muddukrishna P" loading="lazy" />
+            <div class="founder-info">
+              <h4>Muddukrishna P</h4>
+              <span class="founder-role">Chief Product Officer</span>
+              <p class="founder-bio">Leads <span class="wordmark">Aagami<b>SEQ</b></span>’s integrated nanopore product development, bringing over a decade of R&amp;D experience to turn scientific concepts into scalable, market-ready solutions.</p>
+            </div>
+          </article>
+          <article class="founder-card reveal reveal-delay">
+            <img class="founder-photo" src="founder-anumol-dominic.jpeg" alt="Dr. Anumol Dominic" loading="lazy" />
+            <div class="founder-info">
+              <h4>Dr. Anumol Dominic</h4>
+              <span class="founder-role">Lead Fabrication Engineer</span>
+              <p class="founder-bio">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, ut enim ad minim veniam.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="vision section-pad">
+      <div class="container vision-inner reveal">
+        <div class="vision-symbol" aria-hidden="true">
+          <svg class="north-star" viewBox="0 0 80 80" fill="none">
+            <defs>
+              <radialGradient id="northStarGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#e84c91" stop-opacity="0.42"/>
+                <stop offset="28%" stop-color="#7eb0ea" stop-opacity="0.22"/>
+                <stop offset="62%" stop-color="#246bce" stop-opacity="0.08"/>
+                <stop offset="100%" stop-color="#246bce" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <circle cx="40" cy="40" r="38" fill="url(#northStarGlow)"/>
+            <g fill="#8eb6e2">
+              <path d="M43.56,31.19 L41.15,38.62 L40,40 L40.13,38.21 Z"/>
+              <path d="M47.88,36.82 L41.61,39.89 L40,40 L41.23,38.96 Z"/>
+              <path d="M48.34,43.37 L41.31,41.09 L40,40 L41.70,40.12 Z"/>
+              <path d="M43.07,47.60 L40.11,41.55 L40,40 L41.00,41.19 Z"/>
+              <path d="M36.55,48.53 L38.90,41.34 L40,40 L39.86,41.73 Z"/>
+              <path d="M32.21,43.15 L38.41,40.10 L40,40 L38.79,41.03 Z"/>
+              <path d="M31.66,36.63 L38.69,38.91 L40,40 L38.30,39.88 Z"/>
+              <path d="M36.78,32.03 L39.88,38.38 L40,40 L38.96,38.75 Z"/>
+            </g>
+            <g fill="#123B70">
+              <path d="M40,6 L41.15,33.88 L40,40 L38.85,33.88 Z"/>
+              <path d="M40,70 L38.95,45.40 L40,40 L41.05,45.40 Z"/>
+              <path d="M64,40 L44.32,40.95 L40,40 L44.32,39.05 Z"/>
+              <path d="M16,40 L35.68,39.05 L40,40 L35.68,40.95 Z"/>
+              <path d="M51.31,28.69 L42.64,38.56 L40,40 L41.44,37.36 Z"/>
+              <path d="M50.61,50.61 L41.34,42.47 L40,40 L42.47,41.34 Z"/>
+              <path d="M28.69,51.31 L37.36,41.44 L40,40 L38.56,42.64 Z"/>
+              <path d="M29.75,29.75 L38.71,37.60 L40,40 L37.60,38.71 Z"/>
+            </g>
+            <circle cx="40" cy="40" r="3.2" fill="#e84c91"/>
+            <circle cx="40" cy="40" r="1.35" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="eyebrow"><span class="eyebrow-line"></span> OUR NORTH STAR</div>
+        <h2>Democratizing genetic insights<br />for a <em>healthier world.</em></h2>
+        <p>We are building toward a future where advanced molecular technologies can reach more researchers, laboratories and healthcare ecosystems.</p>
+      </div>
+    </section>
+
+    <section class="contact section-pad" id="contact">
+      <div class="container contact-grid">
+        <div class="contact-copy reveal"><div class="eyebrow"><span class="eyebrow-line"></span> WORK WITH US</div><h2>Let's move molecular<br /><em>discovery forward.</em></h2><p>Whether you're a researcher, institution, technology partner or investor, we'd be glad to hear what you're building.</p><div class="contact-links"><a href="#platform">Explore the platform <svg class="icon icon-inline" aria-hidden="true"><use href="#i-arrow"/></svg></a><a href="#technology">Understand the technology <svg class="icon icon-inline" aria-hidden="true"><use href="#i-arrow"/></svg></a></div></div>
+        <div class="contact-form-wrap reveal reveal-delay"><div class="form-heading"><span>START A CONVERSATION</span><b>Tell us what brings you here.</b></div>
+          <form id="contactForm" action="https://formsubmit.co/imaadbinirshad@gmail.com" method="POST">
+            <input type="text" name="_honey" class="form-honeypot" tabindex="-1" autocomplete="off" aria-hidden="true" />
+            <input type="hidden" name="_subject" value="New AagamiSEQ website enquiry" />
+            <input type="hidden" name="_template" value="table" />
+            <div class="form-row"><label>Your name<input type="text" name="name" placeholder="Name" required /></label><label>Work email<input type="email" name="email" placeholder="you@organization.com" required /></label></div>
+            <label>Organization<input type="text" name="organization" placeholder="Company / institution" /></label>
+            <label>Area of interest<select name="interest" required><option value="" disabled selected>Select an area</option><option>Research collaboration</option><option>Technology partnership</option><option>Investment</option><option>Product information</option><option>Other</option></select></label>
+            <label>Message<textarea name="message" rows="3" placeholder="A little about your interest..."></textarea></label>
+            <button class="button button-primary form-submit" type="submit">Send enquiry</button>
+            <p class="form-disclaimer">We usually reply within two working days.</p>
+            <p class="form-feedback" id="formFeedback" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-main">
+      <div class="footer-brand"><a class="brand brand-footer" href="#top" aria-label="AagamiSEQ home"><img class="brand-symbol" src="aagamaseq-logo-mark.png" alt="" aria-hidden="true" /><span class="brand-text">Aagami<b>SEQ</b></span></a><p>Advancing molecular detection.<br />Enabling a healthier future.</p></div>
+      <div class="footer-nav"><div><span>EXPLORE</span><a href="#technology">Technology</a><a href="#platform">Platform</a><a href="#applications">Applications</a></div><div><span>COMPANY</span><a href="#about">Our approach</a><a href="#team">Team</a><a href="#founders">Founders</a><a href="#contact">Contact</a></div></div>
+    </div>
+    <div class="container footer-bottom"><span class="footer-legal"><span>© <span id="year"></span> <span class="wordmark">Aagami<b>SEQ</b></span>. All rights reserved.</span><span class="footer-credit">Website by <a href="https://imaad6.vercel.app" target="_blank" rel="noopener noreferrer">imaad</a></span></span><span class="footer-disclaimer">Platform under development. Not a clinically validated or approved diagnostic product.</span><a href="#top">Back to top ↑</a></div>
+  </footer>
+  <script src="script.js?v=20261120w"></script>
+  <script src="hero.js?v=20261120w"></script>
+</body>
+</html>
