@@ -365,8 +365,9 @@ main > .section-pad {
 
 .problem-image-sketch img {
   filter: none !important;
-  -webkit-mask-image: radial-gradient(ellipse 88% 84% at 50% 48%, #fff 46%, transparent 100%);
-  mask-image: radial-gradient(ellipse 88% 84% at 50% 48%, #fff 46%, transparent 100%);
+  -webkit-mask-image: none;
+  mask-image: none;
+  background: transparent !important;
 }
 
 .problem .problem-image-sketch {
