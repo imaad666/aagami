@@ -738,6 +738,13 @@ main > .section-pad {
 }
 
 /* Contact links: underline + colour shift on hover */
+.contact-email {
+  margin: 0.85rem 0 0.35rem;
+}
+.contact-email a {
+  color: var(--pink) !important;
+  font-weight: 600;
+}
 .contact-links a {
   color: var(--blue) !important;
   text-decoration: underline;
