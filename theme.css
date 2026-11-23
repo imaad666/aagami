@@ -370,12 +370,12 @@ main > .section-pad {
 }
 
 .problem .problem-image-sketch {
-  height: min(74vh, 660px) !important;
+  height: auto !important;
   max-height: none;
-  width: auto;
+  width: 100%;
   max-width: 560px;
-  aspect-ratio: 863 / 1053;
-  align-self: end;
+  aspect-ratio: 1024 / 682;
+  align-self: center;
   justify-self: center;
   grid-column: 1;
   grid-row: 1 / span 2;
