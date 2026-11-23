@@ -93,7 +93,7 @@
 
   // Contact form: delivered by email through FormSubmit. Without JavaScript the
   // form still posts to the same endpoint via its action attribute.
-  var CONTACT_ENDPOINT = "https://formsubmit.co/ajax/imaadbinirshad@gmail.com";
+  var CONTACT_ENDPOINT = "https://formsubmit.co/ajax/contact@aagamiseq.com";
   var contactForm = document.getElementById("contactForm");
   var formFeedback = document.getElementById("formFeedback");
 
