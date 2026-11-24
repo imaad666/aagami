@@ -59,7 +59,7 @@
 
   // Desktop sections are one viewport tall; shrink a section's content
   // uniformly when it would not fit (paired with --fit in theme.css).
-  var fitQuery = window.matchMedia("(min-width: 901px) and (min-height: 560px)");
+  var fitQuery = window.matchMedia("(min-height: 480px)");
   var fitContainers = Array.prototype.slice.call(document.querySelectorAll("main > .section-pad > .container"));
 
   function fitSections() {
@@ -71,7 +71,8 @@
       var available = section.clientHeight - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom);
       var needed = container.offsetHeight;
       if (needed > available) {
-        container.style.setProperty("--fit", Math.max(0.6, available / needed).toFixed(3));
+        var floor = window.innerWidth <= 900 ? 0.4 : 0.6;
+        container.style.setProperty("--fit", Math.max(floor, available / needed).toFixed(3));
       }
     });
   }
