@@ -1463,13 +1463,52 @@ main p,
   background: var(--line) !important;
 }
 
-/* Form fields */
+/* Form: a tighter card so it sits beside the intro instead of dominating it. */
+.contact-grid {
+  align-items: center !important;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 24.5rem) !important;
+}
+
+.contact-form-wrap {
+  padding: 1.05rem 1.1rem 0.95rem !important;
+  border-radius: 1.05rem !important;
+}
+
+.form-heading {
+  gap: 0.28rem !important;
+  padding-bottom: 0.7rem !important;
+  margin-bottom: 0.7rem !important;
+}
+
+.form-heading b {
+  font-size: 0.98rem !important;
+}
+
+.contact-form-wrap form {
+  gap: 0.5rem !important;
+}
+
+.contact-form-wrap label {
+  gap: 0.28rem !important;
+  font-size: 0.62rem !important;
+}
+
 .contact-form-wrap input,
 .contact-form-wrap select,
 .contact-form-wrap textarea {
   background: var(--input-bg) !important;
   border: 1px solid var(--card-border) !important;
   color: var(--ink) !important;
+  padding: 0.5rem 0.65rem !important;
+  font-size: 0.84rem !important;
+  line-height: 1.35;
+  border-radius: 0.55rem !important;
+}
+
+.contact-form-wrap textarea {
+  min-height: 0;
+  height: 3.6rem;
+  resize: none;
 }
 
 .contact-form-wrap input::placeholder,
