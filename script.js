@@ -92,10 +92,17 @@
   var year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
 
-  // Contact form: delivered by email through FormSubmit. Without JavaScript the
-  // form still posts to the same endpoint via its action attribute.
-  var CONTACT_ENDPOINT = "https://formsubmit.co/ajax/contact@aagamiseq.com";
+  // Contact form goes to the address printed on the page. Without JavaScript the
+  // form still posts to that same address via its action attribute.
+  var listedMail = document.querySelector(".contact-email a[href^='mailto:']");
+  var contactAddress = "contact@aagamiseq.com";
+  if (listedMail) {
+    var fromPage = listedMail.getAttribute("href").replace(/^mailto:/i, "").split("?")[0].trim();
+    if (fromPage) contactAddress = fromPage;
+  }
+  var CONTACT_ENDPOINT = "https://formsubmit.co/ajax/" + contactAddress;
   var contactForm = document.getElementById("contactForm");
+  if (contactForm) contactForm.action = "https://formsubmit.co/" + contactAddress;
   var formFeedback = document.getElementById("formFeedback");
 
   if (contactForm && formFeedback && window.fetch) {
