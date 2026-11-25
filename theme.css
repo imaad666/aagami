@@ -1537,6 +1537,41 @@ main p,
     line-height: 1.14 !important;
   }
 
+  .section-heading,
+  .approach-copy,
+  .problem-lead,
+  .platform-heading,
+  .applications-head,
+  .team-heading,
+  .contact-copy,
+  .section-heading .eyebrow,
+  .approach-copy .eyebrow,
+  .problem-lead .eyebrow,
+  .platform-heading .eyebrow,
+  .applications-head .eyebrow,
+  .team-heading .eyebrow,
+  .contact-copy .eyebrow {
+    text-align: left !important;
+  }
+
+  .section-heading,
+  .section-heading p,
+  .approach-grid-text-only .approach-copy > p {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .approach .approach-points {
+    max-width: none;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .approach .approach-points > div {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
   .hero .hero-copy {
     width: calc(100% - 1.25rem);
     padding: 5.4rem 0.2rem 5.6rem !important;
