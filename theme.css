@@ -59,6 +59,7 @@ html {
   scroll-padding-top: 4.5rem;
   scroll-snap-type: none;
   color-scheme: light;
+  background: #f3f7fc;
 }
 
 main {
@@ -171,7 +172,7 @@ body {
   box-shadow: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  padding: 0.85rem 0 0;
+  padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 0 0;
   pointer-events: none;
 }
 
@@ -1821,6 +1822,21 @@ main p,
     text-align: center !important;
   }
 
+  #platform .workflow-caption {
+    display: block;
+    width: min(20rem, 100%);
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+
+  #platform .workflow-caption .caption-dot {
+    display: inline-block;
+    vertical-align: 0.05rem;
+    margin-right: 0.4rem;
+    box-shadow: none;
+  }
+
   .technology .tech-pillars {
     grid-template-columns: 1fr !important;
     gap: 0.65rem !important;
@@ -1886,27 +1902,182 @@ main p,
     gap: 1.5rem 1.25rem !important;
   }
 
-  /* One document scroll. A locked screen plus an inner scroller fights
-     the phone's own scroll and hides the rest of each section. */
-  html {
-    scroll-snap-type: none;
-    scroll-padding-top: 4.75rem;
+  /* One screen each. The copy above is shortened so it fits without a
+     second scroller and without shrinking the type. */
+  .section-pad {
+    padding: calc(4.15rem + env(safe-area-inset-top, 0px)) 0 calc(0.85rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 
-  body {
-    overflow-x: clip;
+  .section-heading h2,
+  .problem h2,
+  .platform h2,
+  .applications h2,
+  .approach h2,
+  .vision h2,
+  .contact h2,
+  .team-heading h2 {
+    font-size: clamp(1.45rem, 6.4vw, 1.85rem) !important;
+    margin-top: 0.35rem !important;
+    margin-bottom: 0.4rem !important;
   }
+
+  .problem .problem-image-sketch {
+    max-height: 7.25rem;
+  }
+
+  .problem .problem-image-sketch img {
+    max-height: 7.25rem;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .problem .section-intro,
+  .problem-closing,
+  .challenge-item p,
+  .tech-description,
+  .tech-pillars p,
+  .platform-heading > p,
+  .product-content p,
+  .applications-head > p,
+  .application-card p,
+  .team-heading > p,
+  .team-card p,
+  .team-focus,
+  .team-footnote,
+  .founder-bio,
+  .contact-links,
+  .contact-copy > p:not(.contact-email) {
+    display: none !important;
+  }
+
+  .contact-grid {
+    gap: 0.65rem !important;
+  }
+
+  .contact .form-row {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+  }
+
+  .contact-form-wrap form {
+    gap: 0.35rem !important;
+  }
+
+  .challenge-list { margin-top: 0.45rem !important; }
+
+  .challenge-item {
+    padding: 0.45rem 0.65rem !important;
+  }
+
+  .tech-animation-svg {
+    max-height: 9.5rem;
+  }
+
+  .tech-legend { display: none !important; }
+
+  .tech-pillars > div {
+    padding: 0.45rem 0.6rem !important;
+  }
+
+  #platform .products-grid,
+  #applications .application-grid-text-only,
+  .team-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.45rem !important;
+  }
+
+  #platform .product-card,
+  #applications .application-grid-text-only .application-card,
+  .team-card {
+    min-height: 0 !important;
+    padding: 0.65rem 0.7rem !important;
+  }
+
+  #platform .product-content h3,
+  #applications .application-card h3,
+  .team-card h3 {
+    margin: 0.25rem 0 0 !important;
+    font-size: 0.86rem !important;
+  }
+
+  .product-link,
+  .application-disclaimer {
+    display: none !important;
+  }
+
+  .workflow-caption {
+    margin: 0.35rem 0 0.55rem !important;
+  }
+
+  .founders .founder-card {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 0.7rem;
+    padding: 0.55rem 0.7rem !important;
+  }
+
+  .founders .founder-photo {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  .founders .founder-info {
+    align-items: flex-start;
+  }
+
+  .founders .founder-info h4 {
+    font-size: 1rem !important;
+  }
+
+  .approach .approach-points {
+    gap: 0.45rem;
+    margin-top: 0.7rem !important;
+    margin-bottom: 0.7rem !important;
+  }
+
+  .approach .approach-points > div {
+    min-height: 0;
+    padding: 0.55rem 0.65rem !important;
+  }
+
+  .contact-form-wrap {
+    padding: 0.7rem 0.75rem 0.65rem !important;
+  }
+
+  .hero-bottom {
+    bottom: calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  html {
+    scroll-snap-type: y mandatory;
+    scroll-padding-top: 0 !important;
+  }
+
+  body { overflow-x: clip; }
 
   .hero,
   main > .section-pad,
   .site-footer {
-    height: auto;
-    scroll-snap-align: none;
-    scroll-snap-stop: normal;
+    height: 100svh;
+    height: 100dvh;
+    min-height: 100dvh;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    overflow: hidden;
   }
 
   main > .section-pad {
-    overflow: visible;
     justify-content: flex-start;
+  }
+
+  .site-footer {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-sizing: border-box;
+    padding-top: calc(4.15rem + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
