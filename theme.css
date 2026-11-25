@@ -1449,6 +1449,13 @@ main p,
   width: 100%;
   height: 100%;
   overflow: visible;
+  transform-origin: center;
+  animation: north-star-breathe 8s ease-in-out infinite;
+}
+
+@keyframes north-star-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.045); }
 }
 
 #platform .workflow-line,
@@ -1495,6 +1502,7 @@ main p,
 @media (prefers-reduced-motion: reduce) {
   #glyphField { opacity: 0.4; }
   body, .hero, .button { transition: none; }
+  .north-star { animation: none; }
 }
 
 /* Phone and small tablet: a flowing page, not a stack of desktop screens. */
