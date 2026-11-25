@@ -1511,6 +1511,45 @@ main p,
   resize: none;
 }
 
+@media (min-width: 901px) {
+  .contact-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 32rem) !important;
+  }
+
+  .contact-form-wrap {
+    padding: 1.45rem 1.5rem 1.25rem !important;
+  }
+
+  .form-heading {
+    gap: 0.4rem !important;
+    padding-bottom: 0.95rem !important;
+    margin-bottom: 0.95rem !important;
+  }
+
+  .form-heading b {
+    font-size: 1.15rem !important;
+  }
+
+  .contact-form-wrap form {
+    gap: 0.72rem !important;
+  }
+
+  .contact-form-wrap label {
+    font-size: 0.7rem !important;
+  }
+
+  .contact-form-wrap input,
+  .contact-form-wrap select,
+  .contact-form-wrap textarea {
+    padding: 0.7rem 0.85rem !important;
+    font-size: 0.95rem !important;
+  }
+
+  .contact-form-wrap textarea {
+    height: 5.25rem;
+  }
+}
+
 .contact-form-wrap input::placeholder,
 .contact-form-wrap textarea::placeholder {
   color: var(--ink-faint) !important;
