@@ -57,9 +57,13 @@
     });
   });
 
-  // Desktop sections are one viewport tall; shrink a section's content
-  // uniformly when it would not fit (paired with --fit in theme.css).
-  var fitQuery = window.matchMedia("(min-height: 480px)");
+  // Keep the footer year current.
+  var year = document.getElementById("year");
+  if (year) year.textContent = new Date().getFullYear();
+
+  // Laptop sections are one viewport tall. Scale a section down, rather than
+  // scrolling inside it, so the page still snaps one screen at a time.
+  var fitQuery = window.matchMedia("(min-width: 901px) and (min-height: 560px)");
   var fitContainers = Array.prototype.slice.call(document.querySelectorAll("main > .section-pad > .container"));
 
   function fitSections() {
@@ -70,9 +74,8 @@
       var styles = window.getComputedStyle(section);
       var available = section.clientHeight - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom);
       var needed = container.offsetHeight;
-      if (needed > available) {
-        var floor = window.innerWidth <= 900 ? 0.4 : 0.6;
-        container.style.setProperty("--fit", Math.max(floor, available / needed).toFixed(3));
+      if (needed > available + 1) {
+        container.style.setProperty("--fit", Math.max(0.6, available / needed).toFixed(3));
       }
     });
   }
@@ -87,10 +90,6 @@
   window.addEventListener("resize", scheduleFit);
   window.addEventListener("load", scheduleFit);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFit);
-
-  // Keep the footer year current.
-  var year = document.getElementById("year");
-  if (year) year.textContent = new Date().getFullYear();
 
   // Contact form goes to the address printed on the page. Without JavaScript the
   // form still posts to that same address via its action attribute.
