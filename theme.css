@@ -1898,17 +1898,18 @@ main p,
     min-height: 0;
     scroll-snap-align: start;
     scroll-snap-stop: always;
-    justify-content: center;
   }
 
   main > .section-pad {
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+    justify-content: safe center;
+    scrollbar-width: thin;
   }
 
   main > .section-pad > .container {
     flex-shrink: 0;
-    transform: scale(var(--fit, 1));
-    transform-origin: center center;
   }
 
   .site-footer {
