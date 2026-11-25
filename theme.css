@@ -1819,10 +1819,20 @@ main p,
     line-height: 1.5 !important;
   }
 
+  .contact-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1.25rem !important;
+  }
+
+  .contact-form-wrap {
+    padding: 0.9rem 0.85rem 0.8rem !important;
+  }
+
   .contact-form-wrap input,
   .contact-form-wrap select,
   .contact-form-wrap textarea {
     font-size: 16px !important;
+    padding: 0.55rem 0.7rem !important;
   }
 
   .founders .founder-card {
