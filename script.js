@@ -47,6 +47,52 @@
     });
   }
 
+  // On a phone the technology notes are icon buttons. A tap opens a short splash.
+  var pillars = Array.prototype.slice.call(document.querySelectorAll(".tech-pillars > .pillar"));
+  var pillarQuery = window.matchMedia("(max-width: 900px)");
+
+  function closePillars() {
+    pillars.forEach(function (pillar) {
+      pillar.classList.remove("is-open");
+      pillar.setAttribute("aria-expanded", "false");
+    });
+    if (pillarNote) {
+      pillarNote.hidden = true;
+      pillarNote.classList.remove("is-open");
+    }
+  }
+
+  var pillarNote = document.querySelector(".pillar-note");
+
+  function showPillarNote(pillar) {
+    if (!pillarNote) return;
+    var title = pillar.querySelector("h3");
+    var body = pillar.querySelector("p");
+    pillarNote.querySelector("h3").textContent = title ? title.textContent : "";
+    pillarNote.querySelector("p").textContent = body ? body.textContent : "";
+    pillarNote.hidden = false;
+    pillarNote.classList.add("is-open");
+  }
+
+  pillars.forEach(function (pillar) {
+    pillar.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (!pillarQuery.matches) return;
+      var open = pillar.classList.contains("is-open");
+      closePillars();
+      if (!open) {
+        pillar.classList.add("is-open");
+        pillar.setAttribute("aria-expanded", "true");
+        showPillarNote(pillar);
+      }
+    });
+  });
+
+  document.addEventListener("click", closePillars);
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") closePillars();
+  });
+
   // The wordmark sits in a sticky header, so a plain #top link never moves
   // the page. Send every "back to top" link to the document start.
   document.querySelectorAll('a[href="#top"]').forEach(function (link) {
@@ -61,21 +107,38 @@
   var year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
 
-  // Laptop sections are one viewport tall. Scale a section down, rather than
+  // Sections are one viewport tall. Scale a section down, rather than
   // scrolling inside it, so the page still snaps one screen at a time.
-  var fitQuery = window.matchMedia("(min-width: 901px) and (min-height: 560px)");
+  var phoneQuery = window.matchMedia("(max-width: 900px)");
+  var laptopQuery = window.matchMedia("(min-width: 901px) and (min-height: 560px)");
   var fitContainers = Array.prototype.slice.call(document.querySelectorAll("main > .section-pad > .container"));
 
   function fitSections() {
+    var phone = phoneQuery.matches;
+    var laptop = laptopQuery.matches;
     fitContainers.forEach(function (container) {
       container.style.removeProperty("--fit");
-      if (!fitQuery.matches) return;
+      if (!phone && !laptop) return;
       var section = container.parentElement;
       var styles = window.getComputedStyle(section);
-      var available = section.clientHeight - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom);
-      var needed = container.offsetHeight;
-      if (needed > available + 1) {
-        container.style.setProperty("--fit", Math.max(0.6, available / needed).toFixed(3));
+      var available = section.clientHeight - parseFloat(styles.paddingTop) - parseFloat(styles.paddingBottom) - 8;
+      var floor = phone ? 0.32 : 0.6;
+      var guard = 0;
+      while (guard < 4) {
+        guard += 1;
+        // Painted height, so a phone width compensation that reflows the copy
+        // is measured after it happens. Layout height would scale back up and
+        // clip the last card.
+        var needed = container.getBoundingClientRect().height;
+        if (needed <= available + 1) {
+          if (guard === 1) container.style.removeProperty("--fit");
+          break;
+        }
+        var current = parseFloat(container.style.getPropertyValue("--fit")) || 1;
+        var next = Math.max(floor, Math.min(1, current * (available / needed)));
+        if (Math.abs(next - current) < 0.004) break;
+        container.style.setProperty("--fit", next.toFixed(3));
+        if (!phone) break;
       }
     });
   }
