@@ -1886,33 +1886,27 @@ main p,
     gap: 1.5rem 1.25rem !important;
   }
 
+  /* One document scroll. A locked screen plus an inner scroller fights
+     the phone's own scroll and hides the rest of each section. */
   html {
-    scroll-snap-type: y mandatory;
-    scroll-padding-top: 0 !important;
+    scroll-snap-type: none;
+    scroll-padding-top: 4.75rem;
+  }
+
+  body {
+    overflow-x: clip;
   }
 
   .hero,
-  main > .section-pad {
-    height: 100svh;
-    height: 100dvh;
-    min-height: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-  main > .section-pad {
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-y: auto;
-    justify-content: safe center;
-    scrollbar-width: thin;
-  }
-
-  main > .section-pad > .container {
-    flex-shrink: 0;
-  }
-
+  main > .section-pad,
   .site-footer {
-    scroll-snap-align: end;
+    height: auto;
+    scroll-snap-align: none;
+    scroll-snap-stop: normal;
+  }
+
+  main > .section-pad {
+    overflow: visible;
+    justify-content: flex-start;
   }
 }
