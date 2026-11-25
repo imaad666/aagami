@@ -1572,6 +1572,23 @@ main p,
     text-align: left;
   }
 
+  .vision-inner,
+  .vision-inner .eyebrow,
+  .vision-inner p {
+    text-align: center !important;
+  }
+
+  .vision-inner {
+    width: min(20.5rem, 100%);
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .vision-symbol {
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
   .hero .hero-copy {
     width: calc(100% - 1.25rem);
     padding: 5.4rem 0.2rem 5.6rem !important;
