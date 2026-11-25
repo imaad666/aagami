@@ -355,6 +355,19 @@ main > .section-pad {
   gap: clamp(1.25rem, 3vw, 2.75rem) !important;
 }
 
+.platform-heading,
+.applications-head {
+  align-items: flex-end;
+  align-items: last baseline;
+}
+
+.platform-heading h2,
+.applications-head h2,
+.platform-heading > p,
+.applications-head > p {
+  margin-bottom: 0 !important;
+}
+
 .problem-image {
   height: min(52vh, 480px) !important;
   max-height: 520px;
