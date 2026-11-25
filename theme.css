@@ -147,9 +147,12 @@ body {
 .platform-heading .eyebrow,
 .applications-head .eyebrow,
 .team-heading .eyebrow,
-.approach-copy .eyebrow,
 .contact-copy .eyebrow {
   text-align: left !important;
+}
+
+.approach-copy .eyebrow {
+  text-align: center !important;
 }
 
 .eyebrow-line { display: none !important; }
@@ -1360,7 +1363,45 @@ main p,
 
 .approach-points {
   max-width: 28rem;
-  margin: 1.15rem 0 1.35rem !important;
+  margin: 1.15rem auto 1.35rem !important;
+}
+
+.approach-grid-text-only .approach-copy {
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.approach-grid-text-only .approach-copy > p {
+  max-width: 40rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.approach .approach-points {
+  width: 100%;
+  max-width: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 1.4rem auto 1.5rem !important;
+}
+
+.approach .approach-points > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 4.75rem;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .approach .approach-points {
+    grid-template-columns: 1fr;
+    max-width: 28rem;
+  }
 }
 
 .challenge-item,
