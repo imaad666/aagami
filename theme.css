@@ -432,6 +432,13 @@ main > .section-pad {
   justify-self: center;
   grid-column: 1;
   grid-row: 1 / span 2;
+  animation: pipette-float 11s ease-in-out infinite;
+}
+
+@keyframes pipette-float {
+  0%, 100% { transform: translateY(0); }
+  48% { transform: translateY(9px); }
+  74% { transform: translateY(-3px); }
 }
 
 .problem-lead {
@@ -1707,7 +1714,8 @@ main p,
 @media (prefers-reduced-motion: reduce) {
   #glyphField { opacity: 0.4; }
   body, .hero, .button { transition: none; }
-  .north-star { animation: none; }
+  .north-star,
+  .problem .problem-image-sketch { animation: none; }
 }
 
 /* Phone and small tablet: a flowing page, not a stack of desktop screens. */
