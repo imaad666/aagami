@@ -1016,7 +1016,7 @@ main > .backing.section-pad {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 2.25rem 3.25rem;
 }
 
@@ -1054,7 +1054,7 @@ main > .backing.section-pad {
 }
 
 .logo-ccamp { --logo-h: 6.15rem; }
-.logo-meity { --logo-h: 6.35rem; }
+.logo-pointone { --logo-h: 3.35rem; }
 .logo-sid { --logo-h: 6.5rem; }
 .logo-incense { --logo-h: 2.7rem; }
 
@@ -2166,7 +2166,7 @@ main p,
 }
 
 .logo-ccamp { --logo-h: 4.15rem; }
-.logo-meity { --logo-h: 4.4rem; }
+.logo-pointone { --logo-h: 2.2rem; }
 .logo-sid { --logo-h: 4.55rem; }
 .logo-incense { --logo-h: 2.15rem; }
 
