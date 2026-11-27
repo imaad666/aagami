@@ -1009,15 +1009,36 @@ main > .backing.section-pad {
   margin-bottom: clamp(5.5rem, 21vh, 10.5rem) !important;
 }
 
+.backing-marquee {
+  overflow: hidden;
+  width: 100%;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+
+.backing-track {
+  display: flex;
+  width: max-content;
+  animation: backing-marquee 24s linear infinite;
+}
+
+.backing-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes backing-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 .backing-grid {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 3.25rem 0 0;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-wrap: nowrap;
   align-items: flex-start;
-  gap: 2.25rem 3.25rem;
+  gap: 3.25rem;
 }
 
 .backing-item {
@@ -1026,6 +1047,8 @@ main > .backing.section-pad {
   align-items: center;
   text-align: center;
   gap: 0.3rem;
+  flex: 0 0 13.5rem;
+  width: 13.5rem;
   margin: 0;
   padding: 0;
   background: none;
@@ -1035,10 +1058,10 @@ main > .backing.section-pad {
 
 .backing-logo {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   height: 6.6rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.85rem;
   background: none;
   border: 0;
   padding: 0;
@@ -1048,9 +1071,15 @@ main > .backing.section-pad {
   display: block;
   width: auto;
   height: var(--logo-h);
-  max-width: 16.5rem;
+  max-width: 12.5rem;
   object-fit: contain;
   background: transparent;
+  filter: grayscale(1);
+  transition: filter 0.45s ease;
+}
+
+.backing-item:hover .backing-logo img {
+  filter: grayscale(0);
 }
 
 .logo-ccamp { --logo-h: 6.15rem; }
@@ -1070,9 +1099,26 @@ main > .backing.section-pad {
 .backing-role {
   margin: 0;
   max-width: 12rem;
+  min-height: 2.7em;
   font-size: 0.8rem;
   line-height: 1.35;
   color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backing-track { animation: none; }
+  .backing-marquee {
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .backing-grid[aria-hidden="true"] { display: none; }
+  .backing-grid {
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    padding-right: 0;
+  }
 }
 
 /* —— Footer —— */
@@ -2146,16 +2192,13 @@ main p,
 }
 
 .backing-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  justify-items: center;
-  align-items: start;
-  gap: 1.75rem 1.1rem;
-  width: 100%;
+  gap: 2.25rem;
+  padding-right: 2.25rem;
 }
 
 .backing-item {
-  width: 100%;
+  flex-basis: 9.25rem;
+  width: 9.25rem;
   gap: 0.2rem;
 }
 
